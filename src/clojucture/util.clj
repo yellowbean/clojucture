@@ -247,7 +247,7 @@
   (println "K",k,"V",v)
   (try
   (case (str (.getComponentType (.getClass v)))
-    "double" (DoubleColumn/create (name k) v)
+    "double" (DoubleColumn/create (name k) ^doubles v)
     "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
     "boolean" (BooleanColumn/create (name k) ^booleans v)
     "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v)
@@ -275,7 +275,7 @@
   ([ ^String n ^AbstractColumnType t ^Integer s ]
    (let [c (new-empty-column n t)]
      (dotimes [_ s]
-       (.appendMissing c))
+       (.appendMissing ^AbstractColumn c))
      c
      )
     )
@@ -308,16 +308,17 @@
   [ ^Table x ^Table y ]
   (let [x-col-names    (set (.columnNames x))
         y-col-names    (set (.columnNames y))
-        col-types-keep (map #(.type (.column ^Table x %)) x-col-names)
+        col-types-keep (map #(.type (.column ^Table x ^String %)) x-col-names)
         col-pairs-keep (map vector x-col-names col-types-keep)
         col-names-add  (vec (clojure.set/difference y-col-names x-col-names))
-        col-types-add  (map #(.type (.column ^Table y %)) col-names-add)
+        col-types-add  (map #(.type (.column ^Table y ^String %)) col-names-add)
         col-pairs-add  (map vector col-names-add col-types-add)
         ]
     (concat col-pairs-keep col-pairs-add)
     )
   )
 
+(comment
 (defn merge-table [ ^Table x ^Table t ]
   (let [ column-pairs  (union-column x t)
          new-table (doto (gen-table column-pairs ) (.setName "Cashflow"))
@@ -326,16 +327,16 @@
         ]
     new-table
     )
-)
+))
 
 (defn add-missing-col [ ^Table x ^Table y]
   (let [
         x-col-names   (set (.columnNames x))
-        x-col-types   (map #(.type (.column x %)) x-col-names)
+        x-col-types   (map #(.type (.column x ^String %)) x-col-names)
         x-col-pairs   (set (map vector x-col-names x-col-types))
 
         y-col-names   (set (.columnNames y))
-        y-col-types   (map #(.type (.column y %)) y-col-names)
+        y-col-types   (map #(.type (.column y ^String %)) y-col-names)
         y-col-pairs   (set (map vector y-col-names y-col-types))
 
         x-col-add     (vec (clojure.set/difference y-col-pairs x-col-pairs))
@@ -347,7 +348,12 @@
         x-col-add-ary (into-array AbstractColumn (map #(new-empty-column (first %) (second %) x-size) x-col-add))
         y-col-add-ary (into-array AbstractColumn (map #(new-empty-column (first %) (second %) y-size) y-col-add))
         ]
-    [(.addColumns x x-col-add-ary) (.addColumns y y-col-add-ary)]))
+    [
+     (.addColumns x ^"[Ltech.tablesaw.columns.AbstractColumn;" x-col-add-ary)
+     (.addColumns y ^"[Ltech.tablesaw.columns.AbstractColumn;" y-col-add-ary)
+     ]
+
+    ))
 
 (defn add-cashflow [ ^Table x ^Table y ]
   "append two cashflow with same columns , return a copy of `x` "
@@ -359,8 +365,8 @@
   (let [columns-list (.columns t)
         column-num (count columns-list)]
     (doseq [ i (range column-num) ]
-      (let [ current-col (.column t i)
-            col-name  (.name current-col)]
+      (let [ current-col (.column t ^Integer i)
+             col-name  (.name ^AbstractColumn current-col)]
         (if-let [ m-result (second (re-matches #".*\[(\S+)\].*" col-name ))]
           (.setName current-col m-result))
         )))
@@ -368,15 +374,15 @@
 
 (defn combine-cashflow
   " 'Plus' 2 cashflow tables with same column names,return combined table"
-  ([cols x y]
+  ([  ^"[Ltech.tablesaw.columns.AbstractColumn;" cols ^Table x ^Table y]
    (let [
          combined-cashflow (.append x y)
          ary-agg-funtions  (into-array AggregateFunction [AggregateFunctions/sum])
-         summary-table     (.summarize combined-cashflow
+         summary-table     (.summarize ^Table combined-cashflow
                                        cols
                                        ary-agg-funtions)
          sorted-by-dates-table  (.by summary-table (into-array java.lang.String ["dates"])) ]
-     (remove-sum-column sorted-by-dates-table)
+     (remove-sum-column ^Table sorted-by-dates-table)
      )
     )
   ([x y]

@@ -59,9 +59,7 @@
   )
 
 
-(defrecord stmt [ date amount info ]
 
-  )
 
 
 ;(defn new-account [ input-acc-list ]
@@ -75,16 +73,3 @@
 
 
 
-(defrecord account [ name type balance stmts ]
-  t/Account
-  (pay-bond [ x d bond ])
-  (pay-fee [ x d fee ])
-  (deposit [ x d amount ]
-    (cons (->stmt d amount #{:deposit }) stmts)
-    (+ balance amount)
-    )
-  )
-
-(defn transfer-fund [ x y amt ]
-
-  )

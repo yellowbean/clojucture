@@ -42,11 +42,8 @@
 	(merge1 [x t]))
 
 (defprotocol Account
-	(pay-bond [ x d bond ])
-	(pay-fee [ x d fee ])
-	(deposit [ x d amount ])
-	(withdraw [ x d amount ])
-
+	(withdraw [ x d to amount ])
+	(deposit [ x d from amount ])
 	)
 
 

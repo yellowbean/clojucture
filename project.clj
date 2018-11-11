@@ -15,7 +15,7 @@
     [org.clojure/data.json "0.2.6"]
     [org.clojure/data.zip "0.1.2"]
     [org.clojure/data.csv "0.1.4"]
-     [dk.ative/docjure "1.12.0"]
+    [dk.ative/docjure "1.12.0"]
    ]
   :plugins [
             [lein-codox "0.10.4"]]
