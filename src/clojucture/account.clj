@@ -13,7 +13,7 @@
 (defrecord account [ name type balance stmts ]
   t/Account
   (withdraw [ x  d to  amount ]
-    (.deposit x (- d) to amount)
+    (.deposit x d to (- amount))
     )
   (deposit [ x  d from   amount ]
     (let [ new-statment (->stmt d from :this amount nil)
@@ -25,6 +25,10 @@
     )
   )
 
-(defn transfer-fund [ from to amount ]
-
+(defn transfer-fund [ from-acc to-acc ^LocalDate d ^Double amount ]
+  (if (>= (:balance from-acc) amount)
+    (dosync
+      [ (.withdraw from-acc d to-acc amount) (.deposit to-acc d from-acc amount)]
+      )
+    nil)
   )

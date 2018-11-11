@@ -28,6 +28,9 @@ Asset Type | Support?
 ------|----
  Loan  | yes   |
  Mortgage   |  yes  |
+ Installments |  yes |
+ Leasing | TBD |
+
 ##### Analysis
  Assumptions | Support? 
 ------|----
