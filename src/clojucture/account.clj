@@ -2,7 +2,9 @@
   (:require [clojucture.type :as t]
             [java-time :as jt]
             )
-  (:import [java.time LocalDate])
+  (:import
+    [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
+    [java.time LocalDate])
   )
 
 
@@ -17,10 +19,8 @@
     )
   (deposit [ x  d from   amount ]
     (let [ new-statment (->stmt d from :this amount nil)
-           new-statments (cons stmts new-statment)
-           new-balance (+ balance amount)
-          ]
-      (->account name type new-balance new-statments)
+           new-balance (+ balance amount)]
+      (->account name type new-balance (conj stmts new-statment))
       )
     )
   )
