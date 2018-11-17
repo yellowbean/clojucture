@@ -8,11 +8,11 @@
   )
 
 
-(defrecord stmt [ ^LocalDate date from to amount info ]
+(defrecord stmt [ ^LocalDate date from to ^Double amount info ]
 
   )
 
-(defrecord account [ name type balance stmts ]
+(defrecord account [ name type ^Double balance stmts ]
   t/Account
   (withdraw [ x  d to  amount ]
     (.deposit x d to (- amount))
@@ -31,4 +31,20 @@
       [ (.withdraw from-acc d to-acc amount) (.deposit to-acc d from-acc amount)]
       )
     nil)
+  )
+
+(defn pay-principal [ source target ^Double amount  ]
+
+  )
+
+(defn pay-interest [ source target ^Double amount ]
+
+  )
+
+(defn pay-expense [ source target ^Double amount ]
+
+  )
+
+(defn pay-tax [ source target ^Double amount ]
+
   )

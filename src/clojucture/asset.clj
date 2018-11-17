@@ -17,7 +17,7 @@
 
 (defrecord mortgage [ start_date periodicity term period_rate balance opt]
   t/Asset
-  (project-cashflow [x]
+  (project-cashflow [ x ]
     (let [ term (inc term)
       dates (u/gen-dates-ary start_date periodicity term)
       bal (double-array term 0)

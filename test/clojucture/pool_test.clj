@@ -10,7 +10,8 @@
   (:use midje.sweet)
   )
 
-(def date-intervals (u/gen-dates-interval [(jt/local-date 2016 4 1) (jt/local-date 2018 4 1) (jt/local-date 2023 1 2)]))
+(def date-intervals
+  (u/gen-dates-interval [(jt/local-date 2016 4 1) (jt/local-date 2018 4 1) (jt/local-date 2023 1 2)]))
 
 (def test-pool
   (p/->pool

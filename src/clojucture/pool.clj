@@ -1,6 +1,4 @@
 (set! *warn-on-reflection* true)
-
-(comment
 (ns clojucture.pool
   (:require [java-time :as jt]
             [clojucture.util :as u]
@@ -10,8 +8,6 @@
   (:import
     [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
   ))
-
-
 
 (defrecord pool
   [ assets collect-intervals ]
@@ -34,4 +30,4 @@
       (.project-cashflow x) collect-intervals))
   )
 
-)
+

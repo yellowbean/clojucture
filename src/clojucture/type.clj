@@ -17,6 +17,12 @@
 	(project-cashflow [ x ] [ x assump ]  "project cashflow with/out assumption")
 	)
 
+(defprotocol Liability
+  (cal-due-amount [ x d ] )
+  (receive [x d amount])
+  )
+
+
 
 (comment
 (defprotocol Pool
@@ -26,6 +32,8 @@
 )
 
 (defprotocol Bond
+  (cal-due-principal [ x ] )
+  (cal-due-interest [ x ] )
 	;(load [ s ])
 	)
 
