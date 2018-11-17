@@ -18,3 +18,10 @@
 
     )
   )
+
+
+(deftest test-pct-fee
+  (let [ p-exp (exp/->pct-expense :trustee-fee 1000 0.001 :30_365 (jt/local-date 2018 6 1) 0)]
+
+    )
+  )
