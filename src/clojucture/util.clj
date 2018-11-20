@@ -7,7 +7,7 @@
   (:import [java.util Arrays]
            [java.util.stream DoubleStream IntStream]
            [java.time LocalDate ]
-           [java.time.temporal TemporalAdjuster]
+           [java.time.temporal TemporalAdjuster ChronoUnit]
            [org.apache.commons.lang3 ArrayUtils]
            [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn ]
            [tech.tablesaw.columns AbstractColumn AbstractColumnType ]
@@ -67,6 +67,32 @@
             (list
               s-date
                 (jt/plus e-date (jt/days -1)))))))))
+
+(defn cal-period-rate
+  [ ^java.time.LocalDate s ^java.time.LocalDate e ^Double year-rate  day-count]
+  (let [ r-365 (/ year-rate 365)
+         r-360 (/ year-rate 360)
+         bt-days (.between ChronoUnit/DAYS  s e)
+         bt-months (.between ChronoUnit/MONTHS  s e)
+         bt-years (.between ChronoUnit/YEARS  s e)]
+    (case day-count
+      :30_360
+      (+
+        (* bt-years year-rate)
+        (* bt-months (/ year-rate 12))
+        (* bt-days r-360 ))
+      :30_365
+      (+
+        (* bt-years year-rate)
+        (* bt-months (/ year-rate 12))
+        (* bt-days r-365))
+      :ACT_360
+      (* bt-days r-360)
+      :ACT_365
+      (* bt-days r-365))
+    ))
+
+
 
 (defn get-period-rate [ ^java.time.Period per ^Double year-rate day-count]
   (let [

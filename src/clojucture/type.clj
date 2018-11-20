@@ -33,7 +33,8 @@
 
 (defprotocol Bond
   (cal-due-principal [ x ] )
-  (cal-due-interest [ x ] )
+  (cal-due-interest [ x d ] )
+  (receive-payments [ x d principal interest ])
 	;(load [ s ])
 	)
 
