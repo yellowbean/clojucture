@@ -25,13 +25,25 @@
       )
     )
   (receive-payments [ x d principal interest ]
-    (let [ new-balance (- balance principal)
+    (let [
+           principal-amount (min (:balance principal) balance)
+           new-principal  (.withdraw principal d :bond-principal principal-amount)
+           new-balance (- balance principal-amount)
+
+
            int-due     (.cal-due-interest x d )
-           int-arrears (- int-due interest)
-           int-new-stmt (acc/->stmt d :from :interest  interest  nil)
-           prin-new-stmt (acc/->stmt d :from :principal  principal  nil)
+           interest-amount (min (:balance interest) int-due )
+           new-interest (.withdraw interest d :bond-interest interest-amount)
+           int-arrears (- int-due interest-amount)
+
+           int-new-stmt (acc/->stmt d :from :interest  interest-amount  nil)
+           prin-new-stmt (acc/->stmt d :from :principal  principal-amount  nil)
           ]
-      (->sequence-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears nil)
+      [
+       (->sequence-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears nil)
+       new-principal
+       new-interest
+       ]
       )
     )
   )

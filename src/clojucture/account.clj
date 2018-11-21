@@ -14,7 +14,7 @@
 
 (defrecord account [ name type ^Double balance stmts ]
   t/Account
-  (withdraw [ x  d to  amount ]
+  (withdraw [ x d to amount ]
     (.deposit x d to (- amount))
     )
   (deposit [ x  d from   amount ]
