@@ -17,19 +17,13 @@ investor side of structured products or structuring an CLO/MBS/ABS deal.
 * Provides low level functions to build up country specific deal dentures
 
 #### Coverage
-##### Deal Type
-
-Deal Type | Support
-------|----
-China interbank deal | TBD
-
 ##### Asset Type
 Asset Type | Support? 
 ------|----
  Loan  | yes   |
  Mortgage   |  yes  |
  Installments |  yes |
- Leasing | TBD |
+ Leasing | Working |
 
 ##### Analysis
  Assumptions | Support? 
