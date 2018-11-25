@@ -42,9 +42,11 @@
     )
   )
 )
-; table generation
-(deftest create-table
-
-
-
-  )
+; find first
+(deftest find-first-test
+  (let [test-d (u/gen-dates (jt/local-date 2018 1 1) (jt/months 1) 20)
+        found-d-1 (u/find-first-date (jt/local-date 2018 4 2) test-d :before)
+        found-d-2 (u/find-first-date (jt/local-date 2018 4 2) test-d :after)]
+    (is (= found-d-1 (jt/local-date 2018 4 1) ))
+    (is (= found-d-2 (jt/local-date 2018 5 1) ))
+    ))

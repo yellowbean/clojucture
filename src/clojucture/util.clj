@@ -218,6 +218,34 @@
       (count (drop-while #(jt/after? d %) ary-dates)))
   ))
 
+(defn find-first
+  [f coll]
+  (first (filter f coll)))
+
+(defn find-last
+  [f coll]
+  (last (filter f coll)))
+
+
+
+
+(defn find-first-by-func [ d comp-f test-vec ]
+  (let [com-fun (partial (complement comp-f) d) ]
+    (find-first com-fun test-vec)
+    ))
+
+(defn find-first-before-by-func [ d comp-f test-vec ]
+  (let [com-fun (partial comp-f d) ]
+    (find-last com-fun test-vec)
+    ))
+
+(defn find-first-date [ d date-vector cmp ]
+  (case cmp
+    :after (find-first-by-func d jt/after? date-vector)
+    :before (find-first-before-by-func d jt/after? date-vector)
+        )
+  )
+
 
 (defn gen-float-period-rates [ ^"[Ljava.time.LocalDate;" ary-dates curve-to-use  ]
   "input: dates vector & index info, output: a array of rates should use"
@@ -320,11 +348,9 @@
    (let [t    (Table/create "EMPTY")
          cols (map #(new-empty-column (first %) (second %)) column-pairs)]
      (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn cols))))
-  ([name columns]  ;table with columns were describled in map
+  ([name columns]  ;table with columns were described in map
    (let [t           (Table/create name)
-
          column-list (map #(gen-column %) columns)
-
          flow_array  (into-array AbstractColumn column-list)]
      (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array)))
   )
@@ -503,3 +529,4 @@
     }
    }
   )
+
