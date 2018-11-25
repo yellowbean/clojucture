@@ -239,11 +239,22 @@
     (find-last com-fun test-vec)
     ))
 
+
+
 (defn find-first-date [ d date-vector cmp ]
   (case cmp
     :after (find-first-by-func d jt/after? date-vector)
     :before (find-first-before-by-func d jt/after? date-vector)
         )
+  )
+
+(defn find-first-in-vec [ d data-vector field comp-f cmp ]
+  (let [ f  (fn [ x ] ((partial comp-f d) (field x) )) ]
+    (case cmp
+      :after (first (filter f data-vector ))
+      :before (last (filter (complement f) data-vector ))
+      )
+    )
   )
 
 

@@ -1,8 +1,9 @@
 (ns clojucture.bond
   (:require [clojucture.type :as t]
             [java-time :as jt]
-            [clojucture.account :as acc ]
-            [clojucture.util :as util])
+            [clojucture.account :as acc]
+            [clojucture.util :as util]
+            [clojucture.util :as u])
   (:import
     [tech.tablesaw.api Table DoubleColumn DateColumn]
     [tech.tablesaw.columns AbstractColumn]
@@ -12,10 +13,10 @@
 
 
 (defrecord sequence-bond
-  [ info balance rate stmts last-payment-date interest-arrears opt
+  [ info balance rate stmts last-payment-date interest-arrears
    ]
   t/Bond
-  (cal-due-principal [ x ]
+  (cal-due-principal [ x d ]
     balance
     )
   (cal-due-interest [ x d ]
@@ -40,7 +41,7 @@
            prin-new-stmt (acc/->stmt d :from :principal  principal-amount  nil)
           ]
       [
-       (->sequence-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears nil)
+       (->sequence-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears )
        new-principal
        new-interest
        ]
@@ -48,11 +49,25 @@
     )
   )
 
+
+
+
 (defrecord schedule-bond
-  [ info balance rate stmts last-payment-date interest-arrears opt ]
+  [ info balance rate stmts last-payment-date interest-arrears ]
+  t/Bond
+  (cal-due-principal [ x d ]
+    (let [ prin-due (u/find-first-in-vec d  (info :amortization-schedule) :dates = :after) ]
+      (:principal prin-due))
+    )
+  (cal-due-interest [ x d ]
+    (let [int-due-rate (util/cal-period-rate last-payment-date d rate (info :day-count))
+          int-due (* balance int-due-rate)]
+      (+ int-due interest-arrears)
+      )
+    )
+  (receive-payments [x d principal interest]
 
-
-
+    )
   )
 
 

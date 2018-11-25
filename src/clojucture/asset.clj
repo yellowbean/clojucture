@@ -159,5 +159,18 @@
     nil )
   )
 
+
+(comment
+(defrecord leasing [ info term rate balance ]
+  t/Asset
+  (project-cashflow [ x ]
+    (let [    info ]   )
+
+    )
+
+  (project-cashflow [ x assump ])
+  )
+)
+
 ;(def myloan (->loan (jt/local-date 2018 1 1) (jt/months 1) 10 0.08 1000 {:daycount :ACT_365}))
 

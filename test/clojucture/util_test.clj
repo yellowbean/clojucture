@@ -25,7 +25,6 @@
     (is (= (count date-vector-1) 20))
 
     (is (= (second date-vector-2) (jt/local-date 2019 1 1)))
-
     (is (= (second date-vector-3) (jt/local-date 2018 3 1)))
     )
   )
@@ -50,3 +49,27 @@
     (is (= found-d-1 (jt/local-date 2018 4 1) ))
     (is (= found-d-2 (jt/local-date 2018 5 1) ))
     ))
+
+; find first in vector filled with maps
+(deftest t-find-first-in-vec
+  (let [ test-vm [{:dates (jt/local-date 2018 1 1) :balance 80}
+                  {:dates (jt/local-date 2018 2 3) :balance 100}
+                  {:dates (jt/local-date 2018 5 1) :balance 150}
+                  {:dates (jt/local-date 2018 8 1) :balance 200}]
+        ]
+    (is (=
+          (:dates (u/find-first-in-vec (jt/local-date 2018 4 3) test-vm :dates jt/before? :before))
+          (jt/local-date 2018 2 3)
+          ))
+    (is (=
+          (:dates (u/find-first-in-vec (jt/local-date 2018 4 3) test-vm :dates jt/before? :after))
+          (jt/local-date 2018 5 1)
+          ))
+    (is (=
+          (:dates (u/find-first-in-vec (jt/local-date 2018 5 1) test-vm :dates = :after))
+          (jt/local-date 2018 5 1)
+          ))
+    )
+
+
+  )
