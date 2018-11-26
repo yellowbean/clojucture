@@ -1,39 +1,52 @@
 (ns clojucture.expense
   (:require [clojucture.type :as t]
+            [clojucture.account :as acc]
             [java-time :as jt]
             [clojucture.util :as util])
   (:import [java.time LocalDate Period  ])
   )
 
 
-(defrecord pct-expense [ name ^Double base ^Double pct day-count ^LocalDate last-paid-date ^Double arrears ]
+(defrecord pct-expense [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
-  (cal-due-amount [ x d]
+  (cal-due-amount [ x d base]
      (-> (util/get-period-rate
-            (Period/between last-paid-date d ) pct day-count)
+            (Period/between last-paid-date d ) (info :pct) (info :day-count))
            (* base)
          (+ arrears)
        )
     )
-  (receive [ x  d receive-amount]
-   (let [ new-arrears (+ arrears (- (.cal-due-amount x d) receive-amount) ) ]
-     (->pct-expense name base pct day-count d new-arrears )
+  (receive [ x d base a ]
+   (let [ total-due (+ (.cal-due-amount x d base) arrears )
+         available-payment (min (:balance a) total-due )
+         new-stmt (acc/->stmt d (:name a) (:name info) available-payment nil)
+         new-arrears (- total-due available-payment)
+         ]
+     [
+      (->pct-expense info (conj stmt new-stmt) d new-arrears)
+      (.withdraw a d (:name info) available-payment)
+      ]
      )
     )
   )
 
 
 
-(defrecord amount-expense [ name ^Double origin-balance ^Double balance ]
+(defrecord amount-expense [ info ^Double balance stmt ^Double arrears ]
   t/Liability
-  (cal-due-amount [ x  d]
+  (cal-due-amount [ x d ]
     balance
     )
-  (receive [ x  d  receive-amount ]
-    (if (> receive-amount balance)
-      (throw (Exception.
-               (format "Maxium Amount to received:%f" receive-amount)))
-      (->amount-expense name origin-balance (- balance receive-amount))
+  (receive [ x  d  a ]
+    (let [ total-due (+ (.cal-due-amount x d ) arrears )
+          available-payment (min (:balance a) total-due )
+          new-stmt (acc/->stmt d (:name a) (:name info) available-payment nil)
+          new-arrears (- total-due available-payment)
+         ]
+      [
+       (->amount-expense info (- balance available-payment) (conj stmt new-stmt) new-arrears)
+       (.withdraw a d (:name info) available-payment)
+       ]
       )
     )
   )

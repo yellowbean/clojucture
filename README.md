@@ -25,6 +25,14 @@ Asset Type | Support?
  Installments |  yes |
  Leasing | Working |
 
+
+##### Bond Type
+Bond Type | Support?
+------|----
+ Bond with schedule amortization  | yes   |
+ Pass through Bond   |  yes  |
+
+
 ##### Analysis
  Assumptions | Support? 
 ------|----

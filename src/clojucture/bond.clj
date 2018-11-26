@@ -13,11 +13,11 @@
 
 
 (defrecord sequence-bond
-  [ info balance rate stmts last-payment-date interest-arrears
+  [ info balance rate stmts last-payment-date interest-arrears principal-loss
    ]
   t/Bond
   (cal-due-principal [ x d ]
-    balance
+    (+ balance principal-loss)
     )
   (cal-due-interest [ x d ]
     (let [int-due-rate (util/cal-period-rate last-payment-date d rate (info :day-count))
@@ -28,9 +28,9 @@
   (receive-payments [ x d principal interest ]
     (let [
            principal-amount (min (:balance principal) balance)
+           principal-loss-amt (max (- (.cal-due-principal x d) principal-amount) 0)
            new-principal  (.withdraw principal d :bond-principal principal-amount)
            new-balance (- balance principal-amount)
-
 
            int-due     (.cal-due-interest x d )
            interest-amount (min (:balance interest) int-due )
@@ -41,7 +41,7 @@
            prin-new-stmt (acc/->stmt d :from :principal  principal-amount  nil)
           ]
       [
-       (->sequence-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears )
+       (->sequence-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears principal-loss-amt)
        new-principal
        new-interest
        ]
@@ -53,11 +53,12 @@
 
 
 (defrecord schedule-bond
-  [ info balance rate stmts last-payment-date interest-arrears ]
+  [ info balance rate stmts last-payment-date interest-arrears principal-loss]
   t/Bond
   (cal-due-principal [ x d ]
     (let [ prin-due (u/find-first-in-vec d  (info :amortization-schedule) :dates = :after) ]
-      (:principal prin-due))
+      (+ (:principal prin-due) principal-loss)
+      )
     )
   (cal-due-interest [ x d ]
     (let [int-due-rate (util/cal-period-rate last-payment-date d rate (info :day-count))
@@ -65,8 +66,29 @@
       (+ int-due interest-arrears)
       )
     )
-  (receive-payments [x d principal interest]
+  (receive-payments [x d principal interest ]
+    (let [ due-principal (.cal-due-principal x d)
+           principal-amount (min (:balance principal) due-principal)
+           principal-loss-amt (max (- (.cal-due-principal x d) principal-amount) 0)
+           new-principal  (.withdraw principal d :bond-principal principal-amount)
+           new-balance (- balance principal-amount)
 
+          int-due     (.cal-due-interest x d )
+          interest-amount (min (:balance interest) int-due )
+          new-interest (.withdraw interest d :bond-interest interest-amount)
+          int-arrears (- int-due interest-amount)
+
+          int-new-stmt (acc/->stmt d :from :interest  interest-amount  nil)
+          prin-new-stmt (acc/->stmt d :from :principal  principal-amount  nil)
+
+          ]
+      [
+       (->schedule-bond info new-balance rate  (conj stmts int-new-stmt prin-new-stmt) d int-arrears principal-loss-amt)
+       new-principal
+       new-interest
+       ]
+
+      )
     )
   )
 

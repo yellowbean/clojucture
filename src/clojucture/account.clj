@@ -17,7 +17,7 @@
   (withdraw [ x d to amount ]
     (.deposit x d to (- amount))
     )
-  (deposit [ x  d from   amount ]
+  (deposit [ x  d from amount ]
     (let [ new-statment (->stmt d from :this amount nil)
            new-balance (+ balance amount)]
       (->account name type new-balance (conj stmts new-statment))
