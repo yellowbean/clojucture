@@ -1,6 +1,7 @@
 (ns clojucture.asset-test
   (:require
     [java-time :as jt]
+    [clojure.test :refer :all]
     [clojucture.asset :as asset ]
     [clojucture.assumption :as assump ]
     [clojucture.util :as u])
@@ -71,23 +72,18 @@
 
 
 
-;      )
-
-(def test-installment
-  (asset/->installments (jt/local-date 2018 1 1 ) (jt/months 1) 12 1000 0.008 nil ))
-
-(def test-installment-cf (.project-cashflow test-installment))
-
-
-(fact "installment cashflow validation"
-      (.get (.column test-installment-cf "dates") 0) => (jt/local-date 2018 1 1)
-      (.get (.column test-installment-cf "dates") 1) => (jt/local-date 2018 2 1)
-      (.get (.column test-installment-cf "dates") 11) => (jt/local-date 2018 12 1)
-      (.get (.column test-installment-cf "balance") 11) => (roughly 83.3333 0.1)
-      (.get (.column test-installment-cf "balance") 0) => 1000.0
-      (.get (.column test-installment-cf "principal") 12) => (roughly 83.33333 0.1)
-      (.sum (.column test-installment-cf "principal") ) => (roughly 1000.0 0.1)
-      (.get (.column test-installment-cf "installment-fee") 3) => 8.0
-      )
-
 )
+
+(deftest test-installment-cf
+  (let [ test-installment-info {:start-date (jt/local-date 2018 1 1) :periodicity (jt/months 1)
+                               :original-balance 30000
+                               :original-term 10 :period-fee-rate 0.0027
+                               }
+        instl  (asset/->installments test-installment-info 20000 15 )
+        instl-cf (.project-cashflow instl) ]
+  (are [x y] (= x y)
+       (.get (.column instl-cf "dates") 0) (jt/local-date 2018 1 1)
+       (.get (.column instl-cf "dates") 1)  (jt/local-date 2018 2 1)
+       (.get (.column instl-cf "dates") 10)   (jt/local-date 2018 11 1)
+      )
+))

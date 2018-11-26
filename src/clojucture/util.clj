@@ -18,9 +18,6 @@
            [tech.tablesaw.aggregate AggregateFunction AggregateFunctions])
   )
 
-;(take-while (partial jt/after? (jt/plus end step)) (jt/iterate jt/plus start step))
-
-
 (defn gen-dates
   [start step n]
   (take n (jt/iterate jt/plus start step)))
@@ -309,32 +306,18 @@
 
 (defn gen-column [[k v]]
   "Create a table column with given column name and value vector"
-  (println "K",k,"V",v)
-  (try
-  (case (str (.getComponentType (.getClass v)))
-    "double" (DoubleColumn/create (name k) ^doubles v)
-    "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
-    "boolean" (BooleanColumn/create (name k) ^booleans v)
-    "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v)
-    )
-  (catch Exception e
-    (println "EXP" e)
-         ))
+   (try
+     (case (str (.getComponentType (.getClass v)))
+       "double" (DoubleColumn/create (name k) (double-array [1 2]))
+       "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
+       "boolean" (BooleanColumn/create (name k) ^booleans v)
+       "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v)
+       )
+     (catch Exception e
+       (println "EXP" e)
+       ))
   )
-(comment
-(defn gen-column2 [[k v]]
-  (let [ col   (case (str (.getComponentType (.getClass v)))
-                 "double" (DoubleColumn/create (name k))
-                 "string" (StringColumn/create (name k) )
-                 "boolean" (BooleanColumn/create (name k) )
-                 "class java.time.LocalDate" (DateColumn/create (name k) )
-                 )
 
-        ]
-
-    col
-    )
-  ))
 
 (defn new-empty-column
   ([ ^String n ^AbstractColumnType t ^Integer s ]

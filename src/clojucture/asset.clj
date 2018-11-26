@@ -138,17 +138,19 @@
     )
   )
 
-(defrecord installments [ start-date periodicity term balance fee-rate opt]
+(defrecord installments [ info balance term ]
   t/Asset
   (project-cashflow [ x ]
-    (let [
-           dates (u/gen-dates-ary start-date periodicity (inc term))
-           even-principal (/ balance term)
-           even-principal-list (->> (take term (repeat even-principal)) (cons 0))
+    (let [ {start-date :start-date periodicity :periodicity  org-bal :original-balance
+            orig-term :original-term period-fee-rate :period-fee-rate
+            } info
+           dates (u/gen-dates-ary start-date periodicity (inc orig-term))
+           even-principal (/ org-bal orig-term)
+           even-principal-list (->> (take orig-term (repeat even-principal)) (cons 0))
            prin  (double-array even-principal-list)
-           bal (u/gen-balance prin balance)
-           period-fee (* balance fee-rate)
-           period-fee-list (->> (take term (repeat period-fee)) (cons 0))
+           bal (u/gen-balance prin org-bal)
+           period-fee (* org-bal period-fee-rate)
+           period-fee-list (->> (take orig-term (repeat period-fee)) (cons 0))
            fee  (double-array period-fee-list)
           ]
       (u/gen-table "cashflow"
@@ -171,6 +173,3 @@
   (project-cashflow [ x assump ])
   )
 )
-
-;(def myloan (->loan (jt/local-date 2018 1 1) (jt/months 1) 10 0.08 1000 {:daycount :ACT_365}))
-
