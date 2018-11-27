@@ -86,4 +86,7 @@
        (.get (.column instl-cf "dates") 1)  (jt/local-date 2018 2 1)
        (.get (.column instl-cf "dates") 10)   (jt/local-date 2018 11 1)
       )
+  (are [x y] (= x y)
+             (.size (.doubleColumn instl-cf "installment-fee") ) 2
+             )
 ))

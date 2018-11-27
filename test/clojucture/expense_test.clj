@@ -20,7 +20,6 @@
       (is (= (:balance new-acc) 500))
       (is (= (:balance new-exp) 0))
     )
-
     )
   )
 

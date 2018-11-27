@@ -18,7 +18,7 @@
 	)
 
 (defprotocol Liability
-  (cal-due-amount [ x d ] )
+  (cal-due-amount [ x d ] [ x d base ] )
   (receive [x d acc] [x d base acc] )
   )
 
