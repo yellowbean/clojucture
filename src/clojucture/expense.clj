@@ -10,11 +10,17 @@
 (defrecord pct-expense [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
   (cal-due-amount [ x d base ]
-     (-> (util/get-period-rate
-            (Period/between last-paid-date d ) (info :pct) (info :day-count))
-           (* base)
-         (+ arrears)
-       )
+    (case (info :type)
+      :yearly
+        (-> (util/get-period-rate
+              (Period/between last-paid-date d ) (info :pct) (info :day-count))
+            (* base)
+            (+ arrears)
+            )
+      :one-off
+        (* base (info :rate))
+      )
+
     )
 
   (receive [ x d base a ]

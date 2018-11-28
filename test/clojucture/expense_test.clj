@@ -25,7 +25,7 @@
 
 
 (deftest test-pct-fee
-  (let [p-exp-info {:name :trustee-fee :pct 0.001 :day-count :30_365}
+  (let [p-exp-info {:name :trustee-fee :pct 0.001 :day-count :30_365 :type :yearly}
         p-exp (exp/->pct-expense p-exp-info [] (jt/local-date 2018 6 1) 0)
         cash-acc (acc/->account :cash :cash 2000 [])
 
