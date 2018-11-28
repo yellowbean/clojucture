@@ -10,7 +10,7 @@
   (< (Math/abs (- x y)) tolerance))
 
 (deftest test-seq-bond
-  (let [ seq-bond (bnd/->sequence-bond {:day-count :ACT_365 } 1000 0.08 [] (jt/local-date 2018 1 1)
+  (let [ seq-bond (bnd/->bond {:day-count :ACT_365 :type :sequence } 1000 0.08 [] (jt/local-date 2018 1 1)
                     0  0 )
          prin-acc (acc/->account :t :principal 300 [])
          int-acc (acc/->account :t :interest 1000 [])
@@ -40,7 +40,7 @@
   (let [ balance-schedule [{:dates (jt/local-date 2018 1 1) :principal 4000}
                            {:dates (jt/local-date 2018 6 1) :principal 3000}
                            {:dates (jt/local-date 2018 12 1) :principal 2000}]
-         sche-bond (bnd/->schedule-bond {:amortization-schedule balance-schedule} 5000 0.07 [] (jt/local-date 2018 5 1) 0 0)]
+         sche-bond (bnd/->bond { :type :schedule :amortization-schedule balance-schedule} 5000 0.07 [] (jt/local-date 2018 5 1) 0 0)]
     (is (= 4000 (.cal-due-principal sche-bond (jt/local-date 2018 1 1)) ))
     (is (= 3000 (.cal-due-principal sche-bond (jt/local-date 2018 6 1)) ))
     )

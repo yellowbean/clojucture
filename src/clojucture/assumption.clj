@@ -25,7 +25,7 @@
   ))
 
 
-(defn gen-curve [index dates rates ]
+(defn gen-curve [ index dates rates ]
   (let [ pairs (map vector dates rates ) ]
     { index pairs})
   )
