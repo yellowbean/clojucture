@@ -18,7 +18,7 @@
             (+ arrears)
             )
       :one-off
-        (* base (info :rate))
+        (* base (info :pct))
       )
 
     )
