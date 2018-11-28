@@ -31,13 +31,12 @@
 
         due-1 (.cal-due-amount p-exp (jt/local-date 2018 12 1) 50000)
 
-        [new-p-exp new-acc] (.recieve p-exp (jt/local-date 2018 12 1) 50000 cash-acc)
+        [new-p-exp new-acc] (.receive p-exp (jt/local-date 2018 12 1) 50000 cash-acc)
         new-stmt (:stmts new-p-exp)
 
         ]
-    (is (= due-1 25.06849315))
+    (is (= due-1 25.0))
 
-    (is (= (:balance new-acc) (- 2000 25.06849315) ))
-    (is (= (:amount new-stmt)  25.06849315))
+    (is (= (:balance new-acc) (- 2000 25.0) ))
     )
   )

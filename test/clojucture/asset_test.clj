@@ -73,7 +73,7 @@
 
 
 )
-
+(comment
 (deftest test-installment-cf
   (let [ test-installment-info {:start-date (jt/local-date 2018 1 1) :periodicity (jt/months 1)
                                :original-balance 30000
@@ -89,4 +89,4 @@
   (are [x y] (= x y)
              (.size (.doubleColumn instl-cf "installment-fee") ) 2
              )
-))
+)))

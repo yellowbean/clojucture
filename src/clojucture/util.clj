@@ -308,7 +308,7 @@
   "Create a table column with given column name and value vector"
    (try
      (case (str (.getComponentType (.getClass v)))
-       "double" (DoubleColumn/create (name k) (double-array [1 2]))
+       "double" (DoubleColumn/create (name k) v)
        "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
        "boolean" (BooleanColumn/create (name k) ^booleans v)
        "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v)
