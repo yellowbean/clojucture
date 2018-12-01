@@ -34,6 +34,7 @@
 (defprotocol Bond
   (cal-due-principal [ x d ] )
   (cal-due-interest [ x d ] )
+  (cal-next-rate [ x d assump ])
   (receive-payments [ x d principal interest ])
 	;(load [ s ])
 	)
@@ -43,7 +44,6 @@
 	(run-bonds [x assump] )
 	)
 
-
 (defprotocol IndexCurve
   (apply-to [ x float-info dates  ]))
 
@@ -52,16 +52,6 @@
 
 (defprotocol Account
 	(withdraw [ x d to amount ])
+  (try-withdraw [ x d to amount ])
 	(deposit [ x d from amount ])
 	)
-
-
-(defn init-statement [ x ]
-  ;(u/gen-table "statement"
-  ;             {:dates dates })
-  )
-
-;(extend Table
-;  pTable
-;  {:merge u/merge-table }
-;  )

@@ -17,6 +17,11 @@
   (withdraw [ x d to amount ]
     (.deposit x d to (- amount))
     )
+  (try-withdraw [ x d to amount ]
+    (let [ max-to-draw (min amount balance)]
+    (.deposit x d to (- max-to-draw)))
+    )
+
   (deposit [ x  d from amount ]
     (let [ new-statment (->stmt d from :this amount nil)
            new-balance (+ balance amount)]
