@@ -6,15 +6,12 @@
   (:use midje.sweet)
   )
 
-
-; account test
 (deftest deposit-test
-         (let [ test-account (acc/->account :acc-1 :cash 0 [])
-               ]
-           (is (:balance (.deposit test-account (jt/local-date 2018 11 1) :originator 200)) 200)
-           )
-         )
-
+   (let [ test-account (acc/->account :acc-1 :cash 0 [])
+         ]
+     (is (:balance (.deposit test-account (jt/local-date 2018 11 1) :originator 200)) 200)
+     )
+  )
 
 (deftest withdraw-test
   (let [ test-account (acc/->account :acc-1 :cash 1000 [])
@@ -22,6 +19,15 @@
     (is (:balance (.withdraw test-account (jt/local-date 2018 11 1) :investor 600)) 400)
     )
   )
+
+(deftest try-withdraw-test
+  (let [ test-account-1 (acc/->account :from :cash 1000 [])
+         test-account-1-after-try (.try-withdraw test-account-1 (jt/local-date 2018 11 12) :to 1500 )
+        ]
+    (is (= (:balance test-account-1-after-try) 0))
+    )
+  )
+
 
 (deftest transfer-test
   (let [ test-account-1 (acc/->account :from :cash 1000 [])
@@ -55,6 +61,5 @@
 
     (is (= 300 (:amount (first (:stmts acc-2-2)))))
     (is (= 20 (:amount (second (:stmts acc-2-2)))))
-
 
   ))

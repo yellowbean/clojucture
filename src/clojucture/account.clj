@@ -28,6 +28,10 @@
       (->account name type new-balance (conj stmts new-statment))
       )
     )
+
+  (last-txn [ x ]
+    (last stmts)
+    )
   )
 
 (defn transfer-fund [ from-acc to-acc ^LocalDate d ^Double amount ]

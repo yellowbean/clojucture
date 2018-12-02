@@ -34,6 +34,7 @@
 (defprotocol Bond
   (cal-due-principal [ x d ] )
   (cal-due-interest [ x d ] )
+  (amortize [ x d amt])
   (cal-next-rate [ x d assump ])
   (receive-payments [ x d principal interest ])
 	;(load [ s ])
@@ -54,4 +55,5 @@
 	(withdraw [ x d to amount ])
   (try-withdraw [ x d to amount ])
 	(deposit [ x d from amount ])
+  (last-txn [ x ])
 	)
