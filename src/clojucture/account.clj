@@ -41,19 +41,3 @@
       )
     nil)
   )
-
-(defn pay-principal [ source target ^Double amount  ]
-
-  )
-
-(defn pay-interest [ source target ^Double amount ]
-
-  )
-
-(defn pay-expense [ source target ^Double amount ]
-
-  )
-
-(defn pay-tax [ source target ^Double amount ]
-
-  )

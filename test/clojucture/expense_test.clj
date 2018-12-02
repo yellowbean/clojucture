@@ -16,7 +16,7 @@
         ]
     (is (= (.cal-due-amount t-exp (jt/local-date 2018 1 3)) 1500))
 
-    (let [ [new-exp new-acc]  (.receive t-exp (jt/local-date 2018 1 3) cash-acc) ]
+    (let [ [ new-acc new-exp ]  (exp/pay-expense (jt/local-date 2018 1 3) cash-acc t-exp) ]
       (is (= (:balance new-acc) 500))
       (is (= (:balance new-exp) 0))
     )
@@ -30,14 +30,14 @@
         p-exp-info {:name :trustee-fee :pct 0.001 :day-count :30_365 :type :yearly}
         p-exp (exp/->pct-expense p-exp-info [] (jt/local-date 2018 6 1) 0)
         due-1 (.cal-due-amount p-exp (jt/local-date 2018 12 1) 50000)
-        [new-p-exp new-acc] (.receive p-exp (jt/local-date 2018 12 1) 50000 cash-acc)
+        [ new-acc new-p-exp ] (exp/pay-expense (jt/local-date 2018 12 1) cash-acc p-exp 50000 )
         new-stmt (:stmts new-p-exp)
 
 
         p-exp-info-2 {:name :VAT :pct 0.03 :day-count :30_365 :type :one-off}
         p-exp-2 (exp/->pct-expense p-exp-info-2 [] (jt/local-date 2018 6 1) 0)
         due-2 (.cal-due-amount p-exp-2 (jt/local-date 2018 12 1) 10000)
-        [new-p-exp new-acc-2] (.receive p-exp-2 (jt/local-date 2018 12 1) 10000 new-acc)
+        [ new-acc-2 new-p-exp] (exp/pay-expense (jt/local-date 2018 12 1)  new-acc p-exp-2  10000 )
 
         ]
     (is (= due-1 25.0))
