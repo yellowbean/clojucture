@@ -27,17 +27,17 @@
 (deftest test-pct-fee
   (let [cash-acc (acc/->account :cash :cash 2000 [])
 
-        p-exp-info {:name :trustee-fee :pct 0.001 :day-count :30_365 :type :yearly}
-        p-exp (exp/->pct-expense p-exp-info [] (jt/local-date 2018 6 1) 0)
+        p-exp-info {:name :trustee-fee :pct 0.001 :day-count :30_365}
+        p-exp (exp/->pct-expense-by-amount p-exp-info [] (jt/local-date 2018 6 1) 0)
         due-1 (.cal-due-amount p-exp (jt/local-date 2018 12 1) 50000)
-        [ new-acc new-p-exp ] (exp/pay-expense (jt/local-date 2018 12 1) cash-acc p-exp 50000 )
+        [ new-acc new-p-exp ] (exp/pay-expense-at-base (jt/local-date 2018 12 1) cash-acc p-exp 50000 )
         new-stmt (:stmts new-p-exp)
 
 
-        p-exp-info-2 {:name :VAT :pct 0.03 :day-count :30_365 :type :one-off}
-        p-exp-2 (exp/->pct-expense p-exp-info-2 [] (jt/local-date 2018 6 1) 0)
+        p-exp-info-2 {:name :VAT :pct 0.03 :day-count :30_365 }
+        p-exp-2 (exp/->pct-expense-by-rate p-exp-info-2 [] (jt/local-date 2018 6 1) 0)
         due-2 (.cal-due-amount p-exp-2 (jt/local-date 2018 12 1) 10000)
-        [ new-acc-2 new-p-exp] (exp/pay-expense (jt/local-date 2018 12 1)  new-acc p-exp-2  10000 )
+        [ new-acc-2 new-p-exp] (exp/pay-expense-at-base (jt/local-date 2018 12 1)  new-acc p-exp-2  10000 )
 
         ]
     (is (= due-1 25.0))
