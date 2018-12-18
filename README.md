@@ -49,7 +49,7 @@ Bond Type | Support?
 
 Credits
 ----
-* [clojure 1.9](https://clojure.github.io/clojure/) 
+* [clojure 1.10](https://clojure.github.io/clojure/) 
 * [jTablesaw](https://jtablesaw.github.io/tablesaw/)
 * [java.time](http://dm3.github.io/clojure.java-time/index.html)
 
