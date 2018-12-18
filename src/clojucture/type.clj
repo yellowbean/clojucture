@@ -6,7 +6,7 @@
     ;(clojucture.type Cashflow)
 
     ;(clojucture.type IndexCurve)
-    )
+    (org.apache.commons.math3.util DoubleArray))
 
 	)
 
@@ -57,3 +57,14 @@
 	(deposit [ x d from amount ])
   (last-txn [ x ])
 	)
+
+(defprotocol TableColumn
+  (to-column [x] [x name])
+  )
+
+
+(extend-protocol TableColumn
+  (class (double-array 0))
+    (to-column [x] (DoubleColumn/create "EMPTY" x))
+  )
+

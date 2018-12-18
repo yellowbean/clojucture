@@ -97,6 +97,8 @@
     (aset-double principal-flow (dec term) balance)
     principal-flow))
 
+
+
 (defrecord loan [ start_date periodicity term rate balance day_count opt]
   t/Asset
   (project-cashflow [ x ]

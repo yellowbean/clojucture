@@ -3,7 +3,6 @@
     [java-time :as jt]
     [clojucture.account :as acc ]
     [clojure.test :refer :all])
-  (:use midje.sweet)
   )
 
 (deftest deposit-test

@@ -224,8 +224,6 @@
   (last (filter f coll)))
 
 
-
-
 (defn find-first-by-func [ d comp-f test-vec ]
   (let [com-fun (partial (complement comp-f) d) ]
     (find-first com-fun test-vec)
@@ -524,3 +522,11 @@
    }
   )
 
+(defn -cal-due-interest
+  ([ balance start-d end-d day-count rate ]
+   (let [int-due-rate (cal-period-rate start-d end-d rate day-count) ]
+     (* balance int-due-rate)))
+  ([balance start-d end-d day-count rate arrears ]
+   (+
+     (-cal-due-interest balance start-d end-d day-count rate )
+     arrears )))

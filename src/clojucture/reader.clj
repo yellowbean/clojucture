@@ -11,6 +11,8 @@
     [tech.tablesaw.io.csv CsvReader CsvReadOptions$Builder])
   )
 
+
+(comment
 (defn load-asset [ fp opt ]
 
   )
@@ -79,3 +81,5 @@
 ;    (-> raw-maps
 ;        (remove-first-line) ((asset-of-function asset-class)))
 ;    ))
+
+)

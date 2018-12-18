@@ -4,7 +4,6 @@
     [clojucture.asset :as asset ]
     [clojucture.reader :as rdr]
     )
-  (:use midje.sweet)
   )
 
 

@@ -13,15 +13,7 @@
 
 
 
-(defn -cal-due-interest
-  ([ balance start-d end-d day-count rate ]
-   (let [int-due-rate (util/cal-period-rate start-d end-d rate day-count) ]
-     (* balance int-due-rate)))
-  ([balance start-d end-d day-count rate arrears ]
-   (+
-     (-cal-due-interest balance start-d end-d day-count rate )
-     arrears ))
-)
+
 
 (defn -amortize [ bond d amt loss ]
   (let [ new-stmt (acc/->stmt d :from :principal amt nil) ]
@@ -49,9 +41,7 @@
       (+ balance principal-loss))
 
   (cal-due-interest [ x d ]
-    (-cal-due-interest balance (:int last-payment-date) d (info :day-count) rate interest-arrears))
-
-
+    (u/-cal-due-interest balance (:int last-payment-date) d (info :day-count) rate interest-arrears))
   )
 
 (defrecord schedule-bond
@@ -62,8 +52,7 @@
       (+ (:principal prin-due) principal-loss)))
 
   (cal-due-interest [ x d ]
-    (-cal-due-interest balance (:int last-payment-date) d (info :day-count) rate interest-arrears))
-
+    (u/-cal-due-interest balance (:int last-payment-date) d (info :day-count) rate interest-arrears))
   )
 
 

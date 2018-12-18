@@ -4,12 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [
-    [org.clojure/clojure "1.9.0"]
-    [tech.tablesaw/tablesaw-core "0.25.2"]
+    [org.clojure/clojure "1.10.0"]
+    [tech.tablesaw/tablesaw-core "0.30.1"]
     [org.apache.commons/commons-math3 "3.6.1"]
     [org.apache.commons/commons-lang3 "3.7"]
     [clojure.java-time "0.3.2"]
-    [midje "1.9.2"]
     [org.clojure/data.csv "0.1.4"]
     [org.clojure/data.json "0.2.6"]
     [org.clojure/data.zip "0.1.2"]

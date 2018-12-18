@@ -7,7 +7,6 @@
     [clojucture.pool :as p]
     [clojucture.util :as u]
     )
-  (:use midje.sweet)
   )
 
 (def date-intervals

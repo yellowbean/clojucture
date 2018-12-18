@@ -10,7 +10,6 @@
             [clojure.data.zip.xml :as zip-xml]
             [clojure.zip :as z])
 
-  (:use midje.sweet)
   )
 
 (def test-cn-deal-xml (r/read-chinese-deal (io/resource "china/china-bank-deal-1.xml")))

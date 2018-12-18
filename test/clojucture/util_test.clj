@@ -3,7 +3,6 @@
     [clojure.test :refer :all]
     [clojucture.util :as u]
     [java-time :as jt])
-  (:use midje.sweet)
   )
 
 
@@ -28,6 +27,18 @@
     (is (= (second date-vector-3) (jt/local-date 2018 3 1)))
     )
   )
+
+(deftest gen-column-test
+  (let [ dat-col (u/gen-column [:date-col (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 1) 4)])
+         dou-col (u/gen-column [:double-col (double-array [1 2 3 4])])
+         ;str-col (u/gen-column [:string-col (into-array String ["HEE" "LOO" "WWW" "WORD"])])
+        ]
+    (is (= (.size dat-col) 4))
+    (is (= (.size dou-col) 4))
+    ;(is (= (.size str-col) 4))
+  )
+  )
+
 
 
 

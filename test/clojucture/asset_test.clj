@@ -5,11 +5,13 @@
     [clojucture.asset :as asset ]
     [clojucture.assumption :as assump ]
     [clojucture.util :as u])
-  (:use midje.sweet)
   )
 
 ;(def cn-rates (u/load-interest-rate "china/rates.json"))
 (comment
+
+(def test-assets (atom nil) )
+
 (def test-reset-dates
   (u/gen-dates-range (jt/local-date 2017 1 1)  (jt/years 1) (jt/local-date 2020 1 1)))
 
@@ -50,30 +52,6 @@
   )
 
 
-
-(fact "loan cashflow validation"
-      (.get (.column test-loan-cf "dates") 0) => (jt/local-date 2018 2 1)
-      (.get (.column test-loan-cf "dates") 1) => (jt/local-date 2018 3 1)
-      (.get (.column test-loan-cf "dates") 11) => (jt/local-date 2019 1 1)
-      (.get (.column test-loan-cf "balance") 11) => 0.0
-      (.get (.column test-loan-cf "balance") 0) => 1250.0
-      (.get (.column test-loan-cf "principal") 11) => 1250.0
-      (.sum (.column test-loan-cf "principal") ) => 1250.0
-      )
-
-;(fact ";(.project-cashflow test-float-loan {:indexes test-index-curve})"
-
-;      )
-
-
-
-;(fact ";(.project-cashflow test-float-mortgage {:indexes test-index-curve})"
-
-
-
-
-)
-(comment
 (deftest test-installment-cf
   (let [ test-installment-info {:start-date (jt/local-date 2018 1 1) :periodicity (jt/months 1)
                                :original-balance 30000
@@ -89,4 +67,6 @@
   (are [x y] (= x y)
              (.size (.doubleColumn instl-cf "installment-fee") ) 2
              )
-)))
+))
+
+)
