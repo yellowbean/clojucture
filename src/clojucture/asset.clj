@@ -140,12 +140,10 @@
     )
   )
 
-(defrecord commercial-paper [ info ]
+(defrecord commercial-paper [ info start-date  end-date org-bal]
   t/Asset
   (project-cashflow [ x ]
-    (let [{start-date :start-date org-bal :original-balance
-           end-date  :end-date
-           } info
+    (let [
            dates (into-array LocalDate [start-date end-date])
            bal (double-array [org-bal 0])
            prin (double-array [0 org-bal ])

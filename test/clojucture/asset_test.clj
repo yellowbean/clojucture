@@ -70,9 +70,8 @@
 
 
 (deftest test-comm-paper-cf
-  (let [cp-info {:start-date (jt/local-date 2018 3 10) :original-balance 29000
-                 :end-date   (jt/local-date 2018 10 10)}
-        cp (asset/->commercial-paper cp-info)
+  (let [cp-info { }
+        cp (asset/->commercial-paper cp-info (jt/local-date 2018 3 10) (jt/local-date 2018 10 10) 29000)
         cp-cf (.project-cashflow cp)
         ]
     (is (= (.columnCount cp-cf) 3))
