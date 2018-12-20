@@ -140,6 +140,23 @@
     )
   )
 
+(defrecord commercial-paper [ info ]
+  t/Asset
+  (project-cashflow [ x ]
+    (let [{start-date :start-date org-bal :original-balance
+           end-date  :end-date
+           } info
+           dates (into-array LocalDate [start-date end-date])
+           bal (double-array [org-bal 0])
+           prin (double-array [0 org-bal ])
+          ]
+      (u/gen-table "cashflow"
+                   {:dates dates :balance bal :principal prin } )
+      )
+    )
+  )
+
+
 (defrecord installments [ info balance term ]
   t/Asset
   (project-cashflow [ x ]

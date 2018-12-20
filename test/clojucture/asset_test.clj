@@ -7,25 +7,24 @@
     [clojucture.util :as u])
   )
 
-;(def cn-rates (u/load-interest-rate "china/rates.json"))
-(comment
-
 (def test-assets (atom nil) )
 
 (def test-reset-dates
   (u/gen-dates-range (jt/local-date 2017 1 1)  (jt/years 1) (jt/local-date 2020 1 1)))
 
-(def test-loan
-  (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {} ))
 
-(def test-loan2
-  (asset/->loan (jt/local-date 2017 2 1) (jt/months 2) 11 0.12 2500 :ACT_365 {} ))
+(deftest test-loan-cf
+  (let [test-loan (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {} )
+        test-loan2 (asset/->loan (jt/local-date 2017 2 1) (jt/months 2) 11 0.12 2500 :ACT_365 {} )
+        test-loan3 (asset/->loan (jt/local-date 2018 1 1) (jt/months 2) 24 0.06 5000 :ACT_365 {} )
+        [cf1 cf2 cf3 ] (map #(.project-cashflow %) [test-loan test-loan2 test-loan3])
+    ]
+    (is (= (.rowCount cf1) 12))
+    (is (= (.rowCount cf2) 12))
+    (is (= (.rowCount cf3) 25))
 
-(def test-loan3
-  (asset/->loan (jt/local-date 2018 1 1) (jt/months 2) 24 0.06 5000 :ACT_365 {} ))
-
-(def test-loan-cf
-  (.project-cashflow test-loan))
+    )
+  )
 
 (def test-float-mortgage
   (asset/->float-mortgage
@@ -65,8 +64,23 @@
        (.get (.column instl-cf "dates") 10)   (jt/local-date 2018 11 1)
       )
   (are [x y] (= x y)
-             (.size (.doubleColumn instl-cf "installment-fee") ) 2
+             (.size (.doubleColumn instl-cf "installment-fee") ) 11
              )
 ))
 
-)
+
+(deftest test-comm-paper-cf
+  (let [cp-info {:start-date (jt/local-date 2018 3 10) :original-balance 29000
+                 :end-date   (jt/local-date 2018 10 10)}
+        cp (asset/->commercial-paper cp-info)
+        cp-cf (.project-cashflow cp)
+        ]
+    (is (= (.columnCount cp-cf) 3))
+    (is (= (.get (.column cp-cf "dates") 0) (jt/local-date 2018 3 10)))
+    (is (= (.get (.column cp-cf "dates") 1) (jt/local-date 2018 10 10)))
+    (is (= (.get (.column cp-cf "balance") 0) 29000.0))
+    (is (= (.get (.column cp-cf "balance") 1) 0.0))
+    (is (= (.get (.column cp-cf "principal") 0) 0.0))
+    (is (= (.get (.column cp-cf "principal") 1) 29000.0))
+    )
+  )

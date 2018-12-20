@@ -23,6 +23,7 @@ Asset Type | Support?
  Loan  | yes   |
  Mortgage   |  yes  |
  Installments |  yes |
+  Commercial Paper |  yes |
  Leasing | Working |
 
 
