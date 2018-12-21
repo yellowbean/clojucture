@@ -12,6 +12,10 @@ The reason behind choosing clojure as modelling language is that :
 ### Overview
 investor side of structured products or structuring an CLO/MBS/ABS deal.
 
+
+### Documentation
+* https://simplicity.gitbook.io/clojucture/
+
 ### clojucture features
 * Takes XML based input, language independent ,flexible
 * Provides low level functions to build up country specific deal dentures
@@ -42,10 +46,6 @@ Bond Type | Support?
  Recovery  | TBD   |
 
 
-
-### Getting Started
-* [Setup environment](https://github.com/yellowbean/clojucture/wiki/Setup-an-environemnt)
-* [API document](https://yellowbean.github.io/clojucture/)
 
 
 Credits
