@@ -14,6 +14,15 @@
     )
   )
 
+(defn -loan-gen-prin [term balance opt]
+  "Generate principal vector for loan with option of schedule principal"
+  (let [principal-flow (double-array term 0)]
+    (if (get opt :schedule-principal false)
+      (doseq [[i pmt] (opt :schedule-principal)]
+        (aset-double principal-flow i pmt)))
+    (aset-double principal-flow (dec term) balance)
+    principal-flow))
+
 
 (defrecord mortgage [ start_date periodicity term period_rate balance opt]
   t/Asset
@@ -46,7 +55,6 @@
 
 
 
-
 (defrecord float-mortgage [ ^LocalDate start-date periodicity ^Integer term ^Integer remain-term ^Double current-rate ^Double current-balance day-count float-info opt]
   t/Asset
   (project-cashflow [x]
@@ -61,7 +69,6 @@
           prin                      (double-array term 0)
           int                       (double-array term 0)
           even_principal_pmt        (/ current-balance term)
-          ;float part
           reset-dates               (:reset-dates float-info)
           future-rates-of-asset     (a/apply-curve (:indexes assump) float-info reset-dates)
           period-annual-rate-vector (u/gen-float-period-rates dates future-rates-of-asset)
@@ -88,26 +95,23 @@
 
 
 
-(defn loan-gen-prin [term balance opt]
-  "Generate principal vector for loan with option of schedule principal"
-  (let [principal-flow (double-array term 0)]
-    (if (get opt :schedule-principal false)
-      (doseq [[i pmt] (opt :schedule-principal)]
-        (aset-double principal-flow i pmt)))
-    (aset-double principal-flow (dec term) balance)
-    principal-flow))
+
 
 
 
 (defrecord loan [ start_date periodicity term rate balance day_count opt]
   t/Asset
   (project-cashflow [ x ]
-    (let [term (inc term)
+    (let [
+          term (inc term)
           dates (u/gen-dates-ary start_date periodicity term)
-          prin (loan-gen-prin term balance opt)
+          prin (-loan-gen-prin term balance opt)
           bal (u/gen-balance prin balance)
           accrued-int (u/gen-accrued-interest bal dates rate day_count)
-          int (u/gen-interest accrued-int (get opt :int-pay-feq 1))]
+
+          int (u/gen-interest accrued-int opt)
+          ]
+
       (u/gen-table "cashflow"
          {:dates dates :balance bal :principal prin :accrued-interest accrued-int :interest int} )
     ))
@@ -115,6 +119,8 @@
     nil
     )
 )
+
+
 
 (defrecord float-loan [ start_date periodicity term rate balance day-count float-info opt ]
   t/Asset
@@ -124,14 +130,14 @@
   (project-cashflow [ x assump ]
     (let [term (inc term)
           dates (u/gen-dates-ary start_date periodicity term)
-          prin (loan-gen-prin term balance opt)
+          prin (-loan-gen-prin term balance opt)
           bal (u/gen-balance prin balance)
 
           reset-dates (take-nth (:reset-period float-info) dates)
           future-rates (a/apply-curve (:indexes assump) float-info reset-dates)
           period-rate-vector (u/gen-float-period-rates dates future-rates )
           accrued-int (u/gen-vector-accrued-interest bal dates period-rate-vector day-count periodicity)
-          int (u/gen-interest accrued-int (get opt :int-pay-feq 1))
+          int (u/gen-interest accrued-int opt)
           ]
       (u/gen-table "cashflow"
                   {:dates dates :balance bal :principal prin
@@ -140,13 +146,13 @@
     )
   )
 
-(defrecord commercial-paper [ info start-date  end-date org-bal]
+(defrecord commercial-paper [ info balance start-date  end-date  ]
   t/Asset
   (project-cashflow [ x ]
     (let [
            dates (into-array LocalDate [start-date end-date])
-           bal (double-array [org-bal 0])
-           prin (double-array [0 org-bal ])
+           bal (double-array [balance 0])
+           prin (double-array [0 balance ])
           ]
       (u/gen-table "cashflow"
                    {:dates dates :balance bal :principal prin } )
@@ -155,19 +161,17 @@
   )
 
 
-(defrecord installments [ info balance term ]
+(defrecord installments [ info balance start-date periodicity term period-fee-rate ]
   t/Asset
   (project-cashflow [ x ]
-    (let [ {start-date :start-date periodicity :periodicity  org-bal :original-balance
-            orig-term :original-term period-fee-rate :period-fee-rate
-            } info
-           dates (u/gen-dates-ary start-date periodicity (inc orig-term))
-           even-principal (/ org-bal orig-term)
-           even-principal-list (->> (take orig-term (repeat even-principal)) (cons 0))
+    (let [
+           dates (u/gen-dates-ary start-date periodicity (inc term))
+           even-principal (/ balance term)
+           even-principal-list (->> (take term (repeat even-principal)) (cons 0))
            prin  (double-array even-principal-list)
-           bal (u/gen-balance prin org-bal)
-           period-fee (* org-bal period-fee-rate)
-           period-fee-list (->> (take orig-term (repeat period-fee)) (cons 0))
+           bal (u/gen-balance prin balance)
+           period-fee (* balance period-fee-rate)
+           period-fee-list (->> (take term (repeat period-fee)) (cons 0))
            fee  (double-array period-fee-list)
           ]
       (u/gen-table "cashflow"
@@ -179,14 +183,19 @@
   )
 
 
-(comment
-(defrecord leasing [ info term rate balance ]
+
+(defrecord leasing [ info start-date term periodicity rental ]
   t/Asset
   (project-cashflow [ x ]
-    (let [    info ]   )
+    (let [ dates (u/gen-dates-ary start-date periodicity (inc term))
+           rental-flow-list (->> (take term (repeat rental)) (cons 0))
+           rental-flow (double-array rental-flow-list)
+          ]
 
+      (u/gen-table "cashflow"
+                   {:dates dates :rental rental-flow} )
+      )
     )
 
   (project-cashflow [ x assump ])
   )
-)

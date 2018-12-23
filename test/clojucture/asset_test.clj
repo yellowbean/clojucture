@@ -52,11 +52,8 @@
 
 
 (deftest test-installment-cf
-  (let [ test-installment-info {:start-date (jt/local-date 2018 1 1) :periodicity (jt/months 1)
-                               :original-balance 30000
-                               :original-term 10 :period-fee-rate 0.0027
-                               }
-        instl  (asset/->installments test-installment-info 20000 15 )
+  (let [
+        instl  (asset/->installments {} 30000 (jt/local-date 2018 1 1) (jt/months 1) 10 0.0027)
         instl-cf (.project-cashflow instl) ]
   (are [x y] (= x y)
        (.get (.column instl-cf "dates") 0) (jt/local-date 2018 1 1)
@@ -71,7 +68,7 @@
 
 (deftest test-comm-paper-cf
   (let [cp-info { }
-        cp (asset/->commercial-paper cp-info (jt/local-date 2018 3 10) (jt/local-date 2018 10 10) 29000)
+        cp (asset/->commercial-paper cp-info 29000 (jt/local-date 2018 3 10) (jt/local-date 2018 10 10) )
         cp-cf (.project-cashflow cp)
         ]
     (is (= (.columnCount cp-cf) 3))
@@ -81,5 +78,18 @@
     (is (= (.get (.column cp-cf "balance") 1) 0.0))
     (is (= (.get (.column cp-cf "principal") 0) 0.0))
     (is (= (.get (.column cp-cf "principal") 1) 29000.0))
+    )
+  )
+
+
+(deftest test-leasing-cf
+  (let [ tleasing (asset/->leasing nil (jt/local-date 2018 10 1) 24 (jt/months 3) 500)
+        tleasing-cf (.project-cashflow tleasing)]
+    (is (= (.rowCount tleasing-cf)) 25)
+    (is (= (.get (.column tleasing-cf "dates") 0) (jt/local-date 2018 10 1)))
+    (is (= (.get (.column tleasing-cf "dates") 1) (jt/local-date 2019 1 1)))
+    (is (= (.get (.column tleasing-cf "rental") 0) 0.0 ))
+    (is (= (.get (.column tleasing-cf "rental") 1) 500.0 ))
+    (is (= (.get (.column tleasing-cf "rental") 24) 500.0))
     )
   )

@@ -28,7 +28,7 @@ Asset Type | Support?
  Mortgage   |  yes  |
  Installments |  yes |
   Commercial Paper |  yes |
- Leasing | Working |
+ Leasing | yes |
 
 
 ##### Bond Type
