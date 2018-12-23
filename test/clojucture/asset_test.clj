@@ -53,7 +53,7 @@
 
 (deftest test-installment-cf
   (let [
-        instl  (asset/->installments {} 30000 (jt/local-date 2018 1 1) (jt/months 1) 10 0.0027)
+        instl  (asset/->installments  30000 (jt/local-date 2018 1 1) (jt/months 1) 10 0.0027 {})
         instl-cf (.project-cashflow instl) ]
   (are [x y] (= x y)
        (.get (.column instl-cf "dates") 0) (jt/local-date 2018 1 1)
@@ -68,7 +68,7 @@
 
 (deftest test-comm-paper-cf
   (let [cp-info { }
-        cp (asset/->commercial-paper cp-info 29000 (jt/local-date 2018 3 10) (jt/local-date 2018 10 10) )
+        cp (asset/->commercial-paper  29000 (jt/local-date 2018 3 10) (jt/local-date 2018 10 10) cp-info)
         cp-cf (.project-cashflow cp)
         ]
     (is (= (.columnCount cp-cf) 3))
@@ -83,13 +83,26 @@
 
 
 (deftest test-leasing-cf
-  (let [ tleasing (asset/->leasing nil (jt/local-date 2018 10 1) 24 (jt/months 3) 500)
-        tleasing-cf (.project-cashflow tleasing)]
+  (let [ tleasing (asset/->leasing (jt/local-date 2018 10 1) 24 (jt/months 3) 500 nil)
+         tleasing-cf (.project-cashflow tleasing)
+         tleasing-with-deposit (asset/->leasing (jt/local-date 2018 10 1) 24 (jt/months 1) 400 {:deposit-balance 100})
+         tleasing-with-deposit-cf (.project-cashflow tleasing-with-deposit)
+        ]
     (is (= (.rowCount tleasing-cf)) 25)
     (is (= (.get (.column tleasing-cf "dates") 0) (jt/local-date 2018 10 1)))
     (is (= (.get (.column tleasing-cf "dates") 1) (jt/local-date 2019 1 1)))
     (is (= (.get (.column tleasing-cf "rental") 0) 0.0 ))
     (is (= (.get (.column tleasing-cf "rental") 1) 500.0 ))
     (is (= (.get (.column tleasing-cf "rental") 24) 500.0))
+
+    ;leasing with deposit
+    (is (= (.rowCount tleasing-with-deposit-cf)) 25)
+    (is (= (.get (.column tleasing-with-deposit-cf "dates") 0) (jt/local-date 2018 10 1)))
+    (is (= (.get (.column tleasing-with-deposit-cf "dates") 1) (jt/local-date 2018 11 1)))
+    (is (= (.get (.column tleasing-with-deposit-cf "rental") 0) 0.0 ))
+    (is (= (.get (.column tleasing-with-deposit-cf "rental") 1) 400.0 ))
+    (is (= (.get (.column tleasing-with-deposit-cf "rental") 24) 400.0))
+    (is (= (.get (.column tleasing-with-deposit-cf "deposit") 0) 100.0))
+    (is (= (.get (.column tleasing-with-deposit-cf "deposit") 24) -100.0))
     )
   )

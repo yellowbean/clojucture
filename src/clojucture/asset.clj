@@ -146,7 +146,7 @@
     )
   )
 
-(defrecord commercial-paper [ info balance start-date  end-date  ]
+(defrecord commercial-paper [ balance start-date  end-date opt ]
   t/Asset
   (project-cashflow [ x ]
     (let [
@@ -161,7 +161,7 @@
   )
 
 
-(defrecord installments [ info balance start-date periodicity term period-fee-rate ]
+(defrecord installments [ balance start-date periodicity term period-fee-rate opt ]
   t/Asset
   (project-cashflow [ x ]
     (let [
@@ -184,18 +184,28 @@
 
 
 
-(defrecord leasing [ info start-date term periodicity rental ]
+(defn -leasing-gen-deposit-flow [ term opt ]
+  (let [ {deposits-amount :deposit-balance :or {deposits-amount 0}} opt
+         deposit-empty-flow (double-array term)
+        ]
+    (do
+      (aset-double deposit-empty-flow 0  deposits-amount)
+      (aset-double deposit-empty-flow (dec term) (- deposits-amount))
+      deposit-empty-flow)))
+
+
+(defrecord leasing [ start-date term periodicity rental opt ]
   t/Asset
   (project-cashflow [ x ]
     (let [ dates (u/gen-dates-ary start-date periodicity (inc term))
            rental-flow-list (->> (take term (repeat rental)) (cons 0))
-           rental-flow (double-array rental-flow-list)
-          ]
-
-      (u/gen-table "cashflow"
-                   {:dates dates :rental rental-flow} )
-      )
-    )
+           rental-flow (double-array rental-flow-list) ]
+      (if (get opt :deposit-balance false)
+        (u/gen-table "cashflow"
+                     {:dates dates :rental rental-flow :deposit (-leasing-gen-deposit-flow (inc term) opt)} )
+        (u/gen-table "cashflow"
+                     {:dates dates :rental rental-flow} )
+        )))
 
   (project-cashflow [ x assump ])
   )
