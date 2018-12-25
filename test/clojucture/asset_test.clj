@@ -12,7 +12,7 @@
 (def test-reset-dates
   (u/gen-dates-range (jt/local-date 2017 1 1)  (jt/years 1) (jt/local-date 2020 1 1)))
 
-
+(comment
 (deftest test-loan-cf
   (let [test-loan (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {} )
         test-loan2 (asset/->loan (jt/local-date 2017 2 1) (jt/months 2) 11 0.12 2500 :ACT_365 {} )
@@ -25,6 +25,8 @@
 
     )
   )
+)
+
 
 (def test-float-mortgage
   (asset/->float-mortgage
