@@ -2,74 +2,55 @@
   (:require [clojucture.bond :as b]
             [clojucture.asset :as a]
             [clojucture.type :as t]
-            ;[clojucture.reader :as r]
             [java-time :as jt]
             [clojucture.util :as u]
             [clojure.java.io :as io])
   (:import [tech.tablesaw.api ColumnType Table]
            [tech.tablesaw.columns AbstractColumn Column]
+           [java.time LocalDate]
            )
 
   )
 
+(defprotocol Deal
+  (run-assets [ x ] [ x assump ] )
+  (run-bonds  [ x ] [ x assump ] )
+  (run-deal [ x ] [ x assump ])
+  )
 
-(defrecord china-bank-deal [ deal-info opt ]
-  t/Deal
-  (run-assets [ x assump ]
-    (let [
-       cut-off-date (:cut-off-date deal-info)
-       stated-maturity-date (:stated-maturity-date deal-info)
-       first-pay-date (:first-pay-date deal-info)
-       first-int-date (:first-int-date deal-info)
-       first-calc-date (:first-calc-date deal-info)
+(defn gen-pool-collect-interval [ deal-info ]
+  (let [{ closing-date :closing-date
+          first-collect-date :first-collect-date
+          collect-interval :collect-interval
+          stated-maturity :stated-maturity } deal-info ]
+    (->>
+      (case collect-interval
+        :Q (u/gen-dates-range first-collect-date (jt/months 3) stated-maturity)
+        :M (u/gen-dates-range first-collect-date (jt/months 1) stated-maturity)
+        :BM (u/gen-dates-range first-collect-date (jt/months 2) stated-maturity)
+        :Y (u/gen-dates-range first-collect-date (jt/years 1) stated-maturity))
+      (cons closing-date)
+      (u/gen-dates-interval )
+      )
+  )
+)
 
-       pay-dates (u/gen-dates-range first-pay-date (jt/months 1) stated-maturity-date)
-       int-dates (u/gen-dates-range first-int-date (jt/months 1) stated-maturity-date)
-       calc-dates (map #(jt/adjust % :last-day-of-month ) (u/gen-dates-range first-calc-date (jt/months 1) stated-maturity-date))
-
-       ;setup accounts
-       principal-account (:本金帐 deal-info)
-       interest-account (:收益帐 deal-info)
-
-       ;collateral cashflows
-       collection-intervals (partition 2 1 calc-dates)
-       int-intervals (partition 2 1 int-dates)
-       ;pool-cfs (.project-cashflow 资产池)
-
-       ;bond cashflows
-       ;cf-stmt (Table/create "Cashflow Statement" )
-          ]
+(defn gen-bond-payment-date [ deal-info ]
+  (let [{settle-date       :settle-date
+         first-payment-date :first-payment-date
+         payment-interval   :payment-interval
+         stated-maturity    :stated-maturity} deal-info]
+    (->>
+      (case payment-interval
+        :Q (u/gen-dates-range first-payment-date (jt/months 3) stated-maturity)
+        :M (u/gen-dates-range first-payment-date (jt/months 1) stated-maturity)
+        :BM (u/gen-dates-range first-payment-date (jt/months 2) stated-maturity)
+        :Y (u/gen-dates-range first-payment-date (jt/years 1) stated-maturity))
+      (cons settle-date)
       )
     )
-  (run-bonds [ x assump]
-
-    )
   )
 
 
 
-
-
-(defn run-waterfall [ wf coll-cf bond-info ]
-  )
-
-
-(defrecord waterfall
-  [ actions ]
-  )
-
-
-
-
-
-;(defn new-account [ input-acc-list ]
-;  (let [ r (atom []) ]
-;    (doseq [ a (first input-acc-list) ]
-;      (swap! r conj
-;             (account. (get-in a [:attrs :name]) nil (Float. (get-in a [:attrs :init])) [])))
-;    @r
-;    ))
-
-
-
-
+;(.collect pool)
