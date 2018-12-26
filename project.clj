@@ -12,13 +12,12 @@
     [org.clojure/data.csv "0.1.4"]
     [org.clojure/data.json "0.2.6"]
     [org.clojure/data.zip "0.1.2"]
-    [dk.ative/docjure "1.12.0"]
    ]
-  :plugins [
-            [lein-codox "0.10.4"]]
-  :codox
-    {:output-path "docs"
-     :metadata {:doc/format :markdown} }
+  ;:plugins [
+  ;          [lein-codox "0.10.4"]]
+  ;:codox
+  ;  {:output-path "docs"
+  ;   :metadata {:doc/format :markdown} }
 
   :profiles {:dev {:dependencies [[midje "1.9.2" :exclusions [org.clojure/clojure]]]
                    :plugins [[lein-midje "3.2.1"]]}}
