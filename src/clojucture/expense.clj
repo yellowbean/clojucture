@@ -3,7 +3,8 @@
             [clojucture.account :as acc]
             [java-time :as jt]
             [clojucture.util :as util])
-  (:import [java.time LocalDate Period  ])
+  (:import [java.time LocalDate Period  ]
+           )
   )
 
 
@@ -26,22 +27,36 @@
 (defn pay-expense
   ([ d acc expense ]
   (let [ due-amount (.cal-due-amount expense d )
-         new-acc (.try-withdraw acc d (:info acc) due-amount )
-         paid-amount (Math/abs (:amount (.last-txn new-acc)))
-         new-balance (- (:balance expense) paid-amount)
-         new-arrears (- due-amount paid-amount)
+         draw-amount (min (.balance acc) due-amount)
+         new-acc (.try-withdraw acc d (:info acc) draw-amount )
         ]
     [
      new-acc
-     (-> expense
-         (assoc :balance new-balance)
-         (assoc :arrears new-arrears)
-         (assoc :last-paid-date d))
+     (.receive expense d draw-amount )
      ]
     ))
   )
 
+(comment
+(defn pay-expense-prorata [ d acc expenses ]
+  (let [ total-due-amount (+ (map #(.cal-due-amount % d ) expenses))
+         enough-pay? (<= total-due-amount (.balance acc))
+         per-unit (/ (.balance acc) total-due-amount )
+         new-acc (.try-withdraw acc d (:info acc) (min (.balance acc ) total-due-amount) )
+        ]
+      [
+       new-acc
+       (if enough-pay?
+         (map #(-> %
+                   (assoc :balance new-balance)
+                   (assoc :arrears new-arrears)
+                   (assoc :last-paid-date d))  expenses )
+         )
 
+       ]
+    )
+  )
+)
 
 (defrecord pct-expense-by-amount
   [ info stmt ^LocalDate last-paid-date ^Double arrears ]
@@ -64,7 +79,8 @@
 
 
 
-(defrecord pct-expense [ info stmt ^LocalDate last-paid-date ^Double arrears ]
+(defrecord pct-expense
+  [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
   (cal-due-amount [ x d base ]
     (case (info :type)
@@ -80,9 +96,19 @@
     )
   )
 
-(defrecord amount-expense [ info ^Double balance stmt ^Double arrears ]
+(defrecord amount-expense
+  [ info stmt ^Double balance ]
   t/Liability
   (cal-due-amount [ x d ]
     balance
+    )
+  (receive [ x d amount]
+    (if (> amount balance)
+      (throw (Exception. "Expense paid over balance"))
+      (-> x
+          (assoc :balance (- balance amount))
+          (assoc :stmt (conj stmt (acc/->stmt d nil :expense amount nil) ))
+          )
+      )
     )
   )

@@ -11,7 +11,7 @@
 
 (deftest test-lum-sum-fee
   (let [ acc-info {:name :law-fee }
-         t-exp (exp/->amount-expense acc-info 1500 []  0)
+         t-exp (exp/->amount-expense acc-info  [] 1500 )
          cash-acc (acc/->account :cash :cash 2000 [])
         ]
     (is (= (.cal-due-amount t-exp (jt/local-date 2018 1 3)) 1500))
@@ -19,7 +19,7 @@
     (let [ [ new-acc new-exp ]  (exp/pay-expense (jt/local-date 2018 1 3) cash-acc t-exp) ]
       (is (= (:balance new-acc) 500))
       (is (= (:balance new-exp) 0))
-    )
+      (is (= (:amount (first (:stmt new-exp))) 1500 ) ))
     )
   )
 
