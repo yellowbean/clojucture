@@ -4,7 +4,7 @@
     [clojucture.deal :as dl ]
     [java-time :as jt]))
 
-(deftest gen-collect-dates
+(deftest testing-gen-collect-dates
   (let [di { :stated-maturity (jt/local-date 2025 1 1)
             :collect-interval :M
             :closing-date (jt/local-date 2019 1 1)
@@ -16,5 +16,7 @@
 
     (is (= (first (nth dv 1)) (jt/local-date 2019 3 1)))
     (is (= (second (nth dv 1)) (jt/local-date 2019 3 31)))
+
+    (is (jt/before? (second (last dv)) (di :stated-maturity)))
     )
   )

@@ -16,6 +16,7 @@
   (run-assets [ x ] [ x assump ] )
   (run-bonds  [ x ] [ x assump ] )
   (run-deal [ x ] [ x assump ])
+  (run-triggers [ x ])
   )
 
 (defn gen-pool-collect-interval [ deal-info ]
@@ -50,6 +51,7 @@
       )
     )
   )
+
 
 
 

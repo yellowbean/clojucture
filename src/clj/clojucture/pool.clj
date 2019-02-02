@@ -9,9 +9,16 @@
     [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
   ))
 
+
+(defprotocol Pool
+  (project-cashflow [ x ] )
+  (collect-cashflow [ x interval ] )
+  )
+
+
 (defrecord pool
-  [ assets collect-intervals ]
-  t/Pool
+  [ assets  ]
+  Pool
   (project-cashflow [x]
     (let [ total-balance (reduce + (map #(.balance %) assets))
            cfs         (reduce
@@ -25,7 +32,7 @@
         (.removeColumns ^Table cfs ^"[Ljava.lang.String;" (into-array String ["balance"]))
         (.addColumns ^Table cfs (into-array DoubleColumn [balance-col ]))))
   )
-  (collect-cashflow [ x ]
+  (collect-cashflow [ x collect-intervals ]
     (u/agg-cashflow-by-interval
       (.project-cashflow x) collect-intervals))
   )

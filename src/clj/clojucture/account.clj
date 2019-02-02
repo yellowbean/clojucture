@@ -1,5 +1,6 @@
 (ns clojucture.account
   (:require [clojucture.type :as t]
+            [clojucture.core :as c]
             [java-time :as jt]
             )
   (:import
@@ -8,9 +9,7 @@
   )
 
 
-(defrecord stmt [ ^LocalDate date from to ^Double amount info ]
 
-  )
 
 (defrecord account [ name type ^Double balance stmts ]
   t/Account
@@ -23,7 +22,7 @@
     )
 
   (deposit [ x  d from amount ]
-    (let [ new-statment (->stmt d from :this amount nil)
+    (let [ new-statment (c/->stmt d from :this amount nil)
            new-balance (+ balance amount)]
       (->account name type new-balance (conj stmts new-statment))
       )

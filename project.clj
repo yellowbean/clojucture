@@ -12,6 +12,8 @@
     [org.clojure/data.csv "0.1.4"]
     [org.clojure/data.json "0.2.6"]
     [org.clojure/data.zip "0.1.2"]
+    [org.clojure/core.match "0.3.0-alpha5"]
+    ;[org.junit.jupiter/junit-jupiter-api "5.3.2"]
    ]
   ;:plugins [
   ;          [lein-codox "0.10.4"]]
@@ -19,13 +21,12 @@
   ;  {:output-path "docs"
   ;   :metadata {:doc/format :markdown} }
 
-  :profiles {:dev {:dependencies [[midje "1.9.2" :exclusions [org.clojure/clojure]]]
-                   :plugins [[lein-midje "3.2.1"]]}}
   :mirrors {"central" {:name "aliyun maven"
                        :url "https://maven.aliyun.com/nexus/content/groups/public/"}}
-  ;:source-paths [ "src/clojucture"]
-  ;:java-source-paths [
-  ;                    "src/java"
-  ;  ]
+  :source-paths [ "src/clj"]
+  :java-source-paths [ "src/java" ]
+  ;:java-cmd ["C:\\Program Files\\Java\\jdk-10.0.2\\bin\\java.exe"]
   ;:javac-options     ["-target" "1.8" "-source" "1.8"]
+  ;:jvm-opts ["-Xmx1g"]
+  :profiles {:uberjar {:aot :all}}
   )

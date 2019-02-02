@@ -155,9 +155,10 @@
            prin (double-array [0 balance ])
           ]
       (u/gen-table "cashflow"
-                   {:dates dates :balance bal :principal prin } )
-      )
-    )
+                   {:dates dates :balance bal :principal prin } )))
+  (project-cashflow [ x assump ]
+
+    nil)
   )
 
 

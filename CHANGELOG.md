@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 - add float rate feature for loan and mortgage
-- add china inter-bank deal
+- add china inter-bank/exchange deal
 - add project cashflow from assumptions (prepay default and recovery)
 
 ### Changed

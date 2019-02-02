@@ -19,8 +19,11 @@
   )
 
 (defn gen-dates
-  [start step n]
-  (take n (jt/iterate jt/plus start step)))
+  ([start step n]
+    (take n (jt/iterate jt/plus start step)))
+  ([start step ]
+   (jt/iterate jt/plus start step))
+  )
 
 (defn gen-dates-ary
   [start step n]
@@ -41,7 +44,6 @@
     month-end-days
     )
   )
-
 
 (defn gen-dates-interval [ dates ]
   (let [ interval-pairs (partition 2 1 dates)]
@@ -248,9 +250,8 @@
     (case cmp
       :after (first (filter f data-vector ))
       :before (last (filter (complement f) data-vector ))
-      )
-    )
-  )
+      )))
+
 
 
 (defn gen-float-period-rates [ ^"[Ljava.time.LocalDate;" ary-dates curve-to-use  ]
@@ -286,8 +287,9 @@
 
 (defn gen-interest
   "Generate interest vector with input of accrued interest vector and payment frequency"
-  [ ^doubles ary-accrued pay-freq]
-  (let [ary-accrued-size (alength ary-accrued)
+  [ ^doubles ary-accrued opt ]
+  (let [{pay-freq :pay-freq :or {pay-freq 1} }  opt
+        ary-accrued-size (alength ary-accrued)
         pay-indexes      (range 1 (inc ary-accrued-size) pay-freq)
         sum-intervals    (partition 2 1 pay-indexes)
         ary-int-due      (double-array ary-accrued-size 0)]
@@ -312,9 +314,8 @@
        "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v)
        )
      (catch Exception e
-       (println "EXP" e)
-       ))
-  )
+       (println "Exception:" e)
+       )))
 
 
 (defn new-empty-column

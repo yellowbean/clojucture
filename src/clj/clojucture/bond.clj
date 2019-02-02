@@ -1,5 +1,6 @@
 (ns clojucture.bond
   (:require [clojucture.type :as t]
+            [clojucture.core :as c]
             [java-time :as jt]
             [clojucture.account :as acc]
             [clojucture.util :as util]
@@ -12,11 +13,8 @@
   )
 
 
-
-
-
 (defn -amortize [ bond d amt loss ]
-  (let [ new-stmt (acc/->stmt d :from :principal amt nil) ]
+  (let [ new-stmt (c/->stmt d :from :principal amt nil) ]
     (->
       (update bond :balance - amt )
       (update :stmts conj new-stmt )
@@ -26,7 +24,7 @@
   ))
 
 (defn -pay-interest [ bond d amt arrears ]
-  (let [ new-stmt (acc/->stmt d :from :interest amt nil) ]
+  (let [ new-stmt (c/->stmt d :from :interest amt nil) ]
     (->
       (update bond :stmts conj new-stmt )
       (assoc :interest-arrears arrears)

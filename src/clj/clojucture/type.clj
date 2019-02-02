@@ -19,17 +19,12 @@
 
 (defprotocol Liability
   (cal-due-amount [ x d ] [ x d base ] )
-  (receive [x d acc] [x d base acc] )
+  (receive [x d amount ] )
   )
 
 
 
-(comment
-(defprotocol Pool
-	(project-cashflow [ x ] )
-	(collect-cashflow [ x ] )
-	)
-)
+
 
 (defprotocol Bond
   (cal-due-principal [ x d ] )
@@ -40,10 +35,7 @@
 	;(load [ s ])
 	)
 
-(defprotocol Deal
-	(run-assets [x assump] )
-	(run-bonds [x assump] )
-	)
+
 
 (defprotocol IndexCurve
   (apply-to [ x float-info dates  ]))
@@ -58,13 +50,16 @@
   (last-txn [ x ])
 	)
 
+(comment
 (defprotocol TableColumn
-  (to-column [x] [x name])
+  (to-column [x])
   )
 
 
 (extend-protocol TableColumn
   (class (double-array 0))
-    (to-column [x] (DoubleColumn/create "EMPTY" x))
+    (to-column [x] (DoubleColumn/create  x))
+    ;(to-column [x name] (DoubleColumn/create name x))
   )
 
+)
