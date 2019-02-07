@@ -16,7 +16,6 @@
 (deftest date-vector
   (let [ date-vector-1 (u/gen-dates (jt/local-date 2018 1 1) (jt/months 1) 20)
          date-vector-2 (u/gen-dates (jt/local-date 2018 1 1) (jt/years 1) 3)
-
          date-vector-3 (u/gen-dates (jt/local-date 2018 1 1) (jt/months 2) 5)
         ]
     (is (= (first date-vector-1) (jt/local-date 2018 1 1)))
@@ -25,8 +24,23 @@
 
     (is (= (second date-vector-2) (jt/local-date 2019 1 1)))
     (is (= (second date-vector-3) (jt/local-date 2018 3 1)))
+
     )
   )
+
+; date generation - range
+
+(deftest date-vector2
+  (let [ date-vector-1 (u/gen-dates-range (jt/local-date 2019 2 10) (jt/months 1) 26 (jt/local-date 2020 3 20))
+
+        ]
+    (is (= (first date-vector-1) (jt/local-date 2019 2 10)))
+    (is (= (second date-vector-1) (jt/local-date 2019 3 26)))
+    ;(is (= (first date-vector-1) (jt/local-date 2019 2 10)))
+    (is (= (last date-vector-1) (jt/local-date 2020 2 26)))
+    )
+  )
+
 
 (deftest gen-column-test
   (let [ dat-col (u/gen-column [:date-col (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 1) 4)])
@@ -42,16 +56,7 @@
 
 
 
-; column generation
-(comment
-(deftest create-d-column
-  (let [ test-d-array (double-array [3 4 5])
-         test-d-array-size (alength test-d-array)
-         d-col (u/gen-column [:balance test-d-array])]
-    (is (= test-d-array-size (.size d-col)))
-    )
-  )
-)
+
 ; find first
 (deftest find-first-test
   (let [test-d (u/gen-dates (jt/local-date 2018 1 1) (jt/months 1) 20)

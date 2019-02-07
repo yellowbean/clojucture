@@ -30,9 +30,22 @@
   (into-array java.time.LocalDate (gen-dates start step n)))
 
 (defn gen-dates-range
-  [start step end]
-  (take-while (partial jt/after? (jt/plus end step)) (jt/iterate jt/plus start step))
-  )
+  ([start step end]
+  (take-while (partial jt/after?  end ) (jt/iterate jt/plus start step)))
+  ([first-date step day-of-month end-date]
+   (let [ start-date (.withDayOfMonth (jt/plus first-date step) day-of-month)
+          regular-dates (gen-dates-range start-date step end-date)
+          all-dates (cons first-date regular-dates)]
+    all-dates)))
+
+
+
+(defn gen-dates-range-ary
+  ([start step end]
+    (into-array java.time.LocalDate (gen-dates-range start step end)))
+  ([first-date step day-of-month end-date]
+   (into-array java.time.LocalDate (gen-dates-range first-date step day-of-month end-date))
+    ))
 
 
 (defn gen-month-ends-dates
@@ -50,9 +63,6 @@
     (map #(list (first %) (jt/plus (second %) (jt/days -1))) interval-pairs))
   )
 
-(defn gen-dates-range-ary
-  [start step end]
-  (into-array java.time.LocalDate (gen-dates-range start step end)))
 
 (defn gen-dates-intervals
   [dates]
