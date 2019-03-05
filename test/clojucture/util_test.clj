@@ -31,13 +31,25 @@
 ; date generation - range
 
 (deftest date-vector2
-  (let [ date-vector-1 (u/gen-dates-range (jt/local-date 2019 2 10) (jt/months 1) 26 (jt/local-date 2020 3 20))
+  (let [ date-vector-1 (u/gen-dates-range (jt/local-date 2019 2 10) (jt/months 1) (jt/local-date 2020 3 20))
+         date-vector-2 (u/gen-dates-range (jt/local-date 2019 2 10) (jt/months 1) (jt/local-date 2020 3 20) :month-end)
 
+        ;quarterly
+        date-vector-3 (u/gen-dates-range (jt/local-date 2019 2 10) (jt/months 3) (jt/local-date 2020 3 20) :month-end)
+
+        ;semi-annually
         ]
     (is (= (first date-vector-1) (jt/local-date 2019 2 10)))
-    (is (= (second date-vector-1) (jt/local-date 2019 3 26)))
-    ;(is (= (first date-vector-1) (jt/local-date 2019 2 10)))
-    (is (= (last date-vector-1) (jt/local-date 2020 2 26)))
+    (is (= (second date-vector-1) (jt/local-date 2019 3 10)))
+    (is (= (last date-vector-1) (jt/local-date 2020 3 10)))
+
+    (is (= (first date-vector-2) (jt/local-date 2019 2 28)))
+    (is (= (second date-vector-2) (jt/local-date 2019 3 31)))
+    (is (= (last date-vector-2) (jt/local-date 2020 3 31)))
+
+    (is (= (first date-vector-3) (jt/local-date 2019 2 28)))
+    (is (= (second date-vector-3) (jt/local-date 2019 5 31)))
+    (is (= (last date-vector-3) (jt/local-date 2020 2 29)))
     )
   )
 
@@ -54,6 +66,13 @@
   )
 
 
+(deftest working-day
+  (let [ bench-date (jt/local-date 2019 2 5)
+        p4-date (u/previous-n-workday bench-date 4)
+        n4-date (u/next-n-workday bench-date 4)
+        ]
+    (is (= p4-date  (jt/local-date 2019 1 30)))
+    (is (= n4-date  (jt/local-date 2019 2 11))) ) )
 
 
 
@@ -88,3 +107,26 @@
     )
   )
 
+; init-column test
+(deftest t-init-col
+  (let [dc (u/init-column :double :DoubleColumn)
+        bc (u/init-column :boolean :BoolColumn)]
+
+    (is (= "DoubleColumn" (.name dc)))
+    (is (= "BoolColumn" (.name bc)))
+    )
+  )
+
+  ; init-table test
+  (deftest t-init-table
+    (let [t (u/init-table "tInit"
+              [ [:double :balance] [:boolean :triggered?] [:date :dates] [:string :flowname]])
+          ]
+      (is (= 4 (.columnCount t)))
+      (is (= "balance" (.name (.column t 0))))
+      (is (= "triggered?" (.name (.column t 1))))
+      (is (= "dates" (.name (.column t 2))))
+      (is (= "flowname" (.name (.column t 3))))
+
+      )
+    )

@@ -3,11 +3,11 @@
     [java-time :as jt]
     [clojure.java.io :as io]
     [clojure.data.json :as json]
+    [clojure.core.match :as m]
     )
   (:import [java.util Arrays]
-           [java.util.stream DoubleStream IntStream]
            [java.time LocalDate ]
-           [java.time.temporal TemporalAdjuster ChronoUnit]
+           [java.time.temporal ChronoUnit]
            [org.apache.commons.lang3 ArrayUtils]
            [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn ]
            [tech.tablesaw.columns AbstractColumn AbstractColumnType ]
@@ -15,7 +15,33 @@
            [tech.tablesaw.columns.dates DateColumnType]
            [tech.tablesaw.columns.numbers DoubleColumnType ]
            [tech.tablesaw.columns.booleans BooleanColumnType]
-           [tech.tablesaw.aggregate AggregateFunction AggregateFunctions])
+           [tech.tablesaw.aggregate AggregateFunction AggregateFunctions]
+           [org.threeten.extra Temporals]
+           )
+
+  )
+
+(defn previous-n-workday [x n]
+  (loop [ d x i n]
+    (if (= i 0)
+      d
+      (recur (.with d (Temporals/previousWorkingDay)) (dec i)))))
+
+(defn next-n-workday [x n]
+  (loop [ d x i n]
+    (if (= i 0)
+      d
+      (recur (.with d (Temporals/nextWorkingDay)) (dec i)))))
+
+
+
+(defn get-date [ x k v]
+  (case k
+    :next-month-day (-> (jt/plus x (jt/months 1)) (.withDayOfMonth v))
+    :next-month-first-day (-> (jt/plus x (jt/months 1)) (jt/adjust :first-in-month))
+    :previous-workday ( (.with x (Temporals/previousWorkingDay)))
+   :nil
+    )
   )
 
 (defn gen-dates
@@ -29,40 +55,47 @@
   [start step n]
   (into-array java.time.LocalDate (gen-dates start step n)))
 
+
+(declare gen-dates-range)
+(defn gen-period-end-dates
+  [ ^LocalDate start-date step ^LocalDate end-date ]
+  (let [ all-months (gen-dates-range start-date step end-date) ]
+    (map #(jt/adjust % :last-day-of-month) all-months)
+    )
+  )
+
+
 (defn gen-dates-range
   ([start step end]
   (take-while (partial jt/after?  end ) (jt/iterate jt/plus start step)))
-  ([first-date step day-of-month end-date]
-   (let [ start-date (.withDayOfMonth (jt/plus first-date step) day-of-month)
-          regular-dates (gen-dates-range start-date step end-date)
-          all-dates (cons first-date regular-dates)]
-    all-dates)))
+  ([start-date step end-date opt]
+   (case opt
+     :month-end
+     (let [ regular-dates (gen-period-end-dates start-date step end-date) ]
+       regular-dates)
+     (let [ regular-dates (gen-dates-range start-date step end-date) ]
+      regular-dates))
+    )
+  )
+
+
+
+
+
 
 
 
 (defn gen-dates-range-ary
   ([start step end]
     (into-array java.time.LocalDate (gen-dates-range start step end)))
-  ([first-date step day-of-month end-date]
-   (into-array java.time.LocalDate (gen-dates-range first-date step day-of-month end-date))
-    ))
-
-
-(defn gen-month-ends-dates
-  [ ^LocalDate start-date  ^LocalDate end-date ]
-  (let [ all-months (gen-dates-range start-date (jt/months 1) end-date)
-        month-first-days (map #(jt/adjust % :first-day-of-next-month) all-months)
-        month-end-days (map #(jt/adjust % :last-day-of-month) month-first-days)
-        ]
-    month-end-days
     )
-  )
+
+
 
 (defn gen-dates-interval [ dates ]
   (let [ interval-pairs (partition 2 1 dates)]
     (map #(list (first %) (jt/plus (second %) (jt/days -1))) interval-pairs))
   )
-
 
 (defn gen-dates-intervals
   [dates]
@@ -76,6 +109,42 @@
             (list
               s-date
                 (jt/plus e-date (jt/days -1)))))))))
+
+
+
+(defn parsing-dates [ x stated-maturity ]
+  (m/match x
+           #"(\S+),(\S+)"
+           (as-> (re-matches #"(\S+),(\S+)" x) [ _ first-match last-match]
+                 (flatten (cons (parsing-dates first-match stated-maturity) (parsing-dates last-match stated-maturity))))
+           #"\d{4}\-\d{2}\-\d{2}"
+           (jt/local-date x)
+           #"\d{4}\-\d{2}\-\d{2}M" ;first date as s, following month at day d
+           (as-> (re-matches #"(\S+)M" ,x) [ _ s]
+                 (gen-dates-range
+                   (jt/local-date s) (jt/months 1) stated-maturity))
+           #"\d{4}\-\d{2}\-\d{2}ME"
+           (as-> (re-matches #"(\S+)ME" ,x) [ _ s]
+                 (cons (jt/local-date s)
+                       (gen-period-end-dates
+                         (.plusMonths (jt/local-date s) 1)
+                         (jt/months 1)
+                         stated-maturity)))
+
+           #"\d{4}\-\d{2}\-\d{2}\w{1,2}[+-]\d+WD"
+           (as-> (re-matches #"(\d{4}\-\d{2}\-\d{2}\w+)([-+])(\d+)WD" x) [ _ s adj days ]
+                 (let [ bech-dates (parsing-dates s stated-maturity)
+                       adj-days (Integer/parseInt days)
+                       adj-dates (case adj
+                                   "+" (map #(next-n-workday % adj-days) bech-dates)
+                                   "-" (map #(previous-n-workday % adj-days) bech-dates)
+                                   )
+                       ]
+                   adj-dates))
+           :else nil )
+  )
+
+
 
 (defn cal-period-rate
   [ ^java.time.LocalDate s ^java.time.LocalDate e ^Double year-rate  day-count]
@@ -138,9 +207,9 @@
 
 
 (defn period-pmt
-  [balance n-per period-coupon]
-  (let [c (Math/pow (+ 1 period-coupon) n-per)
-        a (/ (* period-coupon c) (- c 1))]
+  [balance n-per period-rate]
+  (let [c (Math/pow (+ 1 period-rate) n-per)
+        a (/ (* period-rate c) (- c 1))]
     (* a balance)))
 
 (defn gen-balance
@@ -344,6 +413,25 @@
      DateColumnType  (DateColumn/create ^String n)
     ))
 )
+
+(defn init-column [ t n ]
+  (let [ cn (name n)]
+  (case t
+    :double (DoubleColumn/create cn)
+    :boolean (BooleanColumn/create cn)
+    :string  (StringColumn/create cn)
+    :date (DateColumn/create cn)
+    ))
+  )
+
+(defn init-table [ n col ]
+  (let [  tb (Table/create n)
+        cols  (map #(init-column (first %) (second %)) col)
+        col-array (into-array AbstractColumn cols)
+    ]
+    (.addColumns ^Table tb ^"[Ltech.tablesaw.columns.AbstractColumn;" col-array)
+    )
+  )
 
 (defn gen-table
   "Create a table with columns and name"
