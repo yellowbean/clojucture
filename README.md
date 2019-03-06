@@ -2,12 +2,13 @@
 
 ### What & why is clojucture ?
 
-a clojure library for modelling structure products (CLO/MBS/ABS).
-it can be used for cashflow projection and investment analysis
+a clojure library for modelling structure products (CLO/MBS/ABS/CMBS).
+it can be used for cashflow projection and investment analysis.
 
 The reason behind choosing clojure as modelling language is that :
-1. it is simply enough for tech/non-tech background language.
-2. Powerful macro lanugage for modelling complex structure of ABS/MBS products.
+1. It is simply enough for tech/non-tech background language.
+2. Powerful macro language for modelling complex structure of ABS/MBS products.
+
 
 ### Overview
 investor side of structured products or structuring an CLO/MBS/ABS deal.
