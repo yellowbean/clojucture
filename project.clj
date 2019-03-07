@@ -8,6 +8,8 @@
     [tech.tablesaw/tablesaw-core "0.30.1"]
     [org.apache.commons/commons-math3 "3.6.1"]
     [org.apache.commons/commons-lang3 "3.7"]
+    [org.threeten/threeten-extra "1.4"]
+    [nrepl "0.6.0"]
     [clojure.java-time "0.3.2"]
     [org.clojure/data.csv "0.1.4"]
     [org.clojure/data.json "0.2.6"]
@@ -15,8 +17,11 @@
     [org.clojure/core.match "0.3.0-alpha5"]
     ;[org.junit.jupiter/junit-jupiter-api "5.3.2"]
    ]
-  ;:plugins [
-  ;          [lein-codox "0.10.4"]]
+  :plugins [
+            [cider/cider-nrepl "0.21.0"]
+	        ;[refactor-nrepl "2.3.0-SNAPSHOT"]
+            [nightlight/lein-nightlight "2.4.0"]            
+            ]
   ;:codox
   ;  {:output-path "docs"
   ;   :metadata {:doc/format :markdown} }
