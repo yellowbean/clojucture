@@ -14,7 +14,7 @@ investor side of structured products or structuring an CLO/MBS/ABS deal.
 
 
 ### Documentation
-* https://simplicity.gitbook.io/clojucture/
+* https://simplicity.gitbook.io/clojucture/ (working :) ）
 
 ### clojucture features
 * Takes XML based input, language independent ,flexible
