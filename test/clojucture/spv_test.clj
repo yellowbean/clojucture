@@ -1,4 +1,4 @@
-(ns clojucture.deal_test
+(ns clojucture.spv_test
   (:require
     [clojure.test :refer :all]
     [clojucture.spv :as dl ]

@@ -1,4 +1,4 @@
-(ns clojucture.deal
+(ns clojucture.spv
   (:require [clojucture.bond :as b]
             [clojucture.asset :as a]
             [clojucture.type :as t]
