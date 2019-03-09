@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.com/yellowbean/clojucture.svg?branch=master)](https://travis-ci.com/yellowbean/clojucture)
 
+:warning: Pre-alpha - not yet usable! :warning: 
+
 ### What & why is clojucture ?
 
 a clojure library for modelling structure products (CLO/MBS/ABS).
