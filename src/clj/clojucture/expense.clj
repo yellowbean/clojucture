@@ -3,7 +3,8 @@
             [clojucture.account :as acc]
             [clojucture.core :as ccore]
             [java-time :as jt]
-            [clojucture.util :as util])
+            [clojucture.util :as util]
+            [clojucture.util :as u])
   (:import [java.time LocalDate Period  ]
            )
   )
@@ -39,6 +40,7 @@
   )
 
 
+;"Expense type that due amount is annualized percentage of the base"
 (defrecord pct-expense-by-amount
   [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
@@ -64,6 +66,7 @@
     )
   )
 
+;"Expense type that due amount is percentage of the base"
 (defrecord pct-expense-by-rate
   [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
@@ -73,38 +76,6 @@
   (receive [ x d amount ]
     (let [ pay-to-arrears (min arrears amount)
           pay-to-expense (- amount pay-to-arrears)]
-      (-> x
-          (assoc :arrears (- arrears pay-to-arrears))
-          (assoc :last-paid-date d)
-          (assoc :stmt
-                 (conj stmt
-                       (ccore/->stmt d nil :expense pay-to-expense nil)
-                       (ccore/->stmt d nil :expense-arrears pay-to-arrears nil) ))
-          )
-      )
-    )
-  )
-
-
-
-(defrecord pct-expense
-  [ info stmt ^LocalDate last-paid-date ^Double arrears ]
-  t/Liability
-  (cal-due-amount [ x d base ]
-    (case (info :type)
-      :yearly
-        (-> (util/get-period-rate
-              (Period/between last-paid-date d ) (info :pct) (info :day-count))
-            (* base)
-            (+ arrears)
-            )
-      :one-off
-        (+ (* base (info :pct)) arrears)
-      )
-    )
-  (receive [ x d amount]
-    (let [ pay-to-arrears (min arrears amount)
-           pay-to-expense (- amount pay-to-arrears)]
       (-> x
           (assoc :arrears (- arrears pay-to-arrears))
           (assoc :last-paid-date d)
@@ -130,6 +101,32 @@
           (assoc :balance (- balance amount))
           (assoc :last-paid-date d)
           (assoc :stmt (conj stmt (ccore/->stmt d nil :expense amount nil) ))
+          )
+      )
+    )
+  )
+
+(defrecord recur-expense
+  [ info stmt ^Double arrears ]
+  t/Liability
+  (cal-due-amount [ x d ]
+    (let [ {sd :start-date p :period e-date :end-date } info
+          exp-dates (u/gen-dates-range sd p e-date)]
+      (if (some #(= % d) exp-dates )
+        (:amount info)
+        0
+        )
+      )
+    )
+  (receive [ x d amount ]
+    (let [pay-to-arrears (min arrears amount)
+          pay-to-expense (- amount pay-to-arrears)]
+      (-> x
+          (assoc :arrears (- arrears pay-to-arrears))
+          (assoc :stmt (conj stmt
+                             (ccore/->stmt d nil :expense pay-to-expense nil)
+                             (ccore/->stmt d nil :expense-arrears pay-to-arrears nil) ))
+
           )
       )
     )

@@ -50,3 +50,18 @@
   )
 
 
+(deftest test-recu-fee
+  (let [ cash-acc (acc/->account :cash :cash 2000 [])
+        r-exp (exp/->recur-expense
+                {:start-date (jt/local-date 2018 1 1) :period (jt/years 1) :end-date (jt/local-date 2020 1 1)
+                 :amount 100 } [] 0)
+        ]
+    (is (= (.cal-due-amount r-exp (jt/local-date 2018 1 1)) 100))
+    (is (= (.cal-due-amount r-exp (jt/local-date 2019 1 1)) 100))
+    (is (= (.cal-due-amount r-exp (jt/local-date 2020 1 1)) 0))
+
+    )
+
+  )
+
+
