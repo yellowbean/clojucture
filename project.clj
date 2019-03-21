@@ -15,13 +15,15 @@
     [org.clojure/data.json "0.2.6"]
     [org.clojure/data.zip "0.1.2"]
     [org.clojure/core.match "0.3.0-alpha5"]
+    [dk.ative/docjure "1.12.0"]
     ;[org.junit.jupiter/junit-jupiter-api "5.3.2"]
    ]
-  :plugins [
-            [cider/cider-nrepl "0.21.0"]
+  ;:plugins [
+            ;[lein-virgil "0.1.9"]
+          ;  [cider/cider-nrepl "0.21.0"]
 	        ;[refactor-nrepl "2.3.0-SNAPSHOT"]
-            [nightlight/lein-nightlight "2.4.0"]            
-            ]
+          ;  [nightlight/lein-nightlight "2.4.0"]
+  ;          ]
   ;:codox
   ;  {:output-path "docs"
   ;   :metadata {:doc/format :markdown} }
