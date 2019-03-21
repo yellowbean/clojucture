@@ -14,5 +14,11 @@
     (is (= (jt/local-date 2019 1 1) a))
     (is (= (jt/local-date 2011 1 1) b)) )
 
+  (let [ x (base/parsing-dates "2013-03-20Q,2014-06-30")]
+
+    (is (= (first x) (jt/local-date 2013 3 20)) )
+    (is (= (second x) (jt/local-date 2013 6 20)))
+    (is (= (last x) (jt/local-date 2014 6 30)))
+    )
 
   )
