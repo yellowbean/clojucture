@@ -4,14 +4,15 @@
             [clojucture.core :as ccore]
             [java-time :as jt]
             [clojucture.util :as util]
-            [clojucture.util :as u])
+            [clojucture.util :as u]
+            [clojure.core.match :as m])
   (:import [java.time LocalDate Period  ]
            )
   )
 
 
 (defn pay-expense-at-base
-  [ d acc expense base ]
+  [  d acc expense base ]
    (let [ due-amount (.cal-due-amount expense d base)
          new-acc (.try-withdraw acc d (:info acc) due-amount )
          paid-amount (Math/abs (:amount (.last-txn new-acc)))
@@ -27,7 +28,7 @@
   )
 
 (defn pay-expense
-  ([ d acc expense ]
+  ([  d acc expense ]
   (let [ due-amount (.cal-due-amount expense d )
          draw-amount (min (.balance acc) due-amount)
          new-acc (.try-withdraw acc d (:info acc) draw-amount )
@@ -39,6 +40,24 @@
     ))
   )
 
+(defn get-base [ deal d e]
+  (let [exp-base (:base (:info e))]
+    (get-in deal [:status :snapshot d exp-base]) ) )
+
+
+(defn pay-expense-deal [ deal d acc exp opt]
+  (let [ account (get-in deal [:account acc])
+        expense (get-in deal [:fee exp])
+        base? (contains? (:info expense) :pct) ]
+    (as->
+      (m/match base?
+       true (pay-expense-at-base d account expense (get-base deal d expense))
+       false (pay-expense d account expense) )
+       [ update-acc update-expense ]
+      (-> deal
+          (assoc-in [:account acc] update-acc )
+          (assoc-in [:fee exp ] update-expense ) ) )
+  ))
 
 ;"Expense type that due amount is annualized percentage of the base"
 (defrecord pct-expense-by-amount
