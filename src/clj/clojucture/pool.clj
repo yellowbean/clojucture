@@ -11,15 +11,15 @@
 
 
 (defprotocol Pool
-  (project-cashflow [ x ] )
-  (collect-cashflow [ x interval ] )
+  (project-cashflow [ x assump ] )
+  (collect-cashflow [ x assump interval ] )
   )
 
 
 (defrecord pool
   [ assets  ]
   Pool
-  (project-cashflow [x]
+  (project-cashflow [x assump]
     (let [ total-balance (reduce + (map #(.balance %) assets))
            cfs         (reduce
                           u/combine-cashflow
@@ -32,9 +32,9 @@
         (.removeColumns ^Table cfs ^"[Ljava.lang.String;" (into-array String ["balance"]))
         (.addColumns ^Table cfs (into-array DoubleColumn [balance-col ]))))
   )
-  (collect-cashflow [ x collect-intervals ]
+  (collect-cashflow [ x assump collect-intervals ]
     (u/agg-cashflow-by-interval
-      (.project-cashflow x) collect-intervals))
+      (.project-cashflow x assump) collect-intervals))
   )
 
 
