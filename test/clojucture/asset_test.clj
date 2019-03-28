@@ -7,7 +7,6 @@
     [clojucture.util :as u])
   )
 
-(def test-assets (atom nil) )
 
 (def test-reset-dates
   (u/gen-dates-range (jt/local-date 2017 1 1)  (jt/years 1) (jt/local-date 2020 1 1)))
@@ -28,6 +27,46 @@
 )
 
 
+
+(deftest test-mortgage
+  (let [ mort-info {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
+        mort (asset/->mortgage mort-info nil 20000 0.01 48 nil)
+        mort-cf (.project-cashflow mort)
+
+        ; mortgage with prepayment history
+        ; ppy-histroy {:prepayment [ {:date (jt/local-date 2015 5 5) :amount 3000}  ]}
+        mort2-hist {:last-pmt-reset {:date (jt/local-date 2015 5 5) :balance 5856.92 :term 36 :period-rate 0.01}}
+        mort2 (asset/->mortgage mort-info mort2-hist 4132.55 0.01 24 nil)
+        mort2-cf (.project-cashflow mort2)
+
+        ;float mortgage
+        index-curves  (assump/setup-curve :LDR5Y+ [(jt/local-date 2015 10 1)] [0.049] )
+        mort3-float-info {:index :LDR5Y+ :spread 0.001 :reset ""}
+        mort3-info { :float-info mort3-float-info  :start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 60 :balance 20000 :period-rate 0.01}
+        mort3 (asset/->mortgage mort3-info nil 30000 0.02 20 nil)
+        ]
+
+    (is (= (.rowCount mort-cf) 49))
+    ;(println mort-cf)
+    (is (< (Math/abs (- (.get (.column mort-cf "balance") 1) 19673.32)) 0.01))
+
+    ;(println mort2-cf)
+
+    (is (= (.rowCount mort2-cf) 25))
+    ;(println mort-cf)
+    (is (< (Math/abs (- (.get (.column mort2-cf "balance") 3) 3668.32)) 0.01))
+
+    ))
+
+(deftest test-mortgage-assump
+  (let [mort-info {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
+      mort (asset/->mortgage mort-info nil 20000 0.01 48 nil)
+      assump-info {:prepay-rate [] :default-rate [] :recovery-lag 10 :recovery-rate 0.4}
+      ]
+
+    )
+  )
+
 (def test-float-mortgage
   (asset/->float-mortgage
     (jt/local-date 2018 1 1)
@@ -41,7 +80,7 @@
     nil))
 
 (def test-index-curve
-  (assump/gen-curve :五年以上贷款利率
+  (assump/setup-curve :五年以上贷款利率
     [(jt/local-date 2018 1 1) (jt/local-date 2018 6 1)]
     [0.049 0.061]
   ))
@@ -106,5 +145,18 @@
     (is (= (.get (.column tleasing-with-deposit-cf "rental") 24) 400.0))
     (is (= (.get (.column tleasing-with-deposit-cf "deposit") 0) 100.0))
     (is (= (.get (.column tleasing-with-deposit-cf "deposit") 24) -100.0))
+    )
+  )
+
+;; test cf with assumption
+(deftest loan-with-assump
+  (let [ info {:start-date (jt/local-date 2018 1 1)
+               :first-pay (jt/local-date 2018 3 1) :periodicity (jt/months 3)
+               :term 36 :rate 0.08 :balance 1000}
+        assump-ppy (assump/gen-pool-assump-df :cpr [0.05] [(jt/local-date 2024 1 1) (jt/local-date 2026 1 1) ])
+        assump-def (assump/gen-pool-assump-df :cdr [0.05] [(jt/local-date 2024 1 1) (jt/local-date 2026 1 1)])
+        assump {:prepayment assump-ppy :default assump-def }
+        tloan (asset/->loan info 1000 24 0.08 nil)]
+    (println (.project-cashflow tloan assump))
     )
   )
