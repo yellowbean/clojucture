@@ -16,48 +16,81 @@
    (let [ due-amount (.cal-due-amount expense d base)
          new-acc (.try-withdraw acc d (:info acc) due-amount )
          paid-amount (Math/abs (:amount (.last-txn new-acc)))
-         new-arrears (- due-amount paid-amount)
-         ]
+         new-arrears (- due-amount paid-amount) ]
      [
       new-acc
       (-> expense
           (assoc :arrears new-arrears)
           (assoc :last-paid-date d))
-      ]
-     )
-  )
+      ] )
+    )
 
 (defn pay-expense
-  ([  d acc expense ]
+  [  d acc expense ]
   (let [ due-amount (.cal-due-amount expense d )
          draw-amount (min (.balance acc) due-amount)
          new-acc (.try-withdraw acc d (:info acc) draw-amount )
         ]
-    [
-     new-acc
+    [ new-acc
      (.receive expense d draw-amount )
      ]
-    ))
+    )
+  )
+
+(defn pay-expense-amount [ d acc expense amt]
+  (let [ draw-amount (min (.balance acc) amt)
+        new-acc (.try-withdraw acc d (:info acc) draw-amount)]
+    [new-acc (.receive expense d draw-amount)]
+    )
   )
 
 (defn get-base [ deal d e]
   (let [exp-base (:base (:info e))]
     (get-in deal [:status :snapshot d exp-base]) ) )
 
+(defn get-due [ deal d e]
+  (if (contains? (:info e) :base)
+    (.cal-due-amount e d (.get-base deal d e))
+    (.cal-due-amount e d) ) )
 
-(defn pay-expense-deal [ deal d acc exp opt]
+(defn pay-expense-deal [ deal d acc exp opt ]
   (let [ account (get-in deal [:account acc])
         expense (get-in deal [:fee exp])
         base? (contains? (:info expense) :pct) ]
     (as->
       (m/match base?
-       true (pay-expense-at-base d account expense (get-base deal d expense))
-       false (pay-expense d account expense) )
-       [ update-acc update-expense ]
+        true (pay-expense-at-base d account expense (get-base deal d expense))
+        false (pay-expense d account expense) )
+      [ update-acc update-expense ]
       (-> deal
           (assoc-in [:account acc] update-acc )
           (assoc-in [:fee exp ] update-expense ) ) )
   ))
+
+(defn pay-expenses-deal [deal d acc exp-list opt]
+  (let [ account (get-in deal [:account acc])
+        expense-list (select-keys (deal :fee) exp-list)
+        due-list (map #(get-due deal d %) expense-list)
+        total-due-amount (reduce + due-list)
+        total-due-factors (map #(/ % total-due-amount) due-list)
+        available-bal (.balance acc)
+        total-payment (min available-bal total-due-amount)
+        ]
+    (m/match opt
+       {:upper-limit-amount amt }
+         (as-> (min total-payment amt) capped-payment
+           (let [ each-payment (map #(* capped-payment %)  total-due-factors) ]
+             (loop [ ep each-payment  exp expense-list paying-acc account rexp-list [] ]
+               (if (nil? ep)
+                  [ paying-acc  rexp-list ]
+                  (let [ [acc-after-pay exp-after-pay] (pay-expense-amount d paying-acc (first exp) (first ep))]
+                   (recur (next ep) (next exp) acc-after-pay (cons exp-after-pay rexp-list)))
+                  ))
+           ))
+      nil
+      )
+    )
+  )
 
 ;"Expense type that due amount is annualized percentage of the base"
 (defrecord pct-expense-by-amount

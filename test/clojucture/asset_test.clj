@@ -149,6 +149,7 @@
   )
 
 ;; test cf with assumption
+(comment 
 (deftest loan-with-assump
   (let [ info {:start-date (jt/local-date 2018 1 1)
                :first-pay (jt/local-date 2018 3 1) :periodicity (jt/months 3)
@@ -159,4 +160,4 @@
         tloan (asset/->loan info 1000 24 0.08 nil)]
     (println (.project-cashflow tloan assump))
     )
-  )
+  ))

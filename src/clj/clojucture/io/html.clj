@@ -6,7 +6,7 @@
   )
 
 
-
+(comment
 (defn export-projections [ deal dest ]
   (let [ fo (FileOutputStream. dest)
 
@@ -21,4 +21,6 @@
 
   )
 
-(HtmlTableWriter/)
+(HtmlTableWriter / )
+
+)

@@ -1,116 +1,117 @@
-
 (ns clojucture.local_cn
   (:require
     [clojucture.asset :as asset]
     [clojucture.account :as acc]
-    [clojucture.deal :as d]
+    [clojucture.spv :as d]
     [clojucture.bond :as b]
     [clojucture.pool :as p]
     [clojucture.util :as u]
-    [java-time :as jt])
-  (:import
-    [tech.tablesaw.api Table ColumnType]
-    )
+    [java-time :as jt]
+    [clojure.core.match :as m])
+  (:use [clojure.core.match.regex])
+  (:import java.util.Arrays)
   )
 
 
-(def test-info {
-  :accounts [
-             :混同储备账户 :税收储备账户 :流动性储备账户 :抵销储备账户 :服务转移和通知储备账户
-             :收入分账户 :本金分账户
-             ]
-  :dates    {:初始起算日 "2018-10-1" :第一计息日 nil :第一支付日 nil :支付日 nil :信托分配日 "收款期间最后1日+第10个工作日"
-             :计息日   "每月26日" :法定到期日 nil :预期到期日 nil
-             :计算日   "2019-1-31,每月底"}
-  :pools    {}
-  :bonds    {}
-  :triggers {
-
-             }
-  :expense  {}
-
-  }
 
 
+(defn setup-accounts [ d ]
+  (loop [ accs [] accs-to-add (:账户 d)]
+    (if (nil? accs-to-add)
+      accs
+      (recur
+        (conj accs
+              (m/match (first accs-to-add)
+                {:名称 acc-name } (acc/->account acc-name nil 0 [])
+                :else nil))
+        (next accs-to-add)))
+  ))
 
-(defrecord china-bank-deal [ deal-info opt status ]
-  t/Deal
-  (run-assets [ x assump ]
-    (let [
-          cut-off-date (:cut-off-date deal-info)
-          stated-maturity-date (:stated-maturity-date deal-info)
-          first-pay-date (:first-pay-date deal-info)
-          first-int-date (:first-int-date deal-info)
-          first-calc-date (:first-calc-date deal-info)
-
-          pay-dates (u/gen-dates-range first-pay-date (jt/months 1) stated-maturity-date)
-          int-dates (u/gen-dates-range first-int-date (jt/months 1) stated-maturity-date)
-          calc-dates (map #(jt/adjust % :last-day-of-month ) (u/gen-dates-range first-calc-date (jt/months 1) stated-maturity-date))
-
-          ;setup accounts
-          principal-account (:本金帐 deal-info)
-          interest-account (:收益帐 deal-info)
-
-          ;triggers
-          triggers  (:triggers deal-info)
-
-
-          ;collateral cashflows
-          collection-intervals (partition 2 1 calc-dates)
-          int-intervals (partition 2 1 int-dates)
-          ;pool-cfs (.project-cashflow 资产池)
-
-          ;bond cashflows
-          ;cf-stmt (Table/create "Cashflow Statement" )
-          ]
-      )
-    )
-  (run-triggers [ x ]
-
-
-    )
-
-  (run-bonds [ x assump]
-
-    )
-  )
 
 (comment
+  (defn setup-dates [ d ]
+    (let [cut-off-date (jt/local-date (get-in d [:日期 :初始起算日]))
+          stated-maturity-date (jt/local-date (get-in d [:日期 :法定到期日])) ]
+      {
+       :cut-off-date    cut-off-date
+       :stated-maturity stated-maturity-date
+       :pay-dates       (u/parsing-dates (get-in d [:日期 :支付日]) stated-maturity-date)
+       :int-dates       (u/parsing-dates (get-in d [:日期 :计息日]) stated-maturity-date)
+       :calc-dates      (u/parsing-dates (get-in d [:日期 :计算日]) stated-maturity-date)
+       :dist-dates      (u/parsing-dates (get-in d [:日期 :信托分配日]) stated-maturity-date)
+       }
+      )
+    )
 
-  (defrecord exchange-deal
-    [ info pool bond triggers waterfall opt ]
+  (defn parsing-assets [asset]
+    (m/match asset
+             {:初始面额 orig_balance :当前面额 current_balance :年利率 annual_rate :摊销 amort_type
+              :支付日期 payment_dates :初始期限 orig_term :当前期限 remain_term :初始日 start_date}
+             (asset/->mortgage (jt/local-date start_date))
+
+             )
+
+    )
+
+
+
+  (defn setup-pool [d]
+    (let [asset-list (map #(parsing-assets %) (get-in d [:资产池 :资产清单]))]
+
+
+
+      {:asset-list asset-list}
+      )
+    )
+
+  (defn setup-triggers [d]
+
+    )
+
+  (defn setup-expense [d]
+
+    )
+
+  (defn setup-bond [d]
+
+    )
+
+
+
+
+
+
+  (defrecord china-bank-deal [deal-info opt status update-date]
     d/Deal
-    (run-assets [ x ]
-      (let [collect-intervals (into-array ^LocalDate (d/gen-pool-collect-interval info))
-            pool-cf (.collect-cashflow pool collect-intervals)]
-        pool-cf )
-      )
-
-    (run-bonds  [ x ]
-
-      )
-
-    (run-deal [ x ]
-      (let [ pool-cf (run-assets x)
-            projections nil
+    (run-assets [x assump]
+      (let [
             ]
         )
       )
+    (run-triggers [x]
+
+      )
+    (run-bonds [x assump]
+
+      )
     )
 
-  (defrecord pass-through-deal
-    [ info pool waterfall bond opt ]
-    d/Deal
-    (run-assets [ x ]
-      (let [collect-intervals (into-array ^LocalDate (d/gen-pool-collect-interval info))
-            pool-cf (.collect-cashflow pool collect-intervals)]
-        pool-cf )
-      )
-    (run-bonds [ x ]
-      (let [ pool-cf   (.run-assets x)
-            {:分配日 dist-dates }  info ]
+
+
+  (defn build-deal [deal-type deal-structure]
+    (let [
+          update (get-in deal-structure [:meta :update-date])
+          accounts (setup-accounts deal-structure)
+          dates (setup-dates deal-structure)
+          pool (setup-pool deal-structure)
+          bond (setup-bond deal-structure)
+          triggers (setup-triggers deal-structure)
+          expense (setup-expense deal-structure)
+          ]
+      (case deal-type
+        ;:bank-deal (china-bank-deal. nil nil nil )
+
         )
       )
     )
-
   )

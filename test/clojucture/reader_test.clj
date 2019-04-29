@@ -2,7 +2,6 @@
   (:require
     [clojure.java.io :as io]
     [clojucture.asset :as asset ]
-    [clojucture.reader :as rdr]
     )
   )
 

@@ -7,7 +7,7 @@
             )
   (:import
     [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
-  ))
+    (clojucture RateAssumption)))
 
 
 (defprotocol Pool
@@ -17,13 +17,12 @@
 
 
 (defrecord pool
-  [ assets  ]
+  [ assets ]
   Pool
-  (project-cashflow [x assump]
-    (let [ total-balance (reduce + (map #(.balance %) assets))
-           cfs         (reduce
-                          u/combine-cashflow
-                          (map #(.project_cashflow %) assets))
+  (project-cashflow [ x assump ]
+    (let [ total-balance (reduce + (map #(.remain-balance %) assets))
+           asset-cashflow (map #(.project-cashflow % assump ) assets )
+           cfs         (reduce u/combine-cashflow asset-cashflow)
            prin-ary  (-> (.column ^Table cfs "principal" ) (.asDoubleArray))
            balance-ary (u/gen-balance ^"[D" prin-ary ^Double total-balance)
            balance-col (DoubleColumn/create "balance" ^"[D"  balance-ary)

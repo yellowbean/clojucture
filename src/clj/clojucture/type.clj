@@ -26,14 +26,6 @@
 
 
 
-(defprotocol Bond
-  (cal-due-principal [ x d ] )
-  (cal-due-interest [ x d ] )
-  (amortize [ x d amt])
-  (cal-next-rate [ x d assump ])
-  (receive-payments [ x d principal interest ])
-	;(load [ s ])
-	)
 
 
 

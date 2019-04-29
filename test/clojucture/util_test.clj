@@ -107,6 +107,7 @@
     )
   )
 
+
 ; init-column test
 (deftest t-init-col
   (let [dc (u/init-column :double :DoubleColumn)
@@ -117,16 +118,16 @@
     )
   )
 
-  ; init-table test
-  (deftest t-init-table
-    (let [t (u/init-table "tInit"
-              [ [:double :balance] [:boolean :triggered?] [:date :dates] [:string :flowname]])
-          ]
-      (is (= 4 (.columnCount t)))
-      (is (= "balance" (.name (.column t 0))))
-      (is (= "triggered?" (.name (.column t 1))))
-      (is (= "dates" (.name (.column t 2))))
-      (is (= "flowname" (.name (.column t 3))))
+; init-table test
+(deftest t-init-table
+  (let [t (u/init-table "tInit"
+            [ [:double :balance] [:boolean :triggered?] [:date :dates] [:string :flowname]])
+        ]
+    (is (= 4 (.columnCount t)))
+    (is (= "balance" (.name (.column t 0))))
+    (is (= "triggered?" (.name (.column t 1))))
+    (is (= "dates" (.name (.column t 2))))
+    (is (= "flowname" (.name (.column t 3))))
 
-      )
     )
+  )

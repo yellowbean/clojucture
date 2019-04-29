@@ -82,12 +82,14 @@
 (deftest tApplyPoolAssump
   (let [
         aCDR (assump/gen-pool-assump-df :cdr
-                [0.03 0.04 0.045 0.05]
+                [0.03 0.04 0.045 ]
                 [(jt/local-date 2018 1 1) (jt/local-date 2018 2 1) (jt/local-date 2018 3 1) (jt/local-date 2018 4 1)])
-        od [ (jt/local-date 2018 1 10) (jt/local-date 2018 2 10) (jt/local-date 2018 2 25)]
+        od (into-array LocalDate [ (jt/local-date 2018 1 10) (jt/local-date 2018 2 10) (jt/local-date 2018 2 25)])
         ]
-    (println (assump/gen-asset-assump aCDR od))
+    (println aCDR)
 
+    (println (.project aCDR od))
+    (println  (.apply aCDR od))
   ))
 
 (deftest curveConvertion

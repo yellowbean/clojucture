@@ -89,11 +89,16 @@
           (assoc-in deal-setup [:status :b-rest-payment-dates]
                     (filter #(jt/after? % update-date) (get-in deal-setup [:info :b-payment-dates])))
           (assoc-in deal-setup [:status :p-rest-collection-intervals]
-                    (filter #(jt/after? (first %) update-date) (get-in deal-setup [:info :p-collection-intervals]))
-                   )
+                    (filter #(jt/after? (first %) update-date) (get-in deal-setup [:info :p-collection-intervals])) )
+
+          ;; update expense
+          ;; (assoc-in deal-setup [:status :expense] )
+          ;; update pool
+
+          ;; update bond
+          ;;
 
         )
-
       )
     )
   )
@@ -102,7 +107,7 @@
 (defn build-deal [ m ]
   (->
     (m/match m
-    {:info i :status s :pool p :waterfall w :bond b}
+    {:info i :status s }
       m
     :else nil
     )
@@ -110,19 +115,15 @@
   )
 
 
-
-
 (defn run-assets [ d assump ]
-  (let [ pool-collect-int (gen-pool-collect-interval (:info d))
-         pool-cf (.collect-cashflow (:pool d) assump pool-collect-int)
-        ]
-    (-> d
-      (assoc-in [:status :asset-run?] true)
-      (assoc-in [:status :pool-cashflow] pool-cf))
+  (let [ pool-collect-int (gen-pool-collect-interval (:info d)) ]
+    (-> {:deal d}
+      (assoc :pool-cf (.collect-cashflow (get-in d [:status :pool]) assump pool-collect-int) )
+      (assoc :assumption assump))
   )
 )
 
-(defn run-bonds [ d ]
+(defn run-bonds [ d assump ]
   (let [ bond-rest-payment-dates (get-in d [:info :b-rest-payment-dates ]) ]
     (doseq [ pd bond-rest-payment-dates]
       
@@ -130,5 +131,4 @@
       )
     nil
     )
-
-  )
+)

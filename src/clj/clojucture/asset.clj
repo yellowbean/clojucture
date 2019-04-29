@@ -185,10 +185,14 @@
     nil
     )
   (project-cashflow [ x assump ]
-    (let [ { start-date :start-date first-pay :first-pay periodicity :periodicity term :term rate :rate balance :balance} info
-           payment-dates (take term (u/gen-dates-range first-pay periodicity ))
+    (let [ { start-date :start-date first-pay :first-pay periodicity :periodicity
+            maturity-date :maturity-date term :term rate :rate balance :balance} info
+           payment-dates (->
+                           (cons start-date
+                                 (take term (u/gen-dates-range first-pay periodicity)))
+                           (vec) (conj maturity-date) )
            ;_ (prn payment-dates)
-           rest-payment-dates (subvec (vec payment-dates) remain-term)
+           rest-payment-dates (subvec (vec payment-dates) (- term remain-term))
            { ppy-assump :prepayment def-assump :default } assump
           ppy-assump-proj (a/gen-asset-assump ppy-assump rest-payment-dates)
           def-assump-proj (a/gen-asset-assump def-assump rest-payment-dates)
@@ -203,10 +207,13 @@
           payment-dates-int (u/gen-dates-interval rest-payment-dates)
 
           ]
+      (println ppy-assump)
+      (println rest-payment-dates)
+      (println ppy-assump-proj)
       (loop [ pds payment-dates-int ppy-a (seq ppy-assump-proj) def-a (seq def-assump-proj)
              f-bal remain-balance idx 1 ]
         (if (nil? pds)
-          (u/gen-table "CF"
+          (u/gen-cashflow "CF"
                {:dates (into-array LocalDate rest-payment-dates) :balance bal :principal prin :interest interest
                         :prepayment prepay :default default } )
           (let [ df-amt (* f-bal (first def-a))

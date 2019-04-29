@@ -5,7 +5,8 @@
             [clojucture.util :as u])
   (:import [java.time LocalDate]
            clojucture.DoubleFlow
-           (clojucture RateAssumption))
+           (clojucture RateAssumption)
+           (org.apache.commons.math3.analysis.function Pow))
   )
 
 (defn pick-rate-by-date [ ^LocalDate d index-curve ]
@@ -58,30 +59,34 @@
 
 (defn gen-pool-assump-df [curve-type v observe-dates]
   (let [d-intervals (u/gen-dates-interval observe-dates)
+        days-intervals (map #(jt/time-between (first %) (second %) :days) d-intervals)
+
         interval-start (into-array LocalDate (map first d-intervals))
         interval-end (into-array LocalDate (map second d-intervals))
 
-        days-intervals (map #(jt/time-between (first %) (second %) :days) d-intervals)
-        factors-in-year (map #(/ % 365) days-intervals)
-        factors-in-month (map #(/ % 30) days-intervals)
-        ;rv (drop-last v)
-        factors-y (map vector factors-in-year v)
-        factors-m (map vector factors-in-month v)
         ]
     (as->
       (m/match [curve-type v]
-               [:smm (v :guard #(vector? %))]
-               (map #(* (first %) (second %)) factors-m)
+               ;[:smm (v :guard #(vector? %))]
+               ;(map #(- 1 (Math/pow (- 1 (second %)) (first %))) factors-m)
                [(:or :cpr :cdr) (v :guard #(vector? %))]
-               (map #(* (first %) (second %)) factors-y)
+               (let [ daily-pct (map #(- 1 (Math/pow (- 1 %) (/ 1 365))) v ) ]
+                 daily-pct
+                 )
                :else nil) rs
       (RateAssumption. (name curve-type) interval-start interval-end (double-array rs ) )
     )
   ))
 
 ; to be verified, it is a mess here
-(defn gen-asset-assump [^RateAssumption pool-assumption observe-dates]
-  ;(println observe-dates)
+(defn gen-asset-assump
+  [^RateAssumption pool-assumption observe-dates]
   (let [obs-ary (into-array LocalDate observe-dates)]
     (seq (.project pool-assumption obs-ary)) )
+  )
+
+(defn gen-assump [ x ]
+  (m/match x
+           :else nil
+           )
   )
