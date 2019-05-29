@@ -111,8 +111,8 @@
           (assoc :last-paid-date d)
           (assoc :stmt
                  (conj stmt
-                       (ccore/->stmt d nil :expense pay-to-expense nil)
-                       (ccore/->stmt d nil :expense-arrears pay-to-arrears nil) ))
+                       (acc/->stmt d nil :expense pay-to-expense nil)
+                       (acc/->stmt d nil :expense-arrears pay-to-arrears nil) ))
           )
       )
     )
@@ -133,8 +133,8 @@
           (assoc :last-paid-date d)
           (assoc :stmt
                  (conj stmt
-                       (ccore/->stmt d nil :expense pay-to-expense nil)
-                       (ccore/->stmt d nil :expense-arrears pay-to-arrears nil) ))
+                       (acc/->stmt d nil :expense pay-to-expense nil)
+                       (acc/->stmt d nil :expense-arrears pay-to-arrears nil) ))
           )
       )
     )
@@ -152,7 +152,7 @@
       (-> x
           (assoc :balance (- balance amount))
           (assoc :last-paid-date d)
-          (assoc :stmt (conj stmt (ccore/->stmt d nil :expense amount nil) ))
+          (assoc :stmt (conj stmt (acc/->stmt d nil :expense amount nil) ))
           )
       )
     )
@@ -176,8 +176,8 @@
       (-> x
           (assoc :arrears (- arrears pay-to-arrears))
           (assoc :stmt (conj stmt
-                             (ccore/->stmt d nil :expense pay-to-expense nil)
-                             (ccore/->stmt d nil :expense-arrears pay-to-arrears nil) ))
+                             (acc/->stmt d nil :expense pay-to-expense nil)
+                             (acc/->stmt d nil :expense-arrears pay-to-arrears nil) ))
 
           )
       )

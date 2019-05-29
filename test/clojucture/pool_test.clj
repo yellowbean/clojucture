@@ -5,7 +5,10 @@
     [clojucture.asset :as asset ]
     [clojucture.pool :as p]
     [clojucture.util :as u]
+    [clojucture.cashflow-test :as cf-t]
+    [clojucture.account-test :as ac-t]
     )
+  (:import [tech.tablesaw.api Row])
   )
 (comment
   (def date-intervals
@@ -21,5 +24,24 @@
 
           ])
 
+    )
+  )
+
+
+(deftest deposit-from-pool
+  (let [ pool-cf  cf-t/sample-cf
+        accs   {:acc1 ac-t/t-account-1 :acc2 ac-t/t-account-2 }
+        mp {:principal :acc1 :interest :acc2}
+        deposit-date (jt/local-date 2018 2 2)
+        accs-result (p/deposit-to-accs pool-cf accs mp deposit-date)
+        accs-int (:acc2 accs-result)
+        accs-prin (:acc1 accs-result)
+        ]
+    ;(println (keys accs-result))
+    (is (= 3400.0 (:balance accs-prin)))
+    (is (= 12 (count (:stmts accs-prin))))
+
+    (is (= 660.0 (:balance accs-int)))
+    (is (= 12 (count (:stmts accs-int))))
     )
   )

@@ -5,6 +5,9 @@
     [clojure.test :refer :all])
   )
 
+(def t-account-1 (acc/->account :acc1 :prin 1000 []) )
+(def t-account-2 (acc/->account :acc2 :int 0 []) )
+
 (deftest deposit-test
    (let [ test-account (acc/->account :acc-1 :cash 0 [])
          ]

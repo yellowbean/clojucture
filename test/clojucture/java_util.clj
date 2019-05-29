@@ -32,6 +32,19 @@
 
     ))
 
+(deftest tRateAssumption
+  (let [ dr (into-array LocalDate [ (jt/local-date 2017 1 1) (jt/local-date 2020 1 1)])
+        dv (into-array Double [0.01])
+        ta (RateAssumption. "Flat Rate" dr dv)
+        project-result (.project ta (into-array LocalDate [(jt/local-date 2018 11 1) (jt/local-date 2019 5 1 )]))
+        apply-result (.apply ta (into-array LocalDate [(jt/local-date 2018 11 1) (jt/local-date 2019 5 1 )]))
+        ]
+    (= (first apply-result) 0.01)
+    ;(println apply-result2)
+
+    )
+  )
+
 (comment
 (deftest tDoubleFlowApply
   (let [ da (->>
@@ -47,3 +60,4 @@
 
     )
   ))
+

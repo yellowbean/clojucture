@@ -20,9 +20,12 @@ public class Cashflow extends Table {
         for(int i = 0; i<t.columnCount();i++){
             this.addColumns(t.column(i));
         }
-        this.sortAscendingOn("dates");
-        //this.cleanAggHeader();
 
+        String[] c2t = new String[]{"dates"};
+
+        this.setName("CF");
+        this.trim_sum(c2t);
+        this.sortAscendingOn("dates");
     }
 
     public Cashflow(String name){
@@ -34,21 +37,6 @@ public class Cashflow extends Table {
         DateColumn dts = DateColumn.create("DATES", d);
         this.addColumns(dts);
     }
-
-    /*
-    private void cleanAggHeader(){
-        String pattern = "Sum\\s\\[(\\S+)\\]\\s+";
-        Pattern r = Pattern.compile(pattern);
-
-        List<String> cn = this.columnNames();
-        for(int i = 0;i<cn.size();i++){
-            Matcher m = r.matcher(cn.get(i));
-            if(m.find()){
-                this.addColumns(this.column(i).setName(m.group(1)));
-                this.removeColumns(this.column(i).name());
-            }
-        }
-    }*/
 
     public Cashflow aggregateByInterval(String name, LocalDate[] d){
 
@@ -64,22 +52,20 @@ public class Cashflow extends Table {
     }
 
 
-    public Table add( Cashflow cf){
-        Cashflow combined_cf = (Cashflow)this.append(cf);
+    public Cashflow add( Cashflow cf){
+        Table combined_cf = this.append(cf);
         final List<String> agg_exl_field = Arrays.asList("dates","balance");
         List<String> all_column_names = this.columnNames().stream().filter( e -> !agg_exl_field.contains(e)).collect(Collectors.toList());
         Summarizer smr = combined_cf.summarize( all_column_names , AggregateFunctions.sum);
 
-        Cashflow agg_cf = new Cashflow(smr.by("dates"));
+        Table agg_cf = smr.by("dates");
         agg_cf.column("Sum [principal]").setName("principal");
         agg_cf.column("Sum [default]").setName("default");
         agg_cf.column("Sum [prepayment]").setName("prepayment");
         agg_cf.column("Sum [interest]").setName("interest");
 
-        //System.out.println(agg_cf);
 
         Double init_balance = (Double)this.column("balance").get(0) + (Double)cf.column("balance").get(0);
-
         Double[] bal_array = new Double[agg_cf.rowCount()];
         bal_array[0] = init_balance;
 
@@ -88,7 +74,23 @@ public class Cashflow extends Table {
         }
         DoubleColumn bal_col = DoubleColumn.create("balance", bal_array);
 
-        return agg_cf.addColumns(bal_col);
+        return new Cashflow(agg_cf.addColumns(bal_col));
 
+    }
+
+    public void trim_sum( String[] exclude_column_names ){
+        String p = ".*\\[(\\S+)\\].*";
+        Pattern pp = Pattern.compile(p);
+
+        for(int i = 0;i<this.columnCount();i++){
+            String c_name = this.column(i).name();
+
+            if (Arrays.stream(exclude_column_names).anyMatch(c_name::equals))
+                continue;
+            Matcher m = pp.matcher(c_name);
+            if (m.find()){
+                this.column(i).setName(m.group(1));
+            }
+        }
     }
 }

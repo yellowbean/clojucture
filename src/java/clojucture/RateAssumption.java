@@ -77,22 +77,32 @@ public class RateAssumption extends Table{
 
         Double[] dda = new Double[ratesAtPoints.size()];
         LocalDate[] ddd = new LocalDate[bps.size()];
-        Double[] v = ArrayUtils.subarray(ratesAtPoints.toArray(dda),0,dda.length-1);
+        Double[] v = ArrayUtils.subarray(ratesAtPoints.toArray(dda),0,dda.length -1);
         return new RateAssumption("Projected",bps.toArray(ddd),v);
     }
 
     public ArrayList<Double> apply(LocalDate[] d){
         RateAssumption projected_assump = this.project(d);
-
+        //System.out.println(projected_assump);
         ArrayList<LocalDate> d_list = new ArrayList<>(Arrays.asList(d));
         ArrayList<Double> v_list = new ArrayList<>(d.length-1);
 
         Iterator<LocalDate> d_list_itr = d_list.iterator();
 
-        d_list_itr.next();
-        LocalDate current_date = d_list_itr.next();
+        //d_list_itr.next();
+
+        // only one projected row
+        if (projected_assump.rowCount()==1){
+            v_list.add((Double)projected_assump.get(0,2));
+            return v_list;
+        }
+
+
+
+        // more than one projected rows
+        LocalDate current_date = d_list_itr.next(); // first date of observations
         Double accum_rate = 0.0;
-        for(int i = 0;i< projected_assump.rowCount();i++){
+        for(int i = 0; i< projected_assump.rowCount(); i++){
             LocalDate sDate = (LocalDate)projected_assump.get(i,0);
             LocalDate eDate = (LocalDate)projected_assump.get(i,1);
             Double v = (Double)projected_assump.get(i,2);

@@ -4,6 +4,7 @@
     [clojure.java.io :as io]
     [clojure.data.json :as json]
     [clojure.core.match :as m]
+    [medley.core :as ml]
     )
   (:import [java.util Arrays]
            [java.time LocalDate]
@@ -347,7 +348,8 @@
        (.appendMissing ^AbstractColumn c))
      c))
   ([^String n ^AbstractColumnType t]
-   (condp = t
+   (println t)
+   (condp instance? t
      DoubleColumnType (DoubleColumn/create ^String n)
      BooleanColumnType (BooleanColumn/create ^String n)
      StringColumnType (StringColumn/create ^String n)
@@ -457,19 +459,17 @@
 
 (defn combine-cashflow
   " 'Plus' 2 cashflow tables with same column names,return combined table"
-  ([^"[Ltech.tablesaw.columns.AbstractColumn;" cols ^Table x ^Table y]
-   (let [ combined-cashflow (.append x y)
-         _ (println cols)
+  ([^"[Ltech.tablesaw.columns.AbstractColumn;" cols ^Cashflow x ^Cashflow y]
+   (let [ combined-cashflow (.add x y)
+         col-to-add (filter #(not= % "dates") (.columnNames combined-cashflow))
+         ;_ (println col-to-add)
          summary-table (.summarize combined-cashflow
-                                   ; cols
-                                   "principal"
-                                   AggregateFunctions/sum)
-         sorted-by-dates-table (.by summary-table "dates")]
-     ;(remove-sum-column ^Table sorted-by-dates-table)
-     sorted-by-dates-table
-     )
-    )
-  ([x y]
+                                   col-to-add
+                                   (into-array AggregateFunction [AggregateFunctions/sum]))
+         sorted-by-dates-table (.by summary-table (into-array String ["dates"]))]
+     (Cashflow. sorted-by-dates-table) ))
+
+  ([^Cashflow x ^Cashflow y]
    (let [[x-complete y-complete] (add-missing-col x y)
          common-cols (.columnNames x)]
      (combine-cashflow common-cols x-complete y-complete)
@@ -553,3 +553,12 @@
    (+
      (-cal-due-interest balance start-d end-d day-count rate)
      arrears)))
+
+(defn build-map-from-field [ field list-of-maps ]
+  (loop [ lm list-of-maps  r {}]
+    (if-let [  this-m (first lm)  ]
+      (recur
+        (next lm)
+        (assoc r (:name this-m) this-m)
+        )
+      r ) ) )

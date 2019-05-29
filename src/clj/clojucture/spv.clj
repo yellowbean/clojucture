@@ -77,7 +77,6 @@
 (defn init-deal [ d ]
   (when-let [deal d]
     (let [ update-date (get-in deal [:status :update-date])]
-;      (println (gen-pool-cf-split-dates i))
       (as-> deal deal-setup
           ;; deal original info
           (assoc-in deal-setup [:info :p-collection-intervals] (gen-pool-collect-interval (deal-setup :info)))

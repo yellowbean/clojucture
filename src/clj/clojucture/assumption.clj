@@ -5,9 +5,9 @@
             [clojucture.util :as u])
   (:import [java.time LocalDate]
            clojucture.DoubleFlow
-           (clojucture RateAssumption)
-           (org.apache.commons.math3.analysis.function Pow))
-  )
+           (clojucture RateAssumption) ) )
+
+
 
 (defn pick-rate-by-date [ ^LocalDate d index-curve ]
   (let [shifted-curve (for [ [ d r ] index-curve] [ (jt/plus d (jt/days -1)) r ] )]
@@ -59,34 +59,23 @@
 
 (defn gen-pool-assump-df [curve-type v observe-dates]
   (let [d-intervals (u/gen-dates-interval observe-dates)
-        days-intervals (map #(jt/time-between (first %) (second %) :days) d-intervals)
-
+        ;days-intervals (map #(jt/time-between (first %) (second %) :days) d-intervals)
         interval-start (into-array LocalDate (map first d-intervals))
-        interval-end (into-array LocalDate (map second d-intervals))
-
-        ]
+        interval-end (into-array LocalDate (map second d-intervals)) ]
     (as->
       (m/match [curve-type v]
                ;[:smm (v :guard #(vector? %))]
                ;(map #(- 1 (Math/pow (- 1 (second %)) (first %))) factors-m)
                [(:or :cpr :cdr) (v :guard #(vector? %))]
                (let [ daily-pct (map #(- 1 (Math/pow (- 1 %) (/ 1 365))) v ) ]
-                 daily-pct
-                 )
+                 daily-pct )
                :else nil) rs
       (RateAssumption. (name curve-type) interval-start interval-end (double-array rs ) )
     )
   ))
 
-; to be verified, it is a mess here
 (defn gen-asset-assump
   [^RateAssumption pool-assumption observe-dates]
   (let [obs-ary (into-array LocalDate observe-dates)]
-    (seq (.project pool-assumption obs-ary)) )
-  )
-
-(defn gen-assump [ x ]
-  (m/match x
-           :else nil
-           )
+    (.apply pool-assumption obs-ary))
   )

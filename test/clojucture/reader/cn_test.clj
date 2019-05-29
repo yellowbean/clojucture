@@ -2,28 +2,38 @@
   (:require
     [clojucture.reader.cn :refer :all]
     [clojucture.assumption :as assump]
+    [clojucture.pool :as p]
     [clojure.test :refer :all]
     [java-time :as jt]
     [clojure.java.io :as io]
-    [clojucture.util :as u]
-    )
-  )
+    [clojucture.util :as u]))
 
-(comment 
+
+
+
 (deftest testPy
-  (let [ py-model  (io/resource "china/Model.xlsx")
-       model (cn-load-model (.getFile py-model))
-       pool (get-in model [:status :pool] )
-        cpr-assump (assump/gen-pool-assump-df :cpr [0.1 ] [(jt/local-date 2017 1 1) (jt/local-date 2030 1 1)] )
-        cdr-assump (assump/gen-pool-assump-df :cpr [0.1 ] [(jt/local-date 2017 1 1) (jt/local-date 2030 1 1)] )
+  (let [py-model (io/resource "china/Model.xlsx")
+        model (cn-load-model (.getFile py-model))
+        pool (get-in model [:status :pool])
+        deal-accounts (get-in model [:info :accounts])
+        cpr-assump (assump/gen-pool-assump-df :cpr [0.1] [(jt/local-date 2017 1 1) (jt/local-date 2030 1 1)])
+        cdr-assump (assump/gen-pool-assump-df :cpr [0.1] [(jt/local-date 2017 1 1) (jt/local-date 2030 1 1)])
         pool-assump {:prepayment cpr-assump :default cdr-assump}
-        asset-cfs   (map #(.project-cashflow % pool-assump) (:assets pool) )
+        p-collect-int (get-in model [:info :p-collection-intervals])
+        pool-cf-agg (.collect-cashflow pool pool-assump p-collect-int)
+
+        rules {:principal :账户P  :interest :账户I}
+        accs-with-deposit  (p/deposit-to-accs pool-cf-agg deal-accounts rules {:delay-days 10})
+        waterfalls (get-in model [:info :waterfall])
         ]
+
+    ;(println (:账户I accs-with-deposit))
     ;(.project-cashflow pool pool-assump)
-    (println (second asset-cfs ))
-    ;(println (reduce #(.add %1 %2) asset-cfs ))
-;    (u/combine-cashflow cf1 cf2)
+    (println waterfalls)
+    ;(println pool-cf-agg)
     )
   )
 
-)
+  
+
+
