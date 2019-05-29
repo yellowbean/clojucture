@@ -2,6 +2,7 @@
   (:require
     [clojucture.asset :as asset]
     [clojucture.assumption :as assump]
+    [clojucture.account :as account]
     [clojucture.expense :as exp ]
     [clojucture.util :as u]
     [clojucture.bond :as b]
@@ -73,8 +74,13 @@
               obalance rm r nil )
 
 
-    :nil
-   )
+    :nil ) )
+
+(defn cn-setup-acc [ a ]
+    (m/match a
+             {:name n :type t :balance b} (account/->account (keyword n) (keyword t) b [])
+             :else nil
+             )
   )
 
 (defn cn-load-model [ wb-path ]
@@ -110,7 +116,10 @@
         wf-default (map cn-setup-wf
                      (subvec (select-columns {:F :cond :G :source :H :target :I :opt } waterfall-s) 2 ))
 
-        
+        account-s (select-sheet "account" wb)
+        accounts (->> (map cn-setup-acc
+                      (subvec (select-columns {:A :name :B :type :C :balance} account-s) 1 ))
+                      (u/build-map-from-field :name))
         assump-s (select-sheet "assumption" wb)
         assump-prepay nil
         assump-default nil
@@ -122,15 +131,17 @@
           :stated-maturity stated-maturity :first-payment-date (jt/local-date 2017 6 30) :payment-interval :Q
           :delay-days 20 }
          :waterfall {
-           :normal wf-norm
-           :default wf-default }
+                     :normal  wf-norm
+                     :default wf-default
+                     }
+         :accounts accounts
         }
       :status
         {:update-date (jt/local-date 2017 4 30)
         :pool (p/->pool asset-list )
         :bond bonds
         :expense [fees-oneoff fees-base fees-recur]
-        :account (a/->account :归集账户 :cash 0 []) }}
+         }}
       )
     )
   )
