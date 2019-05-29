@@ -16,6 +16,7 @@
     [org.clojure/data.zip "0.1.2"]
     [org.clojure/core.match "0.3.0"]
     [dk.ative/docjure "1.12.0"]
+    [medley "1.2.0"]
    ]
   :plugins [
             [lein-virgil "0.1.9"]
