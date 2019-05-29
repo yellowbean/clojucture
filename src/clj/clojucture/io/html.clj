@@ -1,4 +1,5 @@
-(ns clojucture.io.html
+  (comment
+    (ns clojucture.io.html
 
   (:import [tech.tablesaw.api Table]
            [tech.tablesaw.io.html HtmlTableWriter]
@@ -6,7 +7,6 @@
   )
 
 
-(comment
 (defn export-projections [ deal dest ]
   (let [ fo (FileOutputStream. dest)
 
