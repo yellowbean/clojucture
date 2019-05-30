@@ -75,6 +75,7 @@
   )
 
 (defn init-deal [ d ]
+  "Popluate deal variables"
   (when-let [deal d]
     (let [ update-date (get-in deal [:status :update-date])]
       (as-> deal deal-setup
@@ -123,8 +124,12 @@
 )
 
 (defn run-bonds [ d assump ]
-  (let [ bond-rest-payment-dates (get-in d [:info :b-rest-payment-dates ]) ]
-    (doseq [ pd bond-rest-payment-dates]
+  (let [ bond-rest-payment-dates (get-in d [:info :b-rest-payment-dates ])
+        waterfall (get-in d [:info :waterfall])
+        pool-cf (run-assets d assump)
+
+        ]
+    (loop [ pay-dates bond-rest-payment-dates deal-snapshot d bond-flow nil]
       
       
       )
