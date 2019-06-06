@@ -562,3 +562,6 @@
         (assoc r (:name this-m) this-m)
         )
       r ) ) )
+
+(defn dates [ x ]
+  (into-array LocalDate x))
