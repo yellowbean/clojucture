@@ -2,15 +2,18 @@
   (:require [clojucture.bond :as b]
             [clojucture.asset :as a]
             [clojucture.type :as t]
+            [clojucture.pool :as p]
             [java-time :as jt]
             [clojucture.util :as u]
             [clojure.java.io :as io]
             [clojure.core.match :as m]
-            [clojure.pprint :as pp])
-  (:import [tech.tablesaw.api ColumnType Table]
+            [clojucture.expense :as exp]
+            )
+  (:import [tech.tablesaw.api ColumnType Table Row]
            [tech.tablesaw.columns AbstractColumn Column]
            [java.time LocalDate]
            )
+  (:use [clojure.core.match.regex])
 
   )
 
@@ -75,14 +78,14 @@
   )
 
 (defn init-deal [ d ]
-  "Popluate deal variables"
+  "Popluate deal variables base on deal info ( static data )"
   (when-let [deal d]
     (let [ update-date (get-in deal [:status :update-date])]
       (as-> deal deal-setup
           ;; deal original info
           (assoc-in deal-setup [:info :p-collection-intervals] (gen-pool-collect-interval (deal-setup :info)))
           (assoc-in deal-setup [:info :b-payment-dates] (gen-bond-payment-date (deal-setup :info)))
-          (assoc-in deal-setup [:info :b-aggregate-intervals] (gen-pool-cf-split-dates (deal-setup :info)))
+          (assoc-in deal-setup [:info :p-aggregate-intervals] (gen-pool-cf-split-dates (deal-setup :info)))
 
 
           ;; update info
@@ -107,8 +110,8 @@
 (defn build-deal [ m ]
   (->
     (m/match m
-    {:info i :status s }
-      m
+    {:info {:country :China} :status s }
+             (assoc m :tax-bond-vat 0.03)
     :else nil
     )
     (init-deal))
@@ -123,16 +126,65 @@
   )
 )
 
+(defn cn-distribute [ d ^LocalDate dt accounts waterfall expenses bonds ]
+  "distribute funds from account to liabilities"
+  (loop [ accs accounts ws waterfall exps expenses bnds bonds]
+    (if-let [ current-action (first ws)]
+      (m/match (:target current-action)
+        :增值税 (as->
+                (exp/pay-expense-at-base dt ((:source current-action) accs)
+                                      ((:target current-action) expenses) 1000  )
+                [updated-acc updated-exp]
+                (recur updated-acc (next ws) updated-exp bnds ) )
+        :else :not-match-ws-action
+      )
+    )
+  ))
+
+(defn choose-distribution-fun [ d ]
+  "Pick a distribution function by deal country"
+  (m/match d
+           {:country :China} cn-distribute
+           :else nil
+     )
+  )
+
+(defn pick-deposit-row [ pool-cf ^LocalDate d]
+  (loop [r-flag (Row. pool-cf) ]
+    (if-not (or (.hasNext r-flag) nil)
+      (.getDate r-flag "ending-date")
+      (recur (.next r-flag)  )
+      )
+    )
+  )
+
+
 (defn run-bonds [ d assump ]
+  "projection bond cashflow with pool assumption"
   (let [ bond-rest-payment-dates (get-in d [:info :b-rest-payment-dates ])
         waterfall (get-in d [:info :waterfall])
-        pool-cf (run-assets d assump)
-
+        agg-mapping (get-in d [:info :deposit-mapping ])
+        pool-cf  (:pool-cf (run-assets d assump))
+        dist-fun (choose-distribution-fun d)
+        current-bonds (get-in d [:status :bond])
+        current-expense (get-in d [:status :expense])
+        current-accounts (get-in d [:status :account])
+        ;trial-table (doto (Table/create "Trial") (.addColumns (.column pool-cf "dates")))
         ]
-    (loop [ pay-dates bond-rest-payment-dates deal-snapshot d bond-flow nil]
-      
-      
-      )
-    nil
-    )
+    (loop [ pay-dates bond-rest-payment-dates exps current-expense bnds current-bonds accs current-accounts ]
+      ;(println pay-dates)
+      (if-let [ current-pay-date (first pay-dates)]
+        (let [ deposit-row (pick-deposit-row pool-cf current-pay-date)
+              ;_ (println deposit-row)
+              accs-with-deposit (p/deposit-period-to-accounts deposit-row accs agg-mapping current-pay-date )
+              [ update-accounts update-bonds update-expenses ] (dist-fun d current-pay-date accs-with-deposit waterfall exps bnds)
+              ]
+          (recur
+            (next pay-dates)
+            update-expenses
+            update-bonds
+            update-accounts )
+            )
+        [bnds exps accs] )
+      ))
 )
