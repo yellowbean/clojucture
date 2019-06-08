@@ -83,7 +83,7 @@
              )
   )
 
-(defn cn-load-model [ wb-path ]
+(defn cn-load-model! [ wb-path ]
   (let [ wb (load-workbook wb-path)
         info-s (select-sheet "info" wb)
         [ closing-date settle-date first-payment-date stated-maturity ]
@@ -135,69 +135,18 @@
                      :default wf-default
                      }
          :accounts accounts
+         :country :China
+         :deposit-mapping {:principal :账户P  :interest :账户I}
         }
-      :status
-        {:update-date (jt/local-date 2017 4 30)
+      :status {
+        :update-date (jt/local-date 2017 4 30)
         :pool (p/->pool asset-list )
         :bond bonds
         :expense [fees-oneoff fees-base fees-recur]
+        :account accounts
          }}
       )
     )
   )
 
 
-
-(comment
-(defn load-asset [ fp opt ]
-
-  )
-
-
-(defn reader-options [ opts ]
-  (let [ b (CsvReadOptions$Builder.)]
-    (cond-> b
-      (contains? opts :locale ) (.locale (:locale opts))
-      (contains? opts :header ) (.header (:header opts))
-      (contains? opts :file ) (.file (io/as-file (:file opts)))
-            true (.build ))
-  )
-)
-
-(defn read-into-table-csv [ reader-opts ]
-  (let [ ro (reader-options reader-opts)
-        t (Table/read)]
-    (.csv t ro)
-    )
-  )
-
-
-
-(defn field-type-map [ ^Row r k v]
-  (case k
-    :start-date (.getDate r v)
-    :periodicity (-> (.getString r v) ((u/constant :periodicity)))
-    :term (.getInt r v )
-    :balance (.getDouble r v )
-    :fee-rate (.getDouble r v)
-    )
-  )
-
-
-(defn row-to-asset [ ^Row row field-map asset-type]
-  (doseq [ [ k v ] field-map]
-    (println (field-type-map row k v))
-    )
-  )
-
-(defn table-to-asset [ table field-map asset-type ]
-  (loop [ trs (.iterator table) r [] ]
-    (if-not (.hasNext trs)
-      r
-      (let [ current-row (.next trs)]
-        (recur trs (conj r (row-to-asset current-row field-map asset-type )))
-      )
-    )
-  ))
-
-)
