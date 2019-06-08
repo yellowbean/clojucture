@@ -1,16 +1,4 @@
-(ns clojucture.type
-  (:require [clojucture.util :as u])
-  (:import
-    [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
-    [tech.tablesaw.columns AbstractColumn]
-    ;(clojucture.type Cashflow)
-
-    ;(clojucture.type IndexCurve)
-    (org.apache.commons.math3.util DoubleArray))
-
-	)
-
-
+(ns clojucture.type )
 
 
 (defprotocol Asset
@@ -21,13 +9,6 @@
   (cal-due-amount [ x d ] [ x d base ] )
   (receive [x d amount ] )
   )
-
-
-
-
-
-
-
 
 (defprotocol IndexCurve
   (apply-to [ x float-info dates  ]))
@@ -42,16 +23,3 @@
   (last-txn [ x ])
 	)
 
-(comment
-(defprotocol TableColumn
-  (to-column [x])
-  )
-
-
-(extend-protocol TableColumn
-  (class (double-array 0))
-    (to-column [x] (DoubleColumn/create  x))
-    ;(to-column [x name] (DoubleColumn/create name x))
-  )
-
-)
