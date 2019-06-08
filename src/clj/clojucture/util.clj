@@ -5,6 +5,7 @@
     [clojure.data.json :as json]
     [clojure.core.match :as m]
     [medley.core :as ml]
+    [clojucture.util-cashflow :as cfu]
     )
   (:import [java.util Arrays]
            [java.time LocalDate]
@@ -16,7 +17,7 @@
            [tech.tablesaw.columns.dates DateColumnType]
            [tech.tablesaw.columns.numbers DoubleColumnType]
            [tech.tablesaw.columns.booleans BooleanColumnType]
-           [tech.tablesaw.aggregate Summarizer AggregateFunction AggregateFunctions]
+           [tech.tablesaw.aggregate AggregateFunction AggregateFunctions]
            [org.threeten.extra Temporals]
            [clojucture Cashflow]
            )
@@ -504,14 +505,16 @@
 
 
 
-(defn agg-cashflow-by-interval [^Table x date-intervals]
+(defn agg-cashflow-by-interval [^Table x date-list]
   "Aggregate & combine cashflow by a vector of dates"
   (let [date-col (.dateColumn x "dates")
+        date-intervals (gen-dates-interval date-list)
+        ;date-intervals date-list
         sel-list (map #(.isBetweenIncluding date-col (first %) (second %)) date-intervals)
         split-cf-by-interval (map #(.where x %) sel-list)
         agg-cashflow-list (map #(agg-cashflow %) split-cf-by-interval)
-        starting-dates (gen-column ["starting-date" (into-array LocalDate (for [[s _] date-intervals] s))])
-        ending-dates (gen-column ["ending-date" (into-array LocalDate (for [[_ e] date-intervals] e))])
+        starting-dates (cfu/gen-column {:name "starting-date" :type :date :values (map first  date-intervals) } )
+        ending-dates (cfu/gen-column {:name "ending-date" :type :date :values (map second  date-intervals) } )
         combined-cashflow (reduce add-cashflow agg-cashflow-list)
         ]
     (-> ^Table combined-cashflow
