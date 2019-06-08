@@ -4,7 +4,9 @@ import tech.tablesaw.aggregate.AggregateFunctions;
 import tech.tablesaw.aggregate.Summarizer;
 import tech.tablesaw.api.DateColumn;
 import tech.tablesaw.api.DoubleColumn;
+import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.joining.DataFrameJoiner;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -93,4 +95,13 @@ public class Cashflow extends Table {
             }
         }
     }
+
+    public Cashflow insertDates( LocalDate [] d){
+        Cashflow dcf =  new Cashflow("dates cashflow", d);
+
+        DataFrameJoiner dfj = new DataFrameJoiner(this, "DATES");
+
+        return new Cashflow(dfj.fullOuter(dcf));
+    }
+
 }
