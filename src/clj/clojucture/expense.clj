@@ -12,7 +12,7 @@
 
 
 (defn pay-expense-at-base
-  [  d acc expense base ]
+  [ ^LocalDate d acc expense base ]
    (let [ due-amount (.cal-due-amount expense d base)
          new-acc (.try-withdraw acc d (:info acc) due-amount )
          paid-amount (Math/abs (:amount (.last-txn new-acc)))
@@ -26,7 +26,7 @@
     )
 
 (defn pay-expense
-  [  d acc expense ]
+  [ ^LocalDate d acc expense ]
   (let [ due-amount (.cal-due-amount expense d )
          draw-amount (min (.balance acc) due-amount)
          new-acc (.try-withdraw acc d (:info acc) draw-amount )
@@ -92,8 +92,8 @@
     )
   )
 
-;"Expense type that due amount is annualized percentage of the base"
 (defrecord pct-expense-by-amount
+  ;"Expense type that due amount is annualized percentage of the base, i.e trustee fee"
   [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
   (cal-due-amount [ x d base ]
@@ -118,8 +118,8 @@
     )
   )
 
-;"Expense type that due amount is percentage of the base"
 (defrecord pct-expense-by-rate
+  ;"Expense type that due amount is percentage of the base, i.e VAT"
   [ info stmt ^LocalDate last-paid-date ^Double arrears ]
   t/Liability
   (cal-due-amount [ x d base ]

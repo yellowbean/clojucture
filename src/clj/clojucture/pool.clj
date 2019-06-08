@@ -23,7 +23,7 @@
   [ assets ]
   Pool
   (project-cashflow [ x assump ]
-    (let [ total-balance (reduce + (map #(.remain-balance %) assets))
+    (let [ total-balance (reduce + (map #(.current-balance %) assets))
            asset-cashflow (map #(.project-cashflow % assump ) assets )
            cfs         (reduce u/combine-cashflow asset-cashflow)
            prin-ary  (-> (.column ^Table cfs "principal" ) (.asDoubleArray))
@@ -41,7 +41,8 @@
     )
   )
 
-(defn deposit-period-to-accounts [ ^Row current-collection accounts mapping ^LocalDate d]
+(defn deposit-period-to-accounts
+  [ ^Row current-collection accounts mapping ^LocalDate d]
   "deposit current collection period to accounts"
   (let [ source-fields  (keys mapping) ]
     (loop [  sfs source-fields  accs accounts ]
@@ -52,36 +53,32 @@
                 deposit-acc (accs (keyword (mapping this-sf)))]
             (assoc accs
               (:name deposit-acc)
-              (.deposit deposit-acc d this-sf deposit-amt)))
-          )
-        accs
-        )
-      )
-    )
+              (.deposit deposit-acc d this-sf deposit-amt))) )
+        accs) ) ) )
+
+(defn pick-collection-period [ cf-pool bond-payment-date adj ]
+  nil
   )
 
-(defn calc-deposit-date [ ^Row r  adj ]
-  (println "Getting" r)
-  (let [ last-date (.getDate r "ending-date")]
-    (m/match adj
-       {:delay-days n} (.plusDays last-date n)
-
-      :else nil
-      )
-    )
-  )
+(defn calc-deposit-date
+  [ ^Row collection-period adj]
+  (let [ _ (println collection-period)
+        collection-end-date (.getDate collection-period "ending-date")
+        deposit-delay-days (:delay-days  adj) ]
+    (jt/plus collection-end-date (jt/days deposit-delay-days))))
 
 
-(defn deposit-to-accs [ ^Cashflow pool-cf accounts  mapping deposit-adj]
+(defn deposit-to-accs
+  [ ^Cashflow pool-cf accounts  mapping deposit-adj]
  "deposit cashflow from 'pool-cf' into `accounts` by `rules` "
-  (loop [ cr (Row. pool-cf) result-accs accounts ]
+  (loop [ cr (Row. pool-cf)
+         result-accs accounts ]
     (if-not (.hasNext cr)
       result-accs
       (recur
         (.next cr)
-        (deposit-period-to-accounts cr result-accs mapping (jt/local-date 2018 1 1));;(calc-deposit-date cr deposit-adj))
+        (deposit-period-to-accounts cr result-accs mapping (calc-deposit-date cr deposit-adj))
         )
       )
-    )
-)
+    ) )
 
