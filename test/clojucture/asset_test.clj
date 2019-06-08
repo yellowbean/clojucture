@@ -11,6 +11,11 @@
 (def test-reset-dates
   (u/gen-dates-range (jt/local-date 2017 1 1)  (jt/years 1) (jt/local-date 2020 1 1)))
 
+
+(def test-mortgage
+  (asset/->mortgage {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01} nil 20000 0.01 48 nil)
+  )
+
 (comment
 (deftest test-loan-cf
   (let [test-loan (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {} )
@@ -28,7 +33,7 @@
 
 
 
-(deftest test-mortgage
+(deftest test-mortgage-1
   (let [ mort-info {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
         mort (asset/->mortgage mort-info nil 20000 0.01 48 nil)
         mort-cf (.project-cashflow mort)

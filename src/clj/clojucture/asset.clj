@@ -5,17 +5,11 @@
             [clojucture.type :as t]
             [clojucture.assumption :as a]
             [clojure.core.match :as m])
-
-            
   (:import
-    [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
-    [tech.tablesaw.columns AbstractColumn]
     [java.time LocalDate]
-    [java.util Arrays]
-
     [org.apache.commons.lang3 ArrayUtils]))
-    
-  
+
+
 
 (defn -loan-gen-prin [term balance opt]
   "Generate principal vector for loan with option of schedule principal"
@@ -31,8 +25,8 @@
   (if-let [reset-info (:last-pmt-reset history)]
     (u/period-pmt (:balance reset-info) (:term reset-info) (:period-rate reset-info))
     (u/period-pmt (:balance info ) (:term info) (:period-rate info))))
-    
-  
+
+
 
 (defn -gen-interest-rate [ info d assump]
   (m/match info
@@ -40,32 +34,18 @@
     (a/apply-curve (:index-curves assump) fi)
     :else
       nil))
-   
- 
+
+
 
 (defn -gen-assump-curve [ ds assump]
   (let [ ppy-curve (:prepayment assump)
         def-curve (:default assump)
         [ recover-curve recovery-lag ] (:recovery assump)]
 
-        
+
     nil))
-    
-  
 
 
-(defn -gen-period-rates [])
-(comment
-  (defn create-interest-col [date-col bal-col desc]
-    (m/match desc
-             {:start-date :pay-freq}
-
-
-             :else nil)))
-             
-
-    
-  
 
 (defrecord mortgage [ info history current-balance period-rate remain-term opt]
   t/Asset
@@ -81,7 +61,7 @@
        int (double-array cf-length 0)
        period_pmt (get-current-pmt history info)
        even_principal_pmt (/ balance term)]
-      
+
       (aset-double bal 0 current-balance)
       (doseq [ i (range 1 cf-length)]
         (let [ last_period_balance (aget bal (dec i))
@@ -92,10 +72,10 @@
           (aset-double bal i (- last_period_balance period_principal))
           (aset-double prin i period_principal)
           (aset-double int i period_interest)))
-          
+
       (u/gen-table "cashflow"
          {:dates remain-dates :balance bal :principal prin :interest int})))
-  
+
   (project-cashflow [ x assump]
     (let
       [ { start_date :start-date  periodicity :periodicity  term :term balance :balance}   info
@@ -118,28 +98,24 @@
        projected-prepayment-rate (-gen-assump-curve remain-dates assump)]
       ; default rates
       ; recovery rates
-      ;
-       
+
 
       ;populate cashflows
-
-
-
       (aset-double bal 0 current-balance)
 
       (doseq [ i (range 1 cf-length)]
         (let [ last_period_balance (aget bal (dec i))
-               period_interest (* last_period_balance period-rate)
+               period_interest (* last_period_balance (aget period-rate i))
                period_principal (if (false? (get opt :even-principal false))
                                     (- period_pmt period_interest)
                                     even_principal_pmt)]
           (aset-double bal i (- last_period_balance period_principal))
           (aset-double prin i period_principal)
           (aset-double int i period_interest)))
-          
+
       (u/gen-table "cashflow"
          {:dates remain-dates :balance bal :principal prin :interest int}))))
-    
+
 
 
 
@@ -148,7 +124,7 @@
   t/Asset
   (project-cashflow [x]
     nil)
-    
+
 
   (project-cashflow [x assump]
     (let [term                      (inc term)
@@ -162,7 +138,7 @@
           future-rates-of-asset     (a/apply-curve (:indexes assump) float-info)
           period-annual-rate-vector (u/gen-float-period-rates dates future-rates-of-asset)
           period-rate-vector        (map #(u/get-period-rate periodicity % day-count) period-annual-rate-vector)]
-          
+
       (doseq [i (range 1 term)]
         (let [last_period_balance (aget bal (dec i))
               period_interest     (* last_period_balance (nth period-rate-vector i))
@@ -173,13 +149,11 @@
           (aset-double bal i (- last_period_balance period_principal))
           (aset-double prin i period_principal)
           (aset-double int i period_interest)))
-          
+
 
       (u/gen-table "cashflow"
                    {:dates    dates :balance bal :principal prin
                     :interest int :rate (double-array period-rate-vector)}))))
-      
-    
 
 
 
@@ -188,7 +162,9 @@
 
 
 
-(defrecord loan [ info remain-balance remain-term current-rate opt]
+
+
+(defrecord loan [ info current-balance remain-term current-rate opt]
   t/Asset
   (project-cashflow [ x]
     nil)
@@ -213,11 +189,11 @@
           interest (double-array projection-periods)
           prepay (double-array projection-periods)
           default (double-array projection-periods)
-          _ (aset-double bal 0 remain-balance)
+          _ (aset-double bal 0 current-balance)
           payment-dates-int (u/gen-dates-interval rest-payment-dates)]
       
       (loop [ pds payment-dates-int ppy-a (seq ppy-assump-proj) def-a (seq def-assump-proj)
-             f-bal remain-balance idx 1]
+             f-bal current-balance idx 1]
         (if (nil? pds)
           (u/gen-cashflow "CF"
                {:dates (into-array LocalDate rest-payment-dates) :balance bal :principal prin :interest interest
