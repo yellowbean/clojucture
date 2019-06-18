@@ -1,4 +1,3 @@
-(set! *warn-on-reflection* true)
 (ns clojucture.asset
   (:require [java-time :as jt]
             [clojucture.util :as u]
@@ -66,6 +65,7 @@
       (doseq [ i (range 1 cf-length)]
         (let [ last_period_balance (aget bal (dec i))
                period_interest (* last_period_balance period-rate)
+			   ;_ (println "period_interest:" period_interest)
                period_principal (if (false? (get opt :even-principal false))
                                     (- period_pmt period_interest)
                                     even_principal_pmt)]
@@ -76,7 +76,7 @@
       (u/gen-table "cashflow"
          {:dates remain-dates :balance bal :principal prin :interest int})))
 
-  (project-cashflow [ x assump]
+  (project-cashflow [ x assump ]
     (let
       [ { start_date :start-date  periodicity :periodicity  term :term balance :balance}   info
        cf-length (inc remain-term)
@@ -89,6 +89,7 @@
        int (double-array cf-length 0)
        period-rate (double-array cf-length 0)
        period_pmt (get-current-pmt history info)
+	   _  (println "monthly payment" period_pmt)
        even_principal_pmt (/ balance term)
 
       ; project interest rates
@@ -122,11 +123,11 @@
 
 (defrecord float-mortgage [ ^LocalDate start-date periodicity ^Integer term ^Integer remain-term ^Double current-rate ^Double current-balance day-count float-info opt]
   t/Asset
-  (project-cashflow [x]
+  (project-cashflow [ x ]
     nil)
 
 
-  (project-cashflow [x assump]
+  (project-cashflow [x assump ]
     (let [term                      (inc term)
           dates                     (u/gen-dates-ary start-date periodicity term)
           bal                       (double-array term 0)
@@ -166,143 +167,131 @@
 
 (defrecord loan [ info current-balance remain-term current-rate opt]
   t/Asset
-  (project-cashflow [ x]
-    nil)
+  (project-cashflow [ x ]
+    (let [  {first-pay :first-pay maturity-date :maturity-date }  info
+	        def-a (a/gen-pool-assump-df :cdr [0 0] [first-pay maturity-date])
+	        ppy-a (a/gen-pool-assump-df :cpr [0 0] [first-pay maturity-date])
+			empty-assumption {:prepayment  ppy-a :default def-a}
+		]
+		(.project-cashflow x empty-assumption)))
     
-  (project-cashflow [ x assump]
+  (project-cashflow [ x assump ]
     (let [ { start-date :start-date first-pay :first-pay periodicity :periodicity
             maturity-date :maturity-date term :term rate :rate balance :balance} info
            payment-dates (->
                            (cons start-date
                                  (take term (u/gen-dates-range first-pay periodicity)))
                            (vec) (conj maturity-date))
-           last-payment-date (nth (vec payment-dates) (dec (- term remain-term)))
-           next-payment-date (nth (vec payment-dates) (- term remain-term))
-           rest-payment-dates (subvec (vec payment-dates) (- term remain-term))
+           rest-payment-dates (subvec (vec payment-dates) (- term  remain-term))
+           _ (println "Rest payment dates" (first rest-payment-dates))
+           next-payment-date (first rest-payment-dates)
+           last-payment-date (nth (vec payment-dates)  (- term remain-term 2))
            { ppy-assump :prepayment def-assump :default } assump
           ppy-assump-proj (a/gen-asset-assump ppy-assump rest-payment-dates)
           def-assump-proj (a/gen-asset-assump def-assump rest-payment-dates)
           ;result column
-          projection-periods (count rest-payment-dates)
+          projection-periods  (count rest-payment-dates)
           bal (double-array projection-periods)
           prin (double-array projection-periods)
           interest (double-array projection-periods)
           prepay (double-array projection-periods)
           default (double-array projection-periods)
           _ (aset-double bal 0 current-balance)
-          payment-dates-int (u/gen-dates-interval rest-payment-dates)]
-      
+          payment-dates-int (u/gen-dates-interval rest-payment-dates)
+          ]
+      (println "first proj date" (first rest-payment-dates))
       (loop [ pds payment-dates-int ppy-a (seq ppy-assump-proj) def-a (seq def-assump-proj)
-             f-bal current-balance idx 1]
-        (if (nil? pds)
-          (u/gen-cashflow "CF"
-               {:dates (into-array LocalDate rest-payment-dates) :balance bal :principal prin :interest interest
-                        :prepayment prepay :default default})
+             f-bal current-balance p-dates [last-payment-date]  idx 1]
+        (if (or (nil? pds) (< f-bal 0.01))
+            (u/gen-cashflow "CF"
+                            {:dates      (u/dates p-dates) :balance bal :principal prin :interest interest
+                             :prepayment prepay :default default})
           (let [ df-amt (* f-bal (first def-a)) ; default amount
                 py-amt (* f-bal (first ppy-a)) ; prepayment amount
                 next-balance (- f-bal df-amt py-amt)
-                pd (first pds)
-                int-amount (* f-bal (u/cal-period-rate (first pd) (second pd) current-rate :30_365))]
+                pd (first pds) ;; current payment date interval
+                _ (prn "F I" (first pd) "E I" (second pd))
+                int-amount (* f-bal (u/cal-period-rate (first pd) (second pd) current-rate :30_365))
+                _ (println  (first pd) (second pd)   "INT AMT" int-amount)]
            (aset-double bal idx next-balance)
            (aset-double interest idx int-amount)
            (aset-double prepay idx py-amt)
            (aset-double default idx df-amt)
 
+
            (if (= idx (dec projection-periods))
-             (aset-double prin idx next-balance))
-           (recur (next pds) (next ppy-a) (next def-a) next-balance (inc idx))))))))
-        
-      
-    
+               (aset-double prin idx next-balance))
+           (recur (next pds) (next ppy-a) (next def-a) next-balance (conj p-dates (first pd)) (inc idx))
+
+             )))))
+)
 
 
 
 
-(defrecord float-loan [ start_date periodicity term rate balance day-count float-info opt]
-  t/Asset
-  (project-cashflow [ x]
-    nil)
-    
-  (project-cashflow [ x assump]
-    (let [term (inc term)
-          dates (u/gen-dates-ary start_date periodicity term)
-          prin (-loan-gen-prin term balance opt)
-          bal (u/gen-balance prin balance)
-
-          reset-dates (take-nth (:reset-period float-info) dates)
-          future-rates (a/apply-curve (:indexes assump) float-info)
-          period-rate-vector (u/gen-float-period-rates dates future-rates)
-          accrued-int (u/gen-vector-accrued-interest bal dates period-rate-vector day-count periodicity)
-          int (u/gen-interest accrued-int opt)]
-          
-      (u/gen-table
-                  {:dates dates :balance bal :principal prin
-                    :accrued-interest accrued-int :interest int}))))
-      
-    
-  
-
-(defrecord commercial-paper [ balance start-date  end-date opt]
-  t/Asset
-  (project-cashflow [ x]
-    (let [
-           dates (into-array LocalDate [start-date end-date])
-           bal (double-array [balance 0])
-           prin (double-array [0 balance])]
-          
-      (u/gen-table "cashflow"
-                   {:dates dates :balance bal :principal prin})))
-  (project-cashflow [ x assump]
-
-    nil))
-  
 
 
-(defrecord installments [ balance start-date periodicity term period-fee-rate opt]
-  t/Asset
-  (project-cashflow [ x]
-    (let [
-           dates (u/gen-dates-ary start-date periodicity (inc term))
-           even-principal (/ balance term)
-           even-principal-list (->> (take term (repeat even-principal)) (cons 0))
-           prin  (double-array even-principal-list)
-           bal (u/gen-balance prin balance)
-           period-fee (* balance period-fee-rate)
-           period-fee-list (->> (take term (repeat period-fee)) (cons 0))
-           fee  (double-array period-fee-list)]
-          
-      (u/gen-table "cashflow"
-                   {:dates dates :balance bal :principal prin :installment-fee fee})))
-      
-    
-  (project-cashflow [ x assump]
-    nil))
-  
+    (defrecord commercial-paper [balance start-date end-date opt]
+      t/Asset
+      (project-cashflow [x]
+        (let [
+              dates (into-array LocalDate [start-date end-date])
+              bal (double-array [balance 0])
+              prin (double-array [0 balance])]
+
+          (u/gen-table "cashflow"
+                       {:dates dates :balance bal :principal prin})))
+      (project-cashflow [x assump]
+
+        nil))
 
 
 
-(defn -leasing-gen-deposit-flow [ term opt]
-  (let [ {deposits-amount :deposit-balance :or {deposits-amount 0}} opt
-         deposit-empty-flow (double-array term)]
-        
-    (do
-      (aset-double deposit-empty-flow 0  deposits-amount)
-      (aset-double deposit-empty-flow (dec term) (- deposits-amount))
-      deposit-empty-flow)))
+    (defrecord installments [balance start-date periodicity term period-fee-rate opt]
+      t/Asset
+      (project-cashflow [x]
+        (let [
+              dates (u/gen-dates-ary start-date periodicity (inc term))
+              even-principal (/ balance term)
+              even-principal-list (->> (take term (repeat even-principal)) (cons 0))
+              prin (double-array even-principal-list)
+              bal (u/gen-balance prin balance)
+              period-fee (* balance period-fee-rate)
+              period-fee-list (->> (take term (repeat period-fee)) (cons 0))
+              fee (double-array period-fee-list)]
+
+          (u/gen-table "cashflow"
+                       {:dates dates :balance bal :principal prin :installment-fee fee})))
 
 
-(defrecord leasing [ start-date term periodicity rental opt]
-  t/Asset
-  (project-cashflow [ x]
-    (let [ dates (u/gen-dates-ary start-date periodicity (inc term))
-           rental-flow-list (->> (take term (repeat rental)) (cons 0))
-           rental-flow (double-array rental-flow-list)]
-      (if (get opt :deposit-balance false)
-        (u/gen-table "cashflow"
-                     {:dates dates :rental rental-flow :deposit (-leasing-gen-deposit-flow (inc term) opt)})
-        (u/gen-table "cashflow"
-                     {:dates dates :rental rental-flow}))))
-        
+      (project-cashflow [x assump]
+        nil))
 
-  (project-cashflow [ x assump]))
-  
+
+
+
+    (defn -leasing-gen-deposit-flow [term opt]
+      (let [{deposits-amount :deposit-balance :or {deposits-amount 0}} opt
+            deposit-empty-flow (double-array term)]
+
+        (do
+          (aset-double deposit-empty-flow 0 deposits-amount)
+          (aset-double deposit-empty-flow (dec term) (- deposits-amount))
+          deposit-empty-flow)))
+
+
+    (defrecord leasing [start-date term periodicity rental opt]
+      t/Asset
+      (project-cashflow [x]
+        (let [dates (u/gen-dates-ary start-date periodicity (inc term))
+              rental-flow-list (->> (take term (repeat rental)) (cons 0))
+              rental-flow (double-array rental-flow-list)]
+          (if (get opt :deposit-balance false)
+            (u/gen-table "cashflow"
+                         {:dates dates :rental rental-flow :deposit (-leasing-gen-deposit-flow (inc term) opt)})
+            (u/gen-table "cashflow"
+                         {:dates dates :rental rental-flow}))))
+
+
+      (project-cashflow [x assump]))
+
