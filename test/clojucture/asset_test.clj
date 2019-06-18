@@ -38,9 +38,9 @@
 			prin-col (.column tm-1-cf "interest")
 			int-col (.column tm-1-cf "principal")
 			]
-		(is (= (.get bal-col 0) 20000.0)
-		(is (> (.get prin-col 4) 336.5)
-		(is (< (.get int-col 4) 191.0)
+		(is (= (.get bal-col 0) 20000.0))
+		(is (> (.get prin-col 4) 336.5))
+		(is (< (.get int-col 4) 191.0))
 	))
 
 
