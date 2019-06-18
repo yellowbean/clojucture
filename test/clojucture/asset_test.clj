@@ -32,6 +32,18 @@
   
 
 
+(deftest tm-1
+	(let [ tm-1-cf (.project-cashflow test-mortgage)
+			bal-col (.column tm-1-cf "balance")
+			prin-col (.column tm-1-cf "interest")
+			int-col (.column tm-1-cf "principal")
+			]
+		(is (= (.get bal-col 0) 20000.0)
+		(is (> (.get prin-col 4) 336.5)
+		(is (< (.get int-col 4) 191.0)
+	))
+
+
 (comment
 (deftest test-loan-cf
   (let [test-loan (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {})
