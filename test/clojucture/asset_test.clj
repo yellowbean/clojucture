@@ -21,30 +21,11 @@
               bal-col (.column tm-1-cf "balance")
               prin-col (.column tm-1-cf "principal")
         int-col (.column tm-1-cf "interest")]
-    ;(println tm-1-cf)
-    
     (is (= (.get bal-col 0) 20000.0))
-    ;(is (> (.get prin-col 4) 336.5))
-    ;(is (< (.get int-col 4) 191.0))
+    (is (> (.get prin-col 4) 336.0))
+    (is (< (.get int-col 4) 191.0))
      ))
     
-  
-  
-  
-
-
-(deftest tm-1
-	(let [ tm-1-cf (.project-cashflow test-mortgage)
-			bal-col (.column tm-1-cf "balance")
-			prin-col (.column tm-1-cf "interest")
-			int-col (.column tm-1-cf "principal")
-			]
-		(is (= (.get bal-col 0) 20000.0))
-		(is (> (.get prin-col 4) 336.5))
-		(is (< (.get int-col 4) 191.0))
-	))
-
-
 (comment
 (deftest test-loan-cf
   (let [test-loan (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {})
@@ -56,7 +37,7 @@
     (is (= (.rowCount cf2) 12))
     (is (= (.rowCount cf3) 25))))
 )
-    
+
   
 
 
@@ -194,7 +175,9 @@
         assump-def (assump/gen-pool-assump-df :cdr [0.00] [(jt/local-date 2014 1 1) (jt/local-date 2027 1 1)])
         assump {:prepayment assump-ppy :default assump-def}
         tloan (asset/->loan info 1000 24 0.08 nil)]
-    (println "Cashflow: " (.project-cashflow tloan assump))))
+    ;(println "Cashflow: " (.project-cashflow tloan assump) )
+
+    ))
 
 
 
