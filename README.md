@@ -5,22 +5,25 @@
 ### What & why is clojucture ?
 
 a clojure library for modelling structure products (CLO/MBS/ABS).
-it can be used for cashflow projection and investment analysis
+it can be used for structuring deals, cashflow projection and investment analysis
 
 The reason behind choosing clojure as modelling language is that :
 1. it is simply enough for tech/non-tech background language.
-2. Powerful macro lanugage for modelling complex structure of ABS/MBS products.
+2. Powerful macro language for modelling complex structure of ABS/MBS products.
 
 ### Overview
 investor side of structured products or structuring an CLO/MBS/ABS deal.
-
+#### Structuring & Issuance
+#### Modelling & Analysis
+#### Accounting & Surveillance/Reporting 
 
 ### Documentation
 * https://simplicity.gitbook.io/clojucture/ (working :) ）
 
 ### clojucture features
-* Takes XML based input, language independent ,flexible
+* XML/Protobuf as input/output, language independent ,flexible
 * Provides low level functions to build up country specific deal dentures
+* High performance with multi-thread and interpolate with Java directly
 
 #### Coverage
 ##### Asset Type
@@ -62,5 +65,5 @@ Resource
 
 
 
-Copyright (c) 2019 . All rights reserved.
+Copyright (c) 2018 - 2019 . All rights reserved.
 always.zhang@gmail.com 
