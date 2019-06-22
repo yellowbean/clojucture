@@ -18,7 +18,9 @@
 
 (def test-pool
   (p/->pool [ at-t/test-mortgage]))
+
 (def t-account-1 (acc/->account :acc1 :prin 1000 []) )
+(def t-account-2 (acc/->account :acc2 :int 0 []) )
 
 (deftest pool-agg-test
   (let [ pool-assump {:prepayment (a/gen-pool-assump-df :cpr [ 0] [(jt/local-date 2014 5 5) (jt/local-date 2014 5 5)])
@@ -37,7 +39,7 @@
 (deftest deposit-from-pool
   (let [ pool-cf  cf-t/sample-cf
         pool-cf-collect (.aggregateByInterval pool-cf "" (into-array LocalDate [ (jt/local-date 2018 2 1) (jt/local-date 2018 6 1)]))
-        accs   {:acc1 t-account-1 :acc2 ac-t/t-account-2}
+        accs   {:acc1 t-account-1 :acc2 t-account-2}
         mp {:principal :acc1 :interest :acc2}
         deposit-date (jt/local-date 2018 2 2)
         _ (println pool-cf-collect)
