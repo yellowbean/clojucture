@@ -576,5 +576,8 @@
         
       r)))
 
-(defn dates [ x]
+(defn dates [ x ]
   (into-array LocalDate x))
+
+(defn ldoubles [ x ]
+  (into-array Double x))

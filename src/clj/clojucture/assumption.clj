@@ -75,7 +75,7 @@
 
 (defn gen-asset-assump
   [^RateAssumption pool-assumption observe-dates]
-  (let [obs-ary (into-array LocalDate observe-dates)]
+  (let [obs-ary (u/dates observe-dates)]
     (if (= (alength obs-ary) 0)
       nil
       (.apply pool-assumption obs-ary))

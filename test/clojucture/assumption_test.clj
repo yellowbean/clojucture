@@ -3,7 +3,23 @@
             [java-time :as jt]
             [clojucture.util :as u]
             [clojucture.assumption :as assump])
-  (:import (java.time LocalDate)))
+  (:import [java.time LocalDate]
+           [clojucture RateAssumption]
+           ))
+
+
+
+(deftest zAssumption
+  (let [f (jt/local-date 2018 1 1)
+        e (jt/local-date 2019 1 1)
+        da (u/dates [f e])
+        rate-ary (u/ldoubles [0.0])
+        ra (RateAssumption. "t" da rate-ary )]
+
+    (is (= (.rateAt ra (jt/local-date 2018 6 1)) 0.0))
+
+
+  ))
 
 
 (comment
