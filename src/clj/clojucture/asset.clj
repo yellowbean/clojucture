@@ -6,7 +6,8 @@
             [clojure.core.match :as m])
   (:import
     [java.time LocalDate]
-    [org.apache.commons.lang3 ArrayUtils]))
+    [org.apache.commons.lang3 ArrayUtils]
+    (clojucture RateAssumption)))
 
 
 
@@ -36,62 +37,90 @@
 
 
 
-(defn -gen-assump-curve [ ds assump]
+(defn -gen-assump-curve [ ds assump ] ; remain dates  assumption
+  "convert a pool level assumption to asset level"
   (let [ ppy-curve (:prepayment assump)
         def-curve (:default assump)
-        [ recover-curve recovery-lag ] (:recovery assump)]
+        dsa (u/dates ds)
+        ;[ recover-curve recovery-lag ] (:recovery assump)
+        ]
+    (println assump)
+    {
+     :prepayment-curve (.apply ppy-curve dsa)
+     :default-curve (.apply def-curve dsa)
+     :recovery-curve :nil
+     :recover-lag :nil
+     }
+
+    ))
 
 
-    nil))
 
-
-
-(defrecord mortgage [ info history current-balance period-rate remain-term opt]
+(defrecord mortgage [info history current-balance period-rate remain-term opt]
   t/Asset
   (project-cashflow [ x ]
-    (let [ nil-assumption {:prepayment nil :default nil :recovery [ nil nil ]}]
-      (.project-cashflow x nil-assumption) ) )
+    (let [
+          {start_date :start-date periodicity :periodicity
+            term       :term balance :balance} info
+           date-rng (u/gen-dates start_date periodicity term)
+           date-rng-ary (u/dates [(first date-rng) (last date-rng)])
+           dz (u/ldoubles [0.0])
+          nil-assumption {:prepayment (RateAssumption. "P" date-rng-ary dz)
+                          :default (RateAssumption. "P" date-rng-ary dz) :recovery [nil nil]}]
+      (.project-cashflow x nil-assumption)))
 
   (project-cashflow [ x assump ]
     (let
-      [ { start_date :start-date  periodicity :periodicity  term :term balance :balance}   info
-       cf-length (inc remain-term)
+      [{start_date :start-date periodicity :periodicity
+        term       :term balance :balance} info
+       {stl-date :settle-date} assump
        dates (u/gen-dates-ary start_date periodicity (inc term))
-       remain-dates (ArrayUtils/subarray dates  (- term remain-term ) (inc term))
+       remain-dates (ArrayUtils/subarray dates (- term remain-term) (inc term))
 
-      ;init empty cashflow
-       period_pmt (get-current-pmt history info)
+       period_pmt (get-current-pmt history info) ; monthly payment
        even_principal_pmt (/ balance term)
 
-      ; project interest rates
-       projected-interest-rates (-gen-interest-rate info nil assump) ; interest rates
-      ; prepayment rates
-       projected-prepayment-rate (-gen-assump-curve remain-dates assump)
-      ; default rates
-       projected-default-rate (-gen-assump-curve remain-dates assump)]
-      ; recovery rates
-      (loop [  payment-dates remain-dates paid-dates [ (jt/local-date 1900 1 1)] bal-list [current-balance] prin-list [ 0 ] int-list [ 0 ] ]
-        (if-let [ current-pay-date (second payment-dates) ]
-          (let [ last-pay-date (first payment-dates)
-                  f-bal (last bal-list)
-                  int-amount (* f-bal period-rate)
-                  prin-amount (- period_pmt int-amount)
-                  n-bal (- f-bal prin-amount)
+       {projected-prepayment-rate :prepayment-curve
+        projected-default-rate :default-curve} (-gen-assump-curve remain-dates assump)
+       ; project interest rates
+       projected-interest-rates (-gen-interest-rate info nil assump)
+       ]
+      (println projected-default-rate)
+      (println projected-prepayment-rate)
+      (loop [payment-dates remain-dates paid-dates [stl-date]
+             bal-list [current-balance] prin-list [0] int-list [0]
+             ppy-bal-list [0] def-bal-list [0]
+             ppy-rate projected-prepayment-rate def-rate projected-default-rate
+             ]
+        (if (or (< (last bal-list) 0.01) (nil? payment-dates))
+          (u/gen-table "cashflow"
+                       {:dates     (u/dates paid-dates) :balance (double-array bal-list)
+                        :principal (double-array prin-list) :interest (double-array int-list)
+                        :prepayment-balance (double-array ppy-bal-list) :default-balance (double-array def-bal-list)})
+          (let [
+                f-bal (last bal-list) ; begining balance
+                int-amount (* f-bal period-rate)
+                prin-amount (- period_pmt int-amount)
+                ppy-bal (* f-bal (first ppy-rate)) ;prepayment balance
+                bal-after-ppy (- f-bal ppy-bal)
+                def-bal (* bal-after-ppy (first def-rate))  ;default balance
+                bal-after-def (- bal-after-ppy def-bal)
+                n-bal (- bal-after-def prin-amount ppy-bal def-bal) ; ending balance
+
                 ]
-
-
             (recur (next payment-dates)
-                   (conj paid-dates current-pay-date)
+                   (conj paid-dates (second payment-dates))
                    (conj bal-list n-bal)
                    (conj prin-list prin-amount)
-                   (conj int-list int-amount))
-            )
-          (u/gen-table "cashflow"
-             {:dates (u/dates paid-dates) :balance (double-array bal-list)
-              :principal (double-array prin-list) :interest (double-array int-list)}   ) )
-        )
-      )))
+                   (conj int-list int-amount)
+                   (conj ppy-bal-list ppy-bal)
+                   (conj def-bal-list def-bal)
+                   (next ppy-rate)
+                   (next def-rate)
+            )))
 
+          )
+        )))
 
 
 
