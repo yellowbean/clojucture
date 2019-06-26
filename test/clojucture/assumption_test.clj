@@ -14,12 +14,50 @@
         e (jt/local-date 2019 1 1)
         da (u/dates [f e])
         rate-ary (u/ldoubles [0.0])
-        ra (RateAssumption. "t" da rate-ary )]
+        ra (RateAssumption. "t" da rate-ary )
 
+        prj-dates (u/dates [(jt/local-date 2018 3 1) (jt/local-date 2018 6 1)])
+        rproj (.project ra prj-dates )
+        rapply (.apply ra prj-dates) ]
+
+    ; RateAt
     (is (= (.rateAt ra (jt/local-date 2018 6 1)) 0.0))
 
+    ; Project
+    (is (=  (.get (.column rproj "Start") 0) (jt/local-date 2018 3 1)))
+    (is (=  (.get (.column rproj "End") 0) (jt/local-date 2018 5 31)))
+
+    ; Apply
+    (is (= (first rapply) 0.0))
+    (is (= (count rapply) 1))
 
   ))
+
+(deftest rAssumption
+  (let [ da (jt/local-date 2018 1 1 )
+         db (jt/local-date 2018 2 1 )
+         dc (jt/local-date 2018 3 1 )
+
+         d-array (u/dates [ da db dc])
+         rate-ary (u/ldoubles [ 0.1  0.2 ])
+
+         ra (RateAssumption. "t" d-array rate-ary)
+         pj-dates (u/dates [  (jt/local-date 2018 1 15) (jt/local-date 2018 2 15) ])
+         rproj (.project ra pj-dates)
+         rapply (.apply ra pj-dates)
+        ]
+    ;(println rproj)
+    (is (= (.get (.column rproj "Rate") 0) 0.1))
+    (is (= (.get (.column rproj "Rate") 1) 0.2))
+
+
+    ;(println rapply)
+
+    (is (= (first rapply ) 1.60) )
+    (is (= (second rapply ) 2.60) )
+    )
+  )
+
 
 
 (comment

@@ -4,7 +4,9 @@
     [clojure.test :refer :all]
     [clojucture.asset :as asset]
     [clojucture.assumption :as assump]
-    [clojucture.util :as u]))
+    [clojucture.util :as u])
+  (:import
+           (clojucture RateAssumption)))
   
 
 
@@ -14,31 +16,45 @@
 
 (def test-mortgage
   (asset/->mortgage {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01} nil 20000 0.01 48 nil))
-  
+
+(def test-mortage-date-rng
+  (u/dates [(jt/local-date 2014 1 1) (jt/local-date 2019 1 1)]))
 
 (deftest tm-1
   (let [ tm-1-cf (.project-cashflow test-mortgage)
-              bal-col (.column tm-1-cf "balance")
-              prin-col (.column tm-1-cf "principal")
-        int-col (.column tm-1-cf "interest")]
+          bal-col (.column tm-1-cf "balance")
+          prin-col (.column tm-1-cf "principal")
+          int-col (.column tm-1-cf "interest")
+
+         ;assump-py (RateA)
+         assump {:settle-date (jt/local-date 2015 1 1)
+                 :prepayment   (RateAssumption. "pc" test-mortage-date-rng (double-array 0.0))
+                 :default (RateAssumption. "dc" test-mortage-date-rng (double-array 0.0))}
+         ;tm-1-cf-assump (.project-cashflow test-mortgage assump)
+
+        ]
     (is (= (.get bal-col 0) 20000.0))
     (is (> (.get prin-col 4) 336.0))
     (is (< (.get int-col 4) 191.0))
+
+
+
+
      ))
-    
+
 (comment
 (deftest test-loan-cf
   (let [test-loan (asset/->loan (jt/local-date 2018 2 1) (jt/months 1) 11 0.08 1250 :ACT_365 {})
         test-loan2 (asset/->loan (jt/local-date 2017 2 1) (jt/months 2) 11 0.12 2500 :ACT_365 {})
         test-loan3 (asset/->loan (jt/local-date 2018 1 1) (jt/months 2) 24 0.06 5000 :ACT_365 {})
         [cf1 cf2 cf3 ] (map #(.project-cashflow %) [test-loan test-loan2 test-loan3])]
-    
+
     (is (= (.rowCount cf1) 12))
     (is (= (.rowCount cf2) 12))
     (is (= (.rowCount cf3) 25))))
-)
 
-  
+
+
 
 
 
@@ -59,7 +75,7 @@
         mort3-float-info {:index :LDR5Y+ :spread 0.001 :reset ""}
         mort3-info { :float-info mort3-float-info  :start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 60 :balance 20000 :period-rate 0.01}
         mort3 (asset/->mortgage mort3-info nil 30000 0.02 20 nil)]
-        
+
 
     (is (= (.rowCount mort-cf) 49))
     ;(println mort-cf)
@@ -71,18 +87,18 @@
     ;(println mort-cf)
     (is (< (Math/abs (- (.get (.column mort2-cf "balance") 3) 3668.32)) 0.01))))
 
-    
+    )
 
 (deftest test-mortgage-assump
   (let [mort-info {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
         mort (asset/->mortgage mort-info nil 20000 0.01 48 nil)
         assump-info {:prepay-rate [] :default-rate [] :recovery-lag 10 :recovery-rate 0.4}]))
-      
-      
-      
 
-    
-  
+
+
+
+
+
 
 (def test-float-mortgage
   (asset/->float-mortgage

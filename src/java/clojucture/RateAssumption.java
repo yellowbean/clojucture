@@ -20,7 +20,7 @@ public class RateAssumption extends Table{
 
        DateColumn sd = DateColumn.create("Start",s);
        DateColumn ed = DateColumn.create("End",e);
-       DoubleColumn v =DoubleColumn.create("Rate",o);
+       DoubleColumn v =DoubleColumn.create("Rate",o); // day rate
        this.addColumns(sd,ed,v);
     }
 
@@ -30,7 +30,7 @@ public class RateAssumption extends Table{
        LocalDate[] eda = new LocalDate[d.length - 1];
 
        if((d.length - o.length) != 1)
-           throw new IllegalArgumentException("dates array should be one more than rate array");
+           throw new IllegalArgumentException("dates array size should be one more than rate array");
 
 
        for(int i=0;i<d.length - 1;i++){
@@ -83,13 +83,11 @@ public class RateAssumption extends Table{
 
     public ArrayList<Double> apply(LocalDate[] d){
         RateAssumption projected_assump = this.project(d);
-        //System.out.println(projected_assump);
         ArrayList<LocalDate> d_list = new ArrayList<>(Arrays.asList(d));
         ArrayList<Double> v_list = new ArrayList<>(d.length-1);
 
         Iterator<LocalDate> d_list_itr = d_list.iterator();
 
-        //d_list_itr.next();
 
         // only one projected row
         if (projected_assump.rowCount()==1){
@@ -98,23 +96,24 @@ public class RateAssumption extends Table{
         }
 
 
-
         // more than one projected rows
-        LocalDate current_date = d_list_itr.next(); // first date of observations
-        Double accum_rate = 0.0;
+        // LocalDate current_date = d_list_itr.next(); // first date of observations
         for(int i = 0; i< projected_assump.rowCount(); i++){
             LocalDate sDate = (LocalDate)projected_assump.get(i,0);
             LocalDate eDate = (LocalDate)projected_assump.get(i,1);
             Double v = (Double)projected_assump.get(i,2);
 
             long daysBetween  = Period.between(sDate,eDate).getDays();
-            accum_rate += daysBetween * v;
+            Double period_rate = daysBetween * v;
+            v_list.add(period_rate);
+            /*
             if(sDate.compareTo(current_date) == 0 ){
                 v_list.add(accum_rate);
                 accum_rate = 0.0;
                 if (d_list_itr.hasNext())
                     current_date = d_list_itr.next();
             }
+            */
         }
         return v_list;
     }
