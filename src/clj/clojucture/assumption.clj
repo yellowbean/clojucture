@@ -47,6 +47,12 @@
 (defn smm2cpr [ ^Double smm]
   (- 1 (Math/pow (- 1 smm) 12)))
 
+(defn cpr2d [ ^Double cpr ]
+  (- 1 (Math/pow (- 1 cpr) 1/365)))
+
+(defn d2cpr [ ^Double day-rate]
+  (- 1 (Math/pow (- 1 day-rate) 365)))
+
 (defn cpr2smm [ ^Double cpr]
   (- 1 (Math/pow (- 1 cpr) 1/12)))
 
@@ -69,7 +75,7 @@
                (let [ daily-pct (map #(- 1 (Math/pow (- 1 %) (/ 1 365))) v)]
                  daily-pct)
                :else nil) rs
-      (RateAssumption. (name curve-type) interval-start interval-end (double-array rs)))))
+      (RateAssumption. (name curve-type) interval-start interval-end (u/ldoubles rs)))))
     
   
 
