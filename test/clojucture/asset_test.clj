@@ -17,23 +17,24 @@
 (def test-mortgage
   (asset/->mortgage {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01} nil 20000 0.01 48 nil))
 
-(def test-mortage-date-rng
+(def test-mortgage-date-rng
   (u/dates [(jt/local-date 2014 1 1) (jt/local-date 2019 1 1)]))
 
 (deftest tm-1
-  (let [ tm-1-cf (.project-cashflow test-mortgage)
-          bal-col (.column tm-1-cf "balance")
-          prin-col (.column tm-1-cf "principal")
-          int-col (.column tm-1-cf "interest")
+  (let [tm-1-cf (.project-cashflow test-mortgage)
+        bal-col (.column tm-1-cf "balance")
+        prin-col (.column tm-1-cf "principal")
+        int-col (.column tm-1-cf "interest")
 
-         ;assump-py (RateA)
-         assump {:settle-date (jt/local-date 2015 1 1)
-                 :prepayment   (RateAssumption. "pc" test-mortage-date-rng (double-array 0.0))
-                 :default (RateAssumption. "dc" test-mortage-date-rng (double-array 0.0))}
-         ;tm-1-cf-assump (.project-cashflow test-mortgage assump)
+        ;assump-py (RateA)
 
-        ]
-    (is (= (.get bal-col 0) 20000.0))
+        assump {:settle-date (jt/local-date 2015 1 1)
+                :prepayment  (RateAssumption. "pc" test-mortgage-date-rng (u/ldoubles [0.0]))
+                :default     (RateAssumption. "dc" test-mortgage-date-rng (u/ldoubles [0.0]))}
+        ;tm-1-cf-assump (.project-cashflow test-mortgage assump)
+
+      ]
+        (is (= (.get bal-col 0) 20000.0))
     (is (> (.get prin-col 4) 336.0))
     (is (< (.get int-col 4) 191.0))
 

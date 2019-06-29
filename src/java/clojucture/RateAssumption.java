@@ -35,7 +35,7 @@ public class RateAssumption extends Table{
 
        for(int i=0;i<d.length - 1;i++){
           sda[i] = d[i] ;
-          eda[i] = d[i+1].minusDays(1);
+          eda[i] = d[i+1];
        }
 
        DateColumn sd = DateColumn.create("Start",sda);
