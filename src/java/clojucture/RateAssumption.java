@@ -14,7 +14,7 @@ public class RateAssumption extends Table{
         this.addColumns(t.columnArray());
     }
 
-    public RateAssumption(String name, LocalDate[] s, LocalDate[] e, double[] o){
+    public RateAssumption(String name, LocalDate[] s, LocalDate[] e, Double[] o){
 
        super(name);
 
@@ -29,8 +29,13 @@ public class RateAssumption extends Table{
        LocalDate[] sda = new LocalDate[d.length - 1];
        LocalDate[] eda = new LocalDate[d.length - 1];
 
+       //System.out.println(d.length);
+       //System.out.println(o.length);
+
        if((d.length - o.length) != 1)
-           throw new IllegalArgumentException("dates array size should be one more than rate array");
+           throw new IllegalArgumentException(
+                   "dates array size should be one more than rate array: current date array size:"
+                    + d.length + " rate array size:" + o.length );
 
 
        for(int i=0;i<d.length - 1;i++){
@@ -50,10 +55,12 @@ public class RateAssumption extends Table{
             LocalDate s = (LocalDate)this.get(i,0); // start date
             LocalDate e = (LocalDate)this.get(i,1); // end date
             Double v = (Double)this.get(i,2); // value
+
+
             if (d.isAfter(s) && d.isBefore(e)){
                 return v;
             }
-            if (d.equals(s) || d.equals(e)){
+            if (d.equals(s) ){
                 return v;
             }
         }
@@ -72,6 +79,7 @@ public class RateAssumption extends Table{
 
         for (LocalDate td : bps){
             Double pv = this.rateAt(td);
+            //System.out.println("Rate at : Date " + td);
             ratesAtPoints.add(pv);
         }
 

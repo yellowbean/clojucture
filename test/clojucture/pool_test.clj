@@ -23,12 +23,14 @@
 (def t-account-2 (acc/->account :acc2 :int 0 []) )
 
 (deftest pool-agg-test
-  (let [ pool-assump {:prepayment (a/gen-pool-assump-df :cpr [ 0] [(jt/local-date 2014 5 5) (jt/local-date 2014 5 5)])
-                      :default (a/gen-pool-assump-df :cdr [ 0] [(jt/local-date 2014 5 5) (jt/local-date 2014 5 5)])}
+  (let [ pool-assump {:prepayment (a/gen-pool-assump-df :cpr [ 0] [(jt/local-date 2014 5 5) (jt/local-date 2019 12 5)])
+                      :default (a/gen-pool-assump-df :cdr [ 0] [(jt/local-date 2014 5 5) (jt/local-date 2019 12 5)])}
                       
-        pool-agg (.collect-cashflow test-pool pool-assump [(jt/local-date 2015 3 1) (jt/local-date 2017 9 1)])]
-	;(println (.project-cashflow test-pool pool-assump))
-    (println "pool agg" pool-agg)
+        ;pool-agg (.collect-cashflow test-pool pool-assump [(jt/local-date 2015 3 1) (jt/local-date 2017 9 1)])
+        ]
+    (println "Pool Assump" pool-assump)
+    ; (println (.project-cashflow test-pool pool-assump))
+    ;(println "pool agg" pool-agg)
 	
 	))
     

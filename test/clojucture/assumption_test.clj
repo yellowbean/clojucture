@@ -25,7 +25,7 @@
 
     ; Project
     (is (=  (.get (.column rproj "Start") 0) (jt/local-date 2018 3 1)))
-    (is (=  (.get (.column rproj "End") 0) (jt/local-date 2018 5 31)))
+    (is (=  (.get (.column rproj "End") 0) (jt/local-date 2018 6 1) ))
 
     ; Apply
     (is (= (first rapply) 0.0))
@@ -44,7 +44,7 @@
          ra (RateAssumption. "t" d-array rate-ary)
          pj-dates (u/dates [  (jt/local-date 2018 1 15) (jt/local-date 2018 2 15) ])
          rproj (.project ra pj-dates)
-         rapply (.apply ra pj-dates)
+         ;rapply (.apply ra pj-dates)
         ]
     ;(println rproj)
     (is (= (.get (.column rproj "Rate") 0) 0.1))
@@ -53,11 +53,22 @@
 
     ;(println rapply)
 
-    (is (= (first rapply ) 1.60) )
-    (is (= (second rapply ) 2.60) )
+    ;(is (= (first rapply ) 1.60) )
+    ;(is (= (second rapply ) 2.60) )
     )
   )
 
+(deftest pAssumpiton
+  (let [  dlist [ (jt/local-date 2018 1 1) (jt/local-date 2018 2 1 )]
+        dassump (assump/gen-pool-assump-df :cpr [ 0.1 ] dlist)
+        dr (assump/cpr2d 0.1)
+        ]
+
+    (is (= (.rateAt dassump (jt/local-date 2018 1 1)) dr))
+    (is (= (.rateAt dassump (jt/local-date 2018 1 5)) dr))
+    (is (= (.rateAt dassump (jt/local-date 2018 2 1)) dr))
+    )
+  )
 
 
 (comment
@@ -141,7 +152,7 @@
         projected-pool-assump (.project aCDR od)
         ]
         
-    (is (= (jt/local-date 2018 1 31) (.get projected-pool-assump 0 1)))
+    (is (= (jt/local-date 2018 2 1) (.get projected-pool-assump 0 1)))
     (is (= (jt/local-date 2018 1 10) (.get projected-pool-assump 0 0)))
     (is (< (Math/abs (- 0.0000834464 (.get projected-pool-assump  0 2))) 0.0001 ))
     (is (< (Math/abs (- 0.000111835 (.get projected-pool-assump  1 2))) 0.00001 ))
