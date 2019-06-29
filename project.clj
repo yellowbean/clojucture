@@ -1,10 +1,10 @@
-(defproject clojucture "0.0.3-SNAPSHOT"
+(defproject clojucture "0.0.4-SNAPSHOT"
   :description "a clojure library for modelling & analysis structure products (CLO/MBS/ABS)"
   :url "https://yellowbean.github.io/clojucture/"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [
-    [org.clojure/clojure "1.10.0"]
+    [org.clojure/clojure "1.10.1"]
     [tech.tablesaw/tablesaw-core "0.32.7"]
     [org.apache.commons/commons-math3 "3.6.1"]
     [org.apache.commons/commons-lang3 "3.7"]

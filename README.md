@@ -24,6 +24,7 @@ investor side of structured products or structuring an CLO/MBS/ABS deal.
 * XML/Protobuf as input/output, language independent ,flexible
 * Provides low level functions to build up country specific deal dentures
 * High performance with multi-thread and interpolate with Java directly
+* Heavily using `core.match` to manage complexity of structured finance world
 
 #### Coverage
 ##### Asset Type
