@@ -13,3 +13,4 @@ pom.xml.asc
 /codox
 engine.iml
 *.iml
+/test_calculation
