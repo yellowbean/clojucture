@@ -56,7 +56,6 @@ public class RateAssumption extends Table{
             LocalDate e = (LocalDate)this.get(i,1); // end date
             Double v = (Double)this.get(i,2); // value
 
-
             if (d.isAfter(s) && d.isBefore(e)){
                 return v;
             }
@@ -64,6 +63,7 @@ public class RateAssumption extends Table{
                 return v;
             }
         }
+
         return Double.NaN;
     }
 

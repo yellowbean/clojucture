@@ -63,19 +63,15 @@
   (smm2cpr smm))
 
 (defn gen-pool-assump-df [curve-type v observe-dates]
-  (let [d-intervals (u/gen-dates-interval observe-dates)
-        ;days-intervals (map #(jt/time-between (first %) (second %) :days) d-intervals)
-        interval-start (u/dates (map first d-intervals))
-        interval-end (u/dates (map second d-intervals))]
+  (let [ ds (u/dates observe-dates)]
     (as->
       (m/match [curve-type v]
                ;[:smm (v :guard #(vector? %))]
                ;(map #(- 1 (Math/pow (- 1 (second %)) (first %))) factors-m)
                [(:or :cpr :cdr) (v :guard #(vector? %))]
-               (let [ daily-pct (map #(- 1 (Math/pow (- 1 %) (/ 1 365))) v)]
-                 daily-pct)
+                (map cpr2d v) ; daily rate
                :else nil) rs
-      (RateAssumption. (name curve-type) interval-start interval-end (u/ldoubles rs)))))
+      (RateAssumption. (name curve-type) ds (u/ldoubles rs)))))
     
   
 
@@ -86,4 +82,24 @@
       nil
       (.apply pool-assumption obs-ary))
     ))
-  
+
+
+
+(defn gen-assump-curve [ ds assump ] ; remain dates  assumption
+  "convert a pool level assumption to asset level"
+  (let [ ppy-curve (:prepayment assump)
+        def-curve (:default assump)
+        dsa (u/dates ds)
+        ;[ recover-curve recovery-lag ] (:recovery assump)
+        ]
+    ;(println assump)
+    ;(println (.project ppy-curve dsa))
+    ;(println (.project def-curve dsa))
+    {
+     :prepayment-curve (.apply ppy-curve dsa)
+     :default-curve (.apply def-curve dsa)
+     :recovery-curve :nil
+     :recover-lag :nil
+     }
+
+    ))

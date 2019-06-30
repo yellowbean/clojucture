@@ -30,6 +30,8 @@
     ; Apply
     (is (= (first rapply) 0.0))
     (is (= (count rapply) 1))
+    (println rapply)
+
 
   ))
 
@@ -63,10 +65,11 @@
         dassump (assump/gen-pool-assump-df :cpr [ 0.1 ] dlist)
         dr (assump/cpr2d 0.1)
         ]
+    ;(println dassump)
 
     (is (= (.rateAt dassump (jt/local-date 2018 1 1)) dr))
     (is (= (.rateAt dassump (jt/local-date 2018 1 5)) dr))
-    (is (= (.rateAt dassump (jt/local-date 2018 2 1)) dr))
+;    (is (= (.rateAt dassump (jt/local-date 2018 2 1)) dr))
     )
   )
 
@@ -150,12 +153,16 @@
                 [(jt/local-date 2018 1 1) (jt/local-date 2018 2 1) (jt/local-date 2018 3 1) (jt/local-date 2018 4 1)])
         od (into-array LocalDate [ (jt/local-date 2018 1 10) (jt/local-date 2018 2 10) (jt/local-date 2018 2 25)])
         projected-pool-assump (.project aCDR od)
+
+        dr-1 (assump/cpr2d 0.03)
+        dr-2 (assump/cpr2d 0.04)
+        dr-3 (assump/cpr2d 0.045)
         ]
         
     (is (= (jt/local-date 2018 2 1) (.get projected-pool-assump 0 1)))
     (is (= (jt/local-date 2018 1 10) (.get projected-pool-assump 0 0)))
-    (is (< (Math/abs (- 0.0000834464 (.get projected-pool-assump  0 2))) 0.0001 ))
-    (is (< (Math/abs (- 0.000111835 (.get projected-pool-assump  1 2))) 0.00001 ))
+    (is (< (Math/abs (- dr-1 (.get projected-pool-assump  0 2))) 0.0001 ))
+    (is (< (Math/abs (- dr-2 (.get projected-pool-assump  1 2))) 0.00001 ))
     (is (= (.rowCount projected-pool-assump) 4))
     ;(println  (.apply aCDR od)))
 
