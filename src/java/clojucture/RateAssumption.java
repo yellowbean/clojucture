@@ -91,10 +91,10 @@ public class RateAssumption extends Table{
 
     public ArrayList<Double> apply(LocalDate[] d){
         RateAssumption projected_assump = this.project(d);
-        ArrayList<LocalDate> d_list = new ArrayList<>(Arrays.asList(d));
-        ArrayList<Double> v_list = new ArrayList<>(d.length-1);
+        // ArrayList<LocalDate> d_list = new ArrayList<>(Arrays.asList(d));
+        ArrayList<Double> v_list = new ArrayList<>(d.length);
 
-        Iterator<LocalDate> d_list_itr = d_list.iterator();
+        // Iterator<LocalDate> d_list_itr = d_list.iterator();
 
 
         // only one projected row
@@ -112,7 +112,7 @@ public class RateAssumption extends Table{
             Double v = (Double)projected_assump.get(i,2);
 
             long daysBetween  = Period.between(sDate,eDate).getDays();
-            Double period_rate = daysBetween * v;
+            Double period_rate = 1 - Math.pow(1 - v, daysBetween);
             v_list.add(period_rate);
             /*
             if(sDate.compareTo(current_date) == 0 ){

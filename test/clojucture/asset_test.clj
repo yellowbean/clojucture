@@ -15,13 +15,19 @@
 
 
 (def test-mortgage
-  (asset/->mortgage {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01} nil 20000 0.01 48 nil))
+  (asset/->mortgage
+    {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
+    {:last-paid-date  nil}
+    20000 0.01 48 nil))
 
 (def test-mortgage-date-rng
   (u/dates [(jt/local-date 2014 1 1) (jt/local-date 2019 1 1)]))
 
 (deftest tm-1
-  (let [tm-1-cf (.project-cashflow test-mortgage)
+  (let [
+
+        ; 0/0 scenario
+        tm-1-cf (.project-cashflow test-mortgage)
         bal-col (.column tm-1-cf "balance")
         prin-col (.column tm-1-cf "principal")
         int-col (.column tm-1-cf "interest")
@@ -34,7 +40,7 @@
         ;tm-1-cf-assump (.project-cashflow test-mortgage assump)
 
       ]
-        (is (= (.get bal-col 0) 20000.0))
+    (is (= (.get bal-col 0) 20000.0))
     (is (> (.get prin-col 4) 336.0))
     (is (< (.get int-col 4) 191.0))
 

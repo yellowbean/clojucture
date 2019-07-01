@@ -5,7 +5,7 @@
             [clojucture.assumption :as a]
             [clojure.core.match :as m])
   (:import
-    [java.time LocalDate]
+    [java.time LocalDate Period]
     [org.apache.commons.lang3 ArrayUtils]
     (clojucture RateAssumption)))
 
@@ -37,22 +37,7 @@
 
 
 
-(defn -gen-assump-curve [ ds assump ] ; remain dates  assumption
-  "convert a pool level assumption to asset level"
-  (let [ ppy-curve (:prepayment assump)
-        def-curve (:default assump)
-        dsa (u/dates ds)
-        ;[ recover-curve recovery-lag ] (:recovery assump)
-        ]
-    (println assump)
-    {
-     :prepayment-curve (.apply ppy-curve dsa)
-     :default-curve (.apply def-curve dsa)
-     :recovery-curve :nil
-     :recover-lag :nil
-     }
 
-    ))
 
 
 
@@ -62,31 +47,35 @@
     (let [
           {start_date :start-date periodicity :periodicity
             term       :term balance :balance} info
-           date-rng (u/gen-dates start_date periodicity term)
+           date-rng (u/gen-dates start_date periodicity (inc term))
            date-rng-ary (u/dates [(first date-rng) (last date-rng)])
+           _ (println "Date Range" (seq date-rng-ary))
            dz (u/ldoubles [0.0])
           nil-assumption {:prepayment (RateAssumption. "P" date-rng-ary dz)
-                          :default (RateAssumption. "P" date-rng-ary dz) :recovery [nil nil]}]
+                          :default (RateAssumption. "P" date-rng-ary dz) :recovery [nil nil]}
+          _ (println "NIL ASSUMP" nil-assumption)]
       (.project-cashflow x nil-assumption)))
 
   (project-cashflow [ x assump ]
     (let
-      [{start_date :start-date periodicity :periodicity
-        term       :term balance :balance} info
-       {stl-date :settle-date} assump
-       dates (u/gen-dates-ary start_date periodicity (inc term))
-       remain-dates (ArrayUtils/subarray dates (- term remain-term) (inc term))
+      [{ start_date :start-date periodicity :periodicity
+         term       :term       balance :balance } info
+       { last-paid-date :last-paid-date } history
+       { stl-date :settle-date } assump
 
+       dates (u/gen-dates-ary start_date periodicity  term)
+       remain-dates (ArrayUtils/subarray dates (- term remain-term) (inc term))
+       remain-dates-with-last-paid (if (nil? last-paid-date)
+                                     (ArrayUtils/add remain-dates 0 start_date)
+                                     (ArrayUtils/add remain-dates 0 last-paid-date))
        period_pmt (get-current-pmt history info) ; monthly payment
        even_principal_pmt (/ balance term)
 
        {projected-prepayment-rate :prepayment-curve
-        projected-default-rate :default-curve} (-gen-assump-curve remain-dates assump)
+        projected-default-rate :default-curve} (a/gen-assump-curve remain-dates-with-last-paid assump)
        ; project interest rates
        projected-interest-rates (-gen-interest-rate info nil assump)
        ]
-      (println projected-default-rate)
-      (println projected-prepayment-rate)
       (loop [payment-dates remain-dates paid-dates [stl-date]
              bal-list [current-balance] prin-list [0] int-list [0]
              ppy-bal-list [0] def-bal-list [0]
@@ -99,12 +88,12 @@
                         :prepayment-balance (double-array ppy-bal-list) :default-balance (double-array def-bal-list)})
           (let [
                 f-bal (last bal-list) ; begining balance
-                int-amount (* f-bal period-rate)
-                prin-amount (- period_pmt int-amount)
+                int-amount (* f-bal period-rate) ; current interest amount
+                prin-amount (- period_pmt int-amount) ; principal amount
                 ppy-bal (* f-bal (first ppy-rate)) ;prepayment balance
-                bal-after-ppy (- f-bal ppy-bal)
+                bal-after-ppy (- f-bal ppy-bal) ; balance after prepayment
                 def-bal (* bal-after-ppy (first def-rate))  ;default balance
-                bal-after-def (- bal-after-ppy def-bal)
+                bal-after-def (- bal-after-ppy def-bal) ; balance after default
                 n-bal (- bal-after-def prin-amount ppy-bal def-bal) ; ending balance
 
                 ]

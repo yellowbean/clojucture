@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [java-time :as jt]
             [clojucture.util :as u]
-            [clojucture.assumption :as assump])
+            [clojucture.assumption :as assump]
+            [clojucture.assumption :as a])
   (:import [java.time LocalDate]
            [clojucture RateAssumption]
            ))
@@ -73,6 +74,24 @@
     )
   )
 
+
+(deftest genAssumptionCurve
+  (let [  ods (u/gen-dates (jt/local-date 2018 1 1) (jt/months 1) 10)
+
+         assump-date-range (u/dates [(jt/local-date 2018 1 1 ) (jt/local-date 2018 10 1)  ])
+         r (u/ldoubles [0.12])
+
+         assp {:prepayment (RateAssumption. "P" assump-date-range r )
+                :default (RateAssumption. "P" assump-date-range  r )
+               }
+        {ppy-curve :prepayment-curve def-curve :default-curve} (a/gen-assump-curve ods assp)
+        ]
+    ;(println "ODS SIZE: " (count ods))
+    ;(println "PPY-curve: " (count ppy-curve))
+    (is (= (count ods) (inc (count ppy-curve))))
+    (is (= (count ods) (inc (count def-curve))))
+    )
+  )
 
 (comment
 
