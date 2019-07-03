@@ -1,4 +1,3 @@
-(set! *warn-on-reflection* true)
 (ns clojucture.pool
   (:require [java-time :as jt]
             [clojucture.util :as u]
@@ -19,18 +18,11 @@
   
   
 
-(defn complete-assump [ x]
-  (cond-> x
-   (not (contains? x :default)) (assoc  :default nil)
-   (not (contains? x :prepayment)) (assoc  :prepayment nil)
-   (not (contains? x :recovery-lag)) (assoc  :recovery-lag 0)
-   (not (contains? x :recovery-rate)) (assoc  :recovery-rate 0)))
-  
   
 
 
 (defrecord pool
-  [ assets]
+  [ assets ^LocalDate cutoff-date ]
   Pool
   (project-cashflow [ x assump]
     (let [ total-balance (reduce + (map #(.current-balance %) assets))
@@ -46,7 +38,8 @@
   
   (collect-cashflow [ x assump collect-intervals]
     (-> (project-cashflow x assump)
-        (u/agg-cashflow-by-interval collect-intervals))))
+        (u/agg-cashflow-by-interval collect-intervals)))
+  )
 
   
 

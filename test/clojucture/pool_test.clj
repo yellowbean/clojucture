@@ -17,7 +17,7 @@
   
 
 (def test-pool
-  (p/->pool [ at-t/test-mortgage]))
+  (p/->pool [ at-t/test-mortgage] (jt/local-date 2018 1 1 )))
 
 (def t-account-1 (acc/->account :acc1 :prin 1000 []) )
 (def t-account-2 (acc/->account :acc2 :int 0 []) )
