@@ -140,7 +140,7 @@
         }
       :status {
         :update-date (jt/local-date 2017 4 30)
-        :pool (p/->pool asset-list )
+        :pool (p/->pool asset-list (jt/local-date 2018 1 1 ))
         :bond bonds
         :expense [fees-oneoff fees-base fees-recur]
         :account accounts

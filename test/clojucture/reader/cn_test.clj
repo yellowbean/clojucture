@@ -11,7 +11,7 @@
 
 
 
-
+(comment
 (deftest testPy
   (let [py-model (io/resource "china/Model.xlsx")
         model (cn-load-model! (.getFile py-model))
@@ -42,6 +42,6 @@
     )
   )
 
-  
+)
 
 
