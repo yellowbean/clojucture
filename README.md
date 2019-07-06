@@ -35,13 +35,13 @@ China Interbank deal | yes |
  .... | WIP |
 
 ##### Asset Type
-Asset Type | Support? 
-------|----
- Loan  | yes   |
- Mortgage   |  yes  |
- Installments |  yes |
- Commercial Paper |  yes |
- Leasing | yes |
+Asset Type | Support?  | Stress Support ? 
+------|----|-----
+ Loan  | yes   | WIP |
+ Mortgage   |  yes  | WIP |
+ Installments |  yes |WIP |
+ Commercial Paper |  yes |WIP |
+ Leasing | yes |WIP |
 
 
 ##### Bond Type
@@ -49,17 +49,6 @@ Bond Type | Support?
 ------|----
  Bond with schedule amortization  | yes   |
  Pass through Bond   |  yes  |
-
-
-##### Analysis
- Assumptions | Support? 
-------|----
- Prepayment  | TBD   |
- Default   |  TBD  |
- Recovery  | TBD   |
-
-
-
 
 Credits
 ----

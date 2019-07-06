@@ -4,6 +4,7 @@
     [clojucture.account :as acc]
     [clojucture.spv :as d]
     [clojucture.bond :as b]
+    [clojucture.expense :as exp]
     [clojucture.pool :as p]
     [clojucture.util :as u]
     [clojucture.reader.base :as rb]
@@ -16,7 +17,7 @@
 
 
 
-(defn setup-accounts [ d u ]
+(defn setup-accounts [d u]
   "d -> deal map, u -> deal update"
   (loop [accs [] accs-to-add (get-in d [:snapshot u :账户])]
     (if (nil? accs-to-add)
@@ -43,7 +44,7 @@
 
   )
 
-(defn setup-assets [ d u ]
+(defn setup-assets [d u]
   (let [assets (get-in d [:snapshot u :资产池 :资产清单])
         coll-type (get-in d [:snapshot u :资产池 :类型])]
     (m/match coll-type
@@ -60,7 +61,7 @@
     ))
 
 
-(defn setup-dates [ d ]
+(defn setup-dates [d]
   (let [cut-off-date (jt/local-date (get-in d [:日期 :初始起算日]))
         stated-maturity-date (get-in d [:日期 :法定到期日])]
     {
@@ -74,15 +75,32 @@
     )
   )
 
+
+(defn setup-expense [x]
+  (m/match x
+           {:name n :last-paid-date pd  :year-rate r :arrears ars}
+           (exp/->pct-expense-by-amount {:name n :pct r :day-count :ACT_365} nil pd ars)
+           {:name n :balance v :last-paid-date pd }
+           (exp/->amount-expense {:name n} nil pd v)
+           {:name n :last-paid-date pd :base-rate r :arrears ars}
+           (exp/->pct-expense-by-rate  {:name n :pct r} nil pd ars )
+           :else :not-match-expense
+           )
+  )
+
+
+(defn setup-expenses [d u]
+  (let [exps (get-in d [:snapshot u :费用])]
+    (map setup-expense exps)))
+
+
 (comment
 
   (defn setup-triggers [d]
 
     )
 
-  (defn setup-expense [d]
 
-    )
 
   (defn setup-bond [d]
 
