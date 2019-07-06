@@ -16,8 +16,9 @@
 
 
 
-(defn setup-accounts [d]
-  (loop [accs [] accs-to-add (:账户 d)]
+(defn setup-accounts [ d u ]
+  "d -> deal map, u -> deal update"
+  (loop [accs [] accs-to-add (get-in d [:snapshot u :账户])]
     (if (nil? accs-to-add)
       accs
       (recur
@@ -42,32 +43,32 @@
 
   )
 
-(defn setup-assets [d]
-  (let [assets (get-in d [:资产池 :资产清单])
-        coll-type (get-in d [:资产池 :类型])]
+(defn setup-assets [ d u ]
+  (let [assets (get-in d [:snapshot u :资产池 :资产清单])
+        coll-type (get-in d [:snapshot u :资产池 :类型])]
     (m/match coll-type
              :住房按揭 (map setup-asset-mortgage assets)
              :else nil)
     ))
 
-(defn setup-pool [d]
-  (let [assets (setup-assets d)
-        cut-off-date (-> (get-in d [:资产池 :封包日]) (rb/parsing-dates))
+(defn setup-pool [d u]
+  (let [assets (setup-assets d u)
+        cut-off-date (-> (get-in d [:snapshot u :资产池 :封包日]) (rb/parsing-dates))
         ]
     (p/->pool assets cut-off-date)
 
     ))
 
 
-(defn setup-dates [d]
-  (let [ cut-off-date (jt/local-date (get-in d [:日期 :初始起算日]))
-        stated-maturity-date  (get-in d [:日期 :法定到期日])]
+(defn setup-dates [ d ]
+  (let [cut-off-date (jt/local-date (get-in d [:日期 :初始起算日]))
+        stated-maturity-date (get-in d [:日期 :法定到期日])]
     {
      :cut-off-date    cut-off-date
      :stated-maturity stated-maturity-date
      :pay-dates       (rb/parsing-dates (str (get-in d [:日期 :支付日]) "," stated-maturity-date))
      :int-dates       (rb/parsing-dates (str (get-in d [:日期 :计息日]) "," stated-maturity-date))
-     :calc-dates      (rb/parsing-dates (str (get-in d [:日期 :计算日]) ","stated-maturity-date))
+     :calc-dates      (rb/parsing-dates (str (get-in d [:日期 :计算日]) "," stated-maturity-date))
      :dist-dates      (rb/parsing-dates (str (get-in d [:日期 :信托分配日]) "," stated-maturity-date))
      }
     )
