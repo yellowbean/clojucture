@@ -27,6 +27,13 @@ investor side of structured products or structuring an CLO/MBS/ABS deal.
 * Heavily using `core.match` to manage complexity of structured finance world
 
 #### Coverage
+
+##### Deal Type
+Deal Type | Support ? 
+---|---
+China Interbank deal | yes |
+.... | WIP |
+
 ##### Asset Type
 Asset Type | Support? 
 ------|----
