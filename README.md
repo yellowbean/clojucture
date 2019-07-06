@@ -30,9 +30,9 @@ investor side of structured products or structuring an CLO/MBS/ABS deal.
 
 ##### Deal Type
 Deal Type | Support ? 
----|---
+ ---|---
 China Interbank deal | yes |
-.... | WIP |
+ .... | WIP |
 
 ##### Asset Type
 Asset Type | Support? 
@@ -40,7 +40,7 @@ Asset Type | Support?
  Loan  | yes   |
  Mortgage   |  yes  |
  Installments |  yes |
-  Commercial Paper |  yes |
+ Commercial Paper |  yes |
  Leasing | yes |
 
 
