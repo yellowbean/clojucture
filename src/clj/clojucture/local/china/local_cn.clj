@@ -5,6 +5,7 @@
     [clojucture.spv :as d]
     [clojucture.bond :as b]
     [clojucture.expense :as exp]
+    [clojucture.trigger :as trigger]
     [clojucture.pool :as p]
     [clojucture.util :as u]
     [clojucture.reader.base :as rb]
@@ -78,12 +79,12 @@
 
 (defn setup-expense [x]
   (m/match x
-           {:name n :last-paid-date pd  :year-rate r :arrears ars}
+           {:name n :last-paid-date pd :year-rate r :arrears ars}
            (exp/->pct-expense-by-amount {:name n :pct r :day-count :ACT_365} nil pd ars)
-           {:name n :balance v :last-paid-date pd }
+           {:name n :balance v :last-paid-date pd}
            (exp/->amount-expense {:name n} nil pd v)
            {:name n :last-paid-date pd :base-rate r :arrears ars}
-           (exp/->pct-expense-by-rate  {:name n :pct r} nil pd ars )
+           (exp/->pct-expense-by-rate {:name n :pct r} nil pd ars)
            :else :not-match-expense
            )
   )
@@ -93,14 +94,24 @@
   (let [exps (get-in d [:snapshot u :费用])]
     (map setup-expense exps)))
 
+(defn setup-trigger [ x ]
+  (m/match x
+           {:name n :cond [ :资产池违约率 :大于 th ]}
+           (trigger/->trigger {:name n :watch :pool-cumulative-default-rate} > th)
+
+
+           :else :not-match-trigger)
+
+  )
+
+(defn setup-triggers [ d u ]
+  (let [ trgs (get-in d [:snapshot u :风险事件])]
+    (map setup-trigger trgs)
+    )
+  )
+
 
 (comment
-
-  (defn setup-triggers [d]
-
-    )
-
-
 
   (defn setup-bond [d]
 

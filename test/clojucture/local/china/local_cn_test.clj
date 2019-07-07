@@ -43,7 +43,7 @@
 
                                        :费用   [
                                               {:name :受托机构报酬 :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
-                                              {:name :资金保管机构报酬  :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
+                                              {:name :资金保管机构报酬 :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
                                               {:name :支付代理机构报酬 :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
                                               {:name :评级机构报酬 :balance 5000 :last-paid-date "2018-04-26"}
                                               {:name :审计师报酬 :balance 5000 :last-paid-date "2018-04-26"}
@@ -52,10 +52,10 @@
                                               {:name :增值税 :base-rate 0.0326 :last-paid-date "2018-04-26"}
                                               ]
 
-                                       :风险事件 {
-                                              :违约事件   {}
-                                              :加速清偿事件 {}
-                                              }
+                                       :风险事件 [
+                                              {:name :违约事件 :cond [:资产池违约率 :大于 0.03]}
+                                              {:name :加速清偿事件 :cond [:资产池违约率 :大于 0.01]}
+                                              ]
                                        }
                          }
 
@@ -153,11 +153,15 @@
 
 (deftest tFees
   (let [fees (cn/setup-expenses jy-info "2018-05-26")]
-
-    (is (= (count fees)))
-
+    (is (= (count fees) 7))
     )
   )
+
+
+(deftest tTrigger
+  (let [trgs (cn/setup-triggers jy-info "2018-05-26")]
+    (is (= (count trgs) 2 ))
+    ))
 
 (comment
   (deftest tBuildBankDeal
