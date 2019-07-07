@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [java-time :as jt]
             [clojucture.local.china.local_cn :as cn]
-            ))
+            [clojucture.spv :as spv]))
 
 
 (def jy-info {
@@ -165,9 +165,15 @@
 
 (deftest tBond
   (let [bnds (cn/setup-bonds jy-info "2018-05-26")]
-
     (is (= (count bnds) 3)))
   )
+
+
+(deftest tDealFunc
+  (let [ snps (spv/list-snapshots jy-info)
+        snps-names (keys snps)]
+  (is (= (first snps-names) "2018-05-26"))
+  ))
 
 (comment
   (deftest tBuildBankDeal

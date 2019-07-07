@@ -17,6 +17,12 @@
 
   )
 
+
+(defn list-snapshots [d]
+  (d :snapshot))
+
+
+
 (defn gen-pool-collect-interval [ deal-info ]
   (let [{ closing-date :closing-date
           first-collect-date :first-collect-date
