@@ -9,7 +9,7 @@
   )
 
 
-(defn -dates [ x ]
+(defn -dates [x]
   (into-array LocalDate x))
 
 (defn -gen-dates
@@ -53,72 +53,72 @@
     )
   )
 
-(defn gen-dates [ desc ]
+(defn gen-dates [desc]
   (m/match desc
-    {:first-date sd :interval int :times n}
+           {:first-date sd :interval int :times n}
            (-gen-dates sd int n)
-    {:first-date sd :interval int :last-date ld}
+           {:first-date sd :interval int :last-date ld}
            (-gen-dates-range sd int ld)
 
 
 
-    :else :not-match-desc
-    )
+           :else :not-match-desc
+           )
   )
 
-(defn gen-column [ desc ]
-  (let [ column-name (:name desc)]
+(defn gen-column [desc]
+  (let [column-name (:name desc)]
     (m/match desc
-     {:type :double :values v }
-           (DoubleColumn/create column-name (double-array v))
-     {:type :date :values v }
-           (DateColumn/create column-name (-dates v))
-     {:type :bool :values v }
-           (BooleanColumn/create column-name (boolean-array v))
-     :else nil
-     ) ) )
+             {:type :double :values v}
+             (DoubleColumn/create column-name (double-array v))
+             {:type :date :values v}
+             (DateColumn/create column-name (-dates v))
+             {:type :bool :values v}
+             (BooleanColumn/create column-name (boolean-array v))
+             :else nil
+             )))
 
-(defn add-columns [ ^Cashflow t c-list ]
-  (.addColumns t (into-array AbstractColumn c-list)) )
+(defn add-columns [^Cashflow t c-list]
+  (.addColumns t (into-array AbstractColumn c-list)))
 
-(defn gen-ts [ desc ]
-  (let [ ts-name (:name desc)
+(defn gen-ts [desc]
+  (let [ts-name (:name desc)
         dates (gen-dates (:dates desc))
-        vs (gen-column (:values desc ))
+        vs (gen-column (:values desc))
         init-cf (Cashflow. ts-name (-dates dates))
         ]
-    (add-columns init-cf [vs]) ) )
+    (add-columns init-cf [vs])))
 
 
-(defn gen-cashflow [ desc ]
+(defn gen-cashflow [desc]
   (let [dates (gen-dates (:dates desc))
         init-cf (Cashflow. (:name desc) (-dates dates))
         ]
-     (m/match desc
-       {:name _ :dates _ :init-bal bal :principal pal}
+    (m/match desc
+             {:name _ :dates _ :init-bal bal :principal pal}
              nil
 
 
-       {:name _ :dates _ :init-bal bal }
-         (add-columns init-cf
-                  [(gen-column
-                    {:name "BALANCE" :type :double
-                     :values (repeat (.rowCount init-cf) bal)})])
-      {:name _ :dates _ }
+             {:name _ :dates _ :init-bal bal}
+             (add-columns init-cf
+                          [(gen-column
+                             {:name   "BALANCE" :type :double
+                              :values (repeat (.rowCount init-cf) bal)})])
+             {:name _ :dates _}
              init-cf
-       :else nil
-       )
+             :else nil
+             )
     )
   )
 
 
+(defn find-row-by-date [^Table df ^LocalDate d]
+  (let [len (.rowCount df)]
+    (loop [i 0]
+      (if (and (< i len) (not= (.get (.column df "dates") i) d))
+        (recur (inc i))
+        (doto (Row. df) (.at i))
+        ))))
 
 
-(defn calc-interest [ ^Cashflow t i-info ]
-
-
-
-
-
-   )
 

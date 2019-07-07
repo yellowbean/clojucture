@@ -56,6 +56,19 @@
 
   ))
 
+(deftest tFindByDate
+  (let [cf1 (cfu/gen-ts
+              {:name ""
+               :dates {:first-date (jt/local-date 2019 6 1) :interval (jt/months 3) :times 4}
+               :values {:type :double :values [1.0 2.0 3.0 4.0] :name "PRINCIPAL"} })
+        r (cfu/find-row-by-date cf1 (jt/local-date 2019 9 1))
+        ]
+    (is (= (.getDate  r "DATES")  (jt/local-date 2019 9 1)))
+    (is (= (.getDouble  r "PRINCIPAL" ) 2.0))
+
+    ))
+
+
 (comment
 
 (deftest tCashflowJoinDates
