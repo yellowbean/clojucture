@@ -94,9 +94,9 @@
   (let [exps (get-in d [:snapshot u :费用])]
     (map setup-expense exps)))
 
-(defn setup-trigger [ x ]
+(defn setup-trigger [x]
   (m/match x
-           {:name n :cond [ :资产池违约率 :大于 th ]}
+           {:name n :cond [:资产池违约率 :大于 th]}
            (trigger/->trigger {:name n :watch :pool-cumulative-default-rate} > th)
 
 
@@ -104,20 +104,32 @@
 
   )
 
-(defn setup-triggers [ d u ]
-  (let [ trgs (get-in d [:snapshot u :风险事件])]
+(defn setup-triggers [d u]
+  (let [trgs (get-in d [:snapshot u :风险事件])]
     (map setup-trigger trgs)
     )
   )
 
+;{:简称 "A-1" :初始面额 2550000000 :当前余额 2550000000 :预期到期日 "2019-02-26" :法定到期日 "2047-4-26"}
+; [ info balance rate stmts last-payment-date interest-arrears principal-loss ]
+(defn setup-bond [ bnd ]
+  (m/match bnd
+           {:简称 label :初始面额  orig-bal :当前余额 cur-bal :执行利率 cur-rate :预期到期日 expected-date :法定到期日 stated-maturity-date}
+           (b/->sequence-bond {:day-count :ACT_365} cur-bal cur-rate [] nil 0 0)
+           {:简称 label :初始面额  orig-bal :当前余额 cur-bal :预期到期日 expected-date :法定到期日 stated-maturity-date}
+           (b/->equity-bond {:day-count :ACT_365} cur-bal [] nil )
+           :else :not-match-bond-map
+           )
+
+  )
+
+
+(defn setup-bonds [d u]
+  (let [ bnds (get-in d [:snapshot u :债券])]
+    (map setup-bond bnds)))
+
 
 (comment
-
-  (defn setup-bond [d]
-
-    )
-
-
 
 
 
