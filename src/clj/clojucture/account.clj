@@ -42,5 +42,15 @@
      (dosync
        [(.withdraw from-acc d to-acc amount) (.deposit to-acc d from-acc amount)]
        )
-     :not-enought-cash)))
+     :not-enough-cash)))
+
+(defn transfer-funds
+  [ acc-list to-acc ^LocalDate d]
+  (loop [ target-acc to-acc from-acc-list acc-list result [] ]
+    (if-let [ from-acc (first from-acc-list)]
+      (let [ [new-from new-to] (transfer-fund from-acc target-acc d) ]
+        (recur new-to (next from-acc-list) (conj result new-from) ) )
+    [result target-acc] )))
+
+
 
