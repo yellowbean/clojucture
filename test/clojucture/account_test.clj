@@ -65,3 +65,23 @@
     (is (= 20 (:amount (second (:stmts acc-2-2)))))
 
   ))
+
+
+(deftest transfer-funds-test
+  (let [ test-account-1 (acc/->account :from :cash 1000 [])
+        test-account-2 (acc/->account :to :cash 1000 [])
+        test-account-3 (acc/->account :to :cash 0 [])
+        [acc-1 acc-2] (acc/transfer-fund test-account-1 test-account-2 (jt/local-date 2018 1 1))
+
+        [acc-result acc-target] (acc/transfer-funds [test-account-1 test-account-2]
+                                            test-account-3 (jt/local-date 2018 1 1))
+        ]
+    (is (= (:balance acc-1 ) 0 ))
+    (is (= (:balance acc-2 ) 2000 ))
+
+
+    (is (= (:balance acc-target ) 2000 ))
+    (is (= (:balance (first acc-result) ) 0 ))
+    (is (= (:balance (second acc-result) ) 0 ))
+
+    ))
