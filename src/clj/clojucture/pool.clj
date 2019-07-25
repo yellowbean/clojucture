@@ -50,7 +50,7 @@
     (loop [  sfs source-fields  accs accounts]
       (if-let [ this-sf (first sfs)] ;; pool cashflow field
         (recur
-          (rest sfs)
+          (next sfs)
           (let [ deposit-amt (.getDouble current-collection (name this-sf))
                 deposit-acc (accs (keyword (mapping this-sf)))]
             (assoc accs
