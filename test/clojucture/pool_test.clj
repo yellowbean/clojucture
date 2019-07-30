@@ -56,4 +56,13 @@
     ;(is (= 660.0 (:balance accs-int)))
     ;(is (= 12 (count (:stmts accs-int))))
     
-  
+(deftest tPoolCum
+  (let [ pool-cf cf-t/sample-cf
+        pool-cf-cum (p/calc-cumulative-amount pool-cf "interest" )
+
+        cum-column (.column pool-cf-cum "interest[cumSum]")
+        ]
+    (is (= (.getDouble cum-column 0) 0.0))
+    (is (= (.getDouble cum-column 1) 10.0))
+    (is (= (.getDouble cum-column 11) 660.0))
+    ))
