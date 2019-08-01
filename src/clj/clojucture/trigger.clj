@@ -23,7 +23,7 @@
 (defn run-pool-trigger [trigger pool-cf]
   (let [p (:p trigger)]
     (m/match p
-             [:pool-cumulative-default-rate op threshold]
+             {:target :pool-cumulative-default-rate :op op :threshold threshold}
              (let [ trigger-flow (.select pool-cf (into-array String ["dates" "default[cumSum]"]))
                    test-level-flow (-> (.column trigger-flow 1) (.asList))
                    test-result (map #(op % threshold) test-level-flow)
