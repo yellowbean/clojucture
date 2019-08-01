@@ -19,7 +19,7 @@
            [tech.tablesaw.columns.booleans BooleanColumnType]
            [tech.tablesaw.aggregate AggregateFunction AggregateFunctions]
            [org.threeten.extra Temporals]
-           [clojucture Cashflow]))
+           [clojucture Cashflow DoubleFlow]))
            
 
   
@@ -375,7 +375,11 @@
         
     (.addColumns ^Table tb ^"[Ltech.tablesaw.columns.AbstractColumn;" col-array)))
     
-  
+
+(defn gen-dflow
+  "generate a time series flow with dates and values in pair"
+  [name ds vs]
+  (DoubleFlow. name (dates ds) (double-array vs)) )
 
 
 (defn gen-cashflow

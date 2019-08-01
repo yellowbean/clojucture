@@ -137,7 +137,23 @@
           t-r (u/agg-cashflow-by-interval t-cashflow t-interval)]
       (println t-r)))
   )
-   
+
+
+(deftest tDF
+  (let [ df (u/gen-dflow "tDF"
+                         (u/gen-dates (jt/local-date 2018 1 1) (jt/months 1) 8)
+                         [0.1 0.1 0.2 0.2 0.3 0.3 0.4 0.4]
+                         )
+       dc (.column df "DATES")
+       vc (.column df "Double")
+        ]
+    (is (= (.get dc 0) (jt/local-date 2018 1 1) ))
+    (is (= (.get dc 7) (jt/local-date 2018 8 1) ))
+    (is (= (.get vc 0) 0.1 ))
+    (is (= (.get vc 7) 0.4 ))
+
+    )
+  )
 
   
   
