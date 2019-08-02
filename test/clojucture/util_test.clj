@@ -155,6 +155,13 @@
     )
   )
 
+(deftest tStrings
+  (let [ str-1 ["A" "B" "C"]
+        str-ary-1 (u/strings str-1) ]
+    (is (= (alength str-ary-1) 3))
+    (is (= (aget str-ary-1 1) "B"))
+    ))
+
   
   
   

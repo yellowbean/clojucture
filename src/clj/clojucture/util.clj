@@ -585,3 +585,6 @@
 
 (defn ldoubles [ x ]
   (into-array Double x))
+
+(defn strings [ x ]
+  (into-array String x))
