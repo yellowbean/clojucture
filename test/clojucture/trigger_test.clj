@@ -39,6 +39,8 @@
                                              :threshold-vec threshold-vector :curable false } false)
 
         t-result-vec2 (trg/run-pool-trigger cum-trigger-vec2 test-pool-cf-cum2)
+
+        t-result-df (trg/project-pool-trigger cum-trigger-vec2 test-pool-cf-cum2)
         ]
     ;single value test
     (is (= (nth t-result 2) false))
@@ -58,6 +60,8 @@
     (is (= (nth t-result-vec2 6) true))
     (is (= (nth t-result-vec2 16) true))
 
+
+    (println t-result-df)
     )
   )
 

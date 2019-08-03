@@ -2,24 +2,16 @@
   (:require [clojure.core.match :as m]
             [clojucture.util-cashflow :as cfu]
             [clojucture.util :as u])
-  (:import (clojucture RateAssumption)))
+  (:import (clojucture RateAssumption)
+           (tech.tablesaw.columns AbstractColumn)))
 
-
-
-(defrecord trigger [info op threshold]
-  Trigger
-  (breach? [x d payment-date]
-    (let [current-level (fetch-level d info payment-date)]
-      (if (op current-level threshold)
-        :breached
-        :unbreached
-        )))
-  )
 
 
 (defrecord pool-trigger [name p status])
 ; trigger on pool's event
 
+(defrecord bond-trigger [name status])
+; trigger on bond's event
 
 (defn run-pool-trigger [trigger pool-cf]
   (let [p (:p trigger)]
@@ -31,19 +23,16 @@
                )
              {:target :pool-cumulative-default-rate :op op :threshold-vec threshold-v :curable true}
              (let [trigger-flow (.select pool-cf (into-array String ["dates" "default[cumSum]"]))
-                   ;start-date (.get d-column 0)
-                   ;end-date (.get d-column (dec n-rows))
-                   trigger-vec-df (RateAssumption. "vTrigger" (u/dates (first threshold-v)) (u/ldoubles (second threshold-v)))
-                   ]
+                   trigger-vec-df (RateAssumption. "vTrigger" (u/dates (first threshold-v)) (u/ldoubles (second threshold-v))) ]
                (loop [ cr (.next (.iterator trigger-flow)) r [] ]
-                 (if (.hasNext cr)
-                   (let [ cd (.getDate cr "dates")
+                  (let [ n? (.hasNext cr)
+                         cd (.getDate cr "dates")
                          cv (.getDouble cr "default[cumSum]")
-                         test-value (.rateAt trigger-vec-df cd)
-                         ;_ (println cd cv test-value)
-                         ]
-                     (recur (.next cr) (conj r (op cv test-value))))
-                   r )))
+                         test-value (.rateAt trigger-vec-df cd) ]
+                    (if n?
+                      (recur (.next cr) (conj r (op cv test-value)))
+                      (conj r (conj r (op cv test-value)))) )
+                   ))
 
              {:target :pool-cumulative-default-rate :op op :threshold-vec threshold-v }
              (let [curable-p (assoc p :curable true)
@@ -56,13 +45,17 @@
              {:target :pool-cumulative-default-rate :op op :threshold threshold }
              nil
 
-             :else :not-match-trigger
+             :else (repeat (.rowCount pool-cf) nil)
              )
     )
   )
 
+(defn project-pool-trigger [ trigger pool-cf ]
+  (let [r (run-pool-trigger trigger pool-cf)
+        c (u/gen-column [:breached? (boolean-array r)])]
+    (.addColumns pool-cf (into-array AbstractColumn [c])) ) )
 
 
-(defrecord bond-trigger [name status])                      ; trigger on bond's event
+
 
 
