@@ -374,8 +374,8 @@
         col-array (into-array AbstractColumn cols)]
         
     (.addColumns ^Table tb ^"[Ltech.tablesaw.columns.AbstractColumn;" col-array)))
-    
 
+(declare dates)
 (defn gen-dflow
   "generate a time series flow with dates and values in pair"
   [name ds vs]
