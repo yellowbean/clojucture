@@ -119,10 +119,13 @@
 
 (defn setup-bond [bnd]
   (m/match bnd
-           {:简称 label :初始面额 orig-bal :当前余额 cur-bal :执行利率 cur-rate :预期到期日 expected-date :法定到期日 stated-maturity-date}
-           (b/->sequence-bond {:day-count :ACT_365} cur-bal cur-rate [] nil 0 0)
-           {:简称 label :初始面额 orig-bal :当前余额 cur-bal :预期到期日 expected-date :法定到期日 stated-maturity-date}
-           (b/->equity-bond {:day-count :ACT_365} cur-bal [] nil)
+           {:简称    label :初始面额 orig-bal :当前余额 cur-bal :执行利率 cur-rate :预期到期日 expected-date
+            :法定到期日 stated-maturity-date :上次付款日 {:principal prin-last-paid-date :interest int-last-paid-date}}
+           (b/->sequence-bond {:day-count :ACT_365} cur-bal cur-rate []
+                              {:principal (rb/parsing-dates prin-last-paid-date) :interest (rb/parsing-dates int-last-paid-date)} 0 0)
+           {:简称    label :初始面额 orig-bal :当前余额 cur-bal :预期到期日 expected-date
+            :法定到期日 stated-maturity-date :上次付款日 {:principal prin-last-paid-date :interest int-last-paid-date}}
+           (b/->equity-bond {:day-count :ACT_365} cur-bal [] {:principal (rb/parsing-dates prin-last-paid-date) :interest (rb/parsing-dates int-last-paid-date)})
            :else :not-match-bond-map
            ))
 
@@ -141,7 +144,8 @@
     ))
 
 
-(defn load-deal [deal-info u]
+(defn load-deal
+  ([deal-info u]
   (let [; initialized deal from a clojure map
         accounts (setup-accounts deal-info u)
         dates (setup-dates deal-info)
@@ -149,20 +153,22 @@
         bond (setup-bonds deal-info u)
         triggers (setup-triggers deal-info u)
         expense (setup-expenses deal-info u)
-        ;ws (get-in deal-info [:分配方式])
-
         base-snapshot-date (jt/local-date u)
         ]
     (-> deal-info
         (assoc-in [:projection :dates] (filter-projection-dates dates base-snapshot-date)) ;need to trancate by update date
-        ;(assoc-in [:projection :pool-collect-dates] (:calc-dates dates))               ;need to trancate by update date
+        (assoc-in [:update :info] {:update-date u})
         (assoc-in [:update :资产池] pool)
         (assoc-in [:update :债券] bond)
         (assoc-in [:update :税费] expense)
         (assoc-in [:update :账户] accounts)
         (assoc-in [:update :事件] triggers)
-        ;(assoc-in [:snapshot u :债券] bond)
         )
+    ))
+  ([ deal-info ]
+   (let [ avail-updates (:snapshot deal-info)
+         latest (-> (sort-by jt/local-date (keys avail-updates)) (last)) ]
+     (load-deal deal-info latest) )
     )
   )
 
@@ -187,25 +193,29 @@
   (let [fee? (fn [x] (contains? exps x))
         account? (fn [x] (contains? accs x))
         all-account? (fn [x] (every? account? x))
-        trigger? (fn [x] (contains? trgs x))]
+        trigger? (fn [x] (contains? trgs x))
+        bond? (fn [x] (contains? bnds x))
+
+        ;split-obj (fn [x] (-> x (name) (str/split #"\.") (first) (keyword)   ))
+        split-obj (fn [x] (-> x (name) (str/split #"\.") (first) (keyword)))
+        ]
     (loop [actions dist-actions accounts accs expenses exps bonds bnds]
-      (prn "matching" (first actions))
+      (println "Matching " (first actions))
       (if-let [action (first actions)]
         (as->
           (m/match action
-
-                   {:from pool-c :to t-cc :fields f-list };:to target-acc :fields f-list }
+                   {:from pool-c :to t-cc :fields f-list}   ;:to target-acc :fields f-list }
                    (let [
                          amounts-to-deposit (map #(.getDouble pool-collection %) f-list)
                          acc-to-dep (accs t-cc)
                          acc-u (.deposit acc-to-dep pay-date :pool-collection (reduce + amounts-to-deposit))
                          ]
-                        [(update-map-with-list accounts [acc-u]) expenses bonds]
+                     [(update-map-with-list accounts [acc-u]) expenses bonds]
                      )
 
                    {:from source-acc :to target-acc :formula fml}
                    (let []
-                     [ accounts expenses bonds ]
+                     [accounts expenses bonds]
                      )
 
                    {:if trig-key :breached sub-actions-t :unbreach sub-actions-f}
@@ -215,7 +225,7 @@
                        (distribute-funds pay-date pool-collection accounts expenses bonds trgs sub-actions-f)))
 
                    {:from source-acc :to target-acc :expense (obj :guard fee?) :with-limit-percentage pct}
-                   (let [_ (println "E with pct " pct)]
+                   (let [exp (expenses obj)]
                      [accounts expenses bonds]
                      )
                    {:from source-acc :to target-acc :expense (obj :guard seqable?)}
@@ -223,33 +233,41 @@
                      [accounts expenses bonds]
                      )
                    {:from source-acc :to target-acc :expense (obj :guard fee?)}
-                   (let [_ (println "E")]
+                   (let [fee-to-pay (expenses obj)
+                         acc-to-pay (accounts source-acc)
+
+                         ]
                      [accounts expenses bonds]
                      )
 
                    {:from source-acc :to target-acc :interest (obj :guard seqable?)}
-                   (let [ _ 10]
-                     [accounts expenses bonds]
+                   (let [acc-to-pay (accounts source-acc)
+                         objs-to-pay (map split-obj obj)
+                         bonds-to-pay (map bonds objs-to-pay)
+                         [acc-u bnd-u] (b/pay-bond-interest-pr pay-date acc-to-pay bonds-to-pay)
+                         ]
+                     [(update-map-with-list accounts [acc-u]) expenses (update-map-with-list bonds [bnd-u])]
                      )
 
-                   {:from source-acc :to target-acc :interest obj}
-                   (let [s (name obj)
-                         [b t] (str/split s #"\.")
-                         bond-to-pay (-> (keyword b) (bonds))
+                   {:from source-acc :to target-acc :interest (obj :guard bond?)  }
+                   (let [ b-name (split-obj obj)
+                         bond-to-pay (b-name bonds)
                          s-acc (accounts source-acc)
-                         [ acc-u bond-u ] (b/pay-bond-interest pay-date s-acc bond-to-pay) ]
-                     [ (update-map-with-list accounts [acc-u]) expenses (assoc bonds (keyword b) bond-u)] )
-
-
-
-                   {:from source-acc :to target-acc :principal obj}
-                   (let [s (name obj)
-                         [b t] (str/split s #"\.")
-                         s-acc (accounts source-acc)
-                         bond-to-pay (-> (keyword b) (bonds))
-                         [ acc-u bond-u ] (b/pay-bond-principal pay-date s-acc bond-to-pay)
+                         [acc-u bond-u] (b/pay-bond-interest pay-date s-acc bond-to-pay)
                          ]
-                     [ (update-map-with-list accounts [acc-u]) expenses (assoc bonds (keyword b) bond-u)]
+                     [(assoc accounts source-acc acc-u) expenses (assoc bonds b-name bond-u)]
+                     )
+
+
+
+                   {:from source-acc :to target-acc :principal (obj :guard bond?) }
+                   (let [;s (name obj)
+                         b-name (split-obj obj)
+                         s-acc (accounts source-acc)
+                         bond-to-pay (-> (keyword b-name) (bonds))
+                         [acc-u bond-u] (b/pay-bond-principal pay-date s-acc bond-to-pay)
+                         ]
+                     [ (assoc accounts source-acc acc-u) expenses (assoc bonds b-name bond-u)]
                      )
 
                    {:from (source-acc :guard account?) :to (target-acc :guard account?)}
@@ -299,9 +317,7 @@
     (loop [pds pay-dates bonds bnds accounts accs expenses exps triggers trgs pool-itr (.iterator pool-cf)]
       (if (.hasNext pool-itr)
         (let [pay-date (first pds)
-              _ (println "running date " pay-date)
               pool-r (.next pool-itr)
-              ;accs-deposited (p/deposit-period-to-accounts pool-r accounts agg-mapping pay-date)
               eod (:违约事件 triggers)
               current-wf (if (:status eod) (:违约后 wf) (:违约前 wf))
               [acc-u exp-u bnd-u trg-u] (distribute-funds pay-date pool-r accounts expenses bonds triggers current-wf)]
@@ -312,5 +328,11 @@
             (assoc-in [:projection :expense] expenses))
         )
       )
+    )
+  )
+
+(defn dump-deal [ d ]
+  (let [ d-map (into {} d)]
+
     )
   )

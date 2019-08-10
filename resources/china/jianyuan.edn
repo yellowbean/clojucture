@@ -1,13 +1,6 @@
-(ns clojucture.local.china.local_cn_test
-  (:require [clojure.test :refer :all]
-            [java-time :as jt]
-            [clojucture.local.china.local_cn :as cn]
-            [clojucture.spv :as spv]
-            [medley.core :as mc])
-  (:import (clojucture RateAssumption)))
-
-
-(def jy-info {
+{
+              :info {:name "jianyuan"
+                     }
               :日期       {:初始起算日 "2017-11-14"
                          :支付日   "2018-02-26M"
                          :计息日   "2018-01-23,2018-02-26M"
@@ -135,80 +128,4 @@
                                ]
                          }
 
-              })
-
-(deftest tAcc
-  (let [accounts (cn/setup-accounts jy-info "2018-05-26")]
-    (is (= (:name (second (first accounts))) :收入分账户))
-    (is (= (:balance (second (first accounts))) 0))
-    (is (= (count accounts) 7))
-    )
-  )
-
-(deftest tAsset
-  (let [assets (cn/setup-assets jy-info "2018-05-26")]
-    (is (= 2 (count assets)))
-    ))
-
-(deftest tPool
-  (let [pool (cn/setup-pool jy-info "2018-05-26")]
-    (is (= 2 (count (:assets pool))))
-    (is (= (jt/local-date 2017 11 20) (:cutoff-date pool)))
-    ))
-
-(deftest tDates
-  (let [dates-info (cn/setup-dates jy-info)]
-    (is (= (second (:dist-dates dates-info)) (jt/local-date 2018 3 16)))
-    ))
-
-(deftest tFees
-  (let [fees (cn/setup-expenses jy-info "2018-05-26")]
-    (is (= (count fees) 11))
-    )
-  )
-
-
-(deftest tTrigger
-  (let [trgs (cn/setup-triggers jy-info "2018-05-26")]
-    (is (= (count trgs) 2))
-    ))
-
-(deftest tBond
-  (let [bnds (cn/setup-bonds jy-info "2018-05-26")]
-    (is (= (count bnds) 3)))
-  )
-
-
-(deftest tDealFunc
-  (let [snps (spv/list-snapshots jy-info)
-        snps-names (keys snps)]
-    (is (= (first snps-names) "2018-05-26"))
-    ))
-
-
-
-
-(deftest tLoadBankDeal
-  (let [jy-bank (cn/load-deal jy-info "2018-05-26")
-        pool-assump {:prepayment nil :default nil}
-
-        finish-run-deal (cn/run-deal jy-bank pool-assump)
-
-        ]
-    (prn (get-in finish-run-deal [:projection :bond :A-2]))
-    )
-  )
-
-(deftest tLoadLatestSnapshot
-  (let [ dummy-deal { :snapshot {"2018-09-09" :sep2018 "2020-05-05" :may2020 "2019-01-01" :jan2019 }}
-         latest (-> (sort-by jt/local-date (keys (:snapshot dummy-deal))) (last))
-        ]
-    (is (= latest "2020-05-05") ) )
-
-  (let [ jy-bank (cn/load-deal jy-info )
-        update-date-loaded (get-in jy-bank [:update :info :update-date]) ]
-    (is (= update-date-loaded "2018-05-26") )
-    )
-
-
-  )
+              }
