@@ -588,3 +588,14 @@
 
 (defn strings [ x ]
   (into-array String x))
+
+
+
+(defn calc-pro-rata [ x y-list ]
+  "x -> total payment ; y-list -> a list of amounts to pay"
+  (let [ due-sum (reduce + y-list)
+        pct-list (map #(/ % due-sum) y-list ) ]
+    (if (>= x due-sum)
+      y-list
+      (map #(* x %) pct-list) )
+    ))

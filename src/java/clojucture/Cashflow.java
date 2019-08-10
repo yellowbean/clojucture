@@ -61,11 +61,11 @@ public class Cashflow extends Table {
         Summarizer smr = combined_cf.summarize( all_column_names , AggregateFunctions.sum);
 
         Table agg_cf = smr.by("dates");
-        agg_cf.column("Sum [principal]").setName("principal");
-        agg_cf.column("Sum [default]").setName("default");
-        agg_cf.column("Sum [prepayment]").setName("prepayment");
-        agg_cf.column("Sum [interest]").setName("interest");
 
+            agg_cf.column("Sum [principal]").setName("principal");
+            agg_cf.column("Sum [default]").setName("default");
+            agg_cf.column("Sum [prepayment]").setName("prepayment");
+            agg_cf.column("Sum [interest]").setName("interest");
 
         Double init_balance = (Double)this.column("balance").get(0) + (Double)cf.column("balance").get(0);
         Double[] bal_array = new Double[agg_cf.rowCount()];

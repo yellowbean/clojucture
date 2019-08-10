@@ -162,7 +162,31 @@
     (is (= (aget str-ary-1 1) "B"))
     ))
 
-  
+(deftest tProrata
+  (let [ x 100
+        y1 [30 40 30]
+        y2 [20 20 20]
+        y3 [100 50 50]
+
+        y1-r (u/calc-pro-rata x y1)
+        y2-r (u/calc-pro-rata x y2)
+        y3-r (u/calc-pro-rata x y3)
+        ]
+    (is (= 30 (first y1-r)))
+    (is (= 40 (second y1-r)))
+    (is (= 30 (nth y1-r 2)))
+
+
+    (is (= 20 (first y2-r)))
+    (is (= 20 (second y2-r)))
+    (is (= 20 (nth y2-r 2)))
+
+    (is (= 50 (first y3-r)))
+    (is (= 25 (second y3-r)))
+    (is (= 25 (nth y3-r 2)))
+    )
+
+  )
   
   
     
