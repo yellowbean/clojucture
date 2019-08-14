@@ -52,8 +52,14 @@
 
 (defn project-pool-trigger [ trigger pool-cf ]
   (let [r (run-pool-trigger trigger pool-cf)
-        c (u/gen-column [:breached? (boolean-array r)])]
+        c (u/gen-column [(:name trigger) (boolean-array r)])]
     (.addColumns pool-cf (into-array AbstractColumn [c])) ) )
+
+(defn project-pool-triggers [ triggers pool-cf ]
+  (let [rs (map #(run-pool-trigger % pool-cf) triggers )
+        zipped (map vector rs triggers)
+        cs (map #(u/gen-column [ (:name (first %)) (boolean-array (second %))])  zipped ) ]
+    (.addColumns pool-cf (into-array AbstractColumn cs)) ) )
 
 
 
