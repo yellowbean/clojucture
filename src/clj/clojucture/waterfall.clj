@@ -5,6 +5,15 @@
     [clojucture.bond :as bnd])
   )
 
+
+
+(defn update-account [ new-accs accs ]
+  (let [ new-names (map #(:name %) new-accs)])
+  )
+(defn update-expense [ new-exp accs ] )
+(defn update-bonds [ new-bnds accs ] )
+
+(comment
 (defn test-constrain [ d c]
   "Test constrain on deal return a boolean"
   )
@@ -38,4 +47,4 @@
       update-deal ) ))
 
 
-
+)

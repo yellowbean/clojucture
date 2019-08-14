@@ -11,8 +11,10 @@
     [clojucture.reader.base :as rb]
     [java-time :as jt]
     [clojure.core.match :as m]
+    [clojure.edn :as edn]
     [clojure.string :as str]
-    [medley.core :as mc])
+    [medley.core :as mc]
+    [clojure.java.io :as io])
 
   (:use [clojure.core.match.regex])
   (:import [java.time LocalDate]
@@ -143,6 +145,10 @@
     (reduce-kv #(assoc %1 %2 (dates-after-sp-date %3)) {} ds)
     ))
 
+
+(defn load-deal-from-file [ f-path ]
+  (let [ deal-inst (-> (slurp f-path) (edn/read-string) )]
+    deal-inst ) )
 
 (defn load-deal
   ([deal-info u]
@@ -325,7 +331,9 @@
         (-> deal
             (assoc-in [:projection :bond] bonds)
             (assoc-in [:projection :account] accounts)
-            (assoc-in [:projection :expense] expenses))
+            (assoc-in [:projection :expense] expenses)
+            (assoc-in [:projection :triggers] triggers)
+            )
         )
       )
     )

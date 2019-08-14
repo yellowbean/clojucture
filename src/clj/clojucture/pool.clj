@@ -52,6 +52,9 @@
         (recur
           (next sfs)
           (let [deposit-amt (.getDouble current-collection (name this-sf))
+                ;_ (println "accs " accs )
+                ;_ (println (keys accs))
+                ;_ (println (keyword (mapping this-sf) ))
                 deposit-acc (accs (keyword (mapping this-sf)))]
             (assoc accs
               (:name deposit-acc)

@@ -192,10 +192,10 @@
   (let [jy-bank (cn/load-deal jy-info "2018-05-26")
         pool-assump {:prepayment nil :default nil}
 
-        finish-run-deal (cn/run-deal jy-bank pool-assump)
+        ;finish-run-deal (cn/run-deal jy-bank pool-assump)
 
         ]
-    (prn (get-in finish-run-deal [:projection :bond :A-2]))
+    ;(prn (get-in finish-run-deal [:projection :bond :A-2]))
     )
   )
 
