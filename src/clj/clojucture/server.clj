@@ -34,36 +34,28 @@
     ))
 
 
-(defn run-deal [ws-path deal-file-name assump]
-  (let [deal-file-path (io/file ws-path deal-file-name)
-        deal (cn/load-deal-from-file (.toString deal-file-path)) ]
-    (:projection (cn/run-deal deal assump))
-    ))
+(defn run-deal [ ws-id deal-file-name assump]
+  (let [ deal-loaded (read-deal ws-id deal-file-name) ]
+    (:projection (cn/run-deal deal-loaded assump)) ))
 
 
-(defn deal-routes [  d-name]
-  (routes
-    (GET "/run" [ ]
-         (-> (run-deal nil d-name nil)
-             (json/write-str)) )
-    )
-  )
-
-
-(defn ws-routes [ws-id]
-  (routes
-    (GET "/" [] (-> {:workspace ws-id } (json/write-str) )
-    (GET "/deals" [] (list-deals ws-id))
-    (PUT "/deals/:deal-file" [deal-file] "")
-
-    (context "/deal/:deal-name" [deal-name]
-             (deal-routes deal-name))
-    )))
+(defn read-deal [ws-id deal-file-name]
+  (let [ deal-file-path (io/file (:root config) ws-id deal-file-name) ]
+    (cn/load-deal-from-file (.toString deal-file-path)) ) )
 
 (defroutes local-server
            (GET "/" [] "<h3>Alive!</h3>")
+           (GET "/TEST" [] "<h3>Test!</h3>")
            (context "/workspace/:ws-id" [ws-id]
-                    (ws-routes ws-id)))
+                    (GET "/" [] (-> {:workspace ws-id } (json/write-str) ))
+                    (GET "/deals" [] (list-deals ws-id))
+                    (context "/:d-name" [ d-name ]
+                             (GET "/" [] (-> (read-deal ws-id d-name ) (json/write-str)))
+                             (GET "/run" [ assump ] (-> (read-deal ws-id d-name ) (json/write-str)))
+
+                             )
+                    )
+           )
 
 (def shandler (handler/site local-server))
 
