@@ -27,10 +27,11 @@
   )
 
 
-(defn -amortize [ bond d amt loss ]
-  (let [ new-stmt (acc/->stmt d :from :principal amt nil) ]
-    (->
-      (update bond :balance - amt )
+(defn -amortize [ bond ^LocalDate d ^Double amt ^Double loss ]
+  (let [ new-stmt (acc/->stmt d :from :principal amt nil)
+        ]
+    (-> bond
+      (update :balance - amt )
       (update :stmts conj new-stmt )
       (assoc :principal-loss loss)
       (assoc-in [:last-payment-date :principal] d)
@@ -53,7 +54,7 @@
       (+ balance principal-loss))
 
   (cal-due-interest [ x d ]
-    (u/-cal-due-interest balance (:int last-payment-date) d (info :day-count) rate interest-arrears))
+    (u/-cal-due-interest balance  (:interest last-payment-date) d (info :day-count) rate interest-arrears))
   )
 
 (defrecord equity-bond
@@ -94,6 +95,20 @@
   )
 
 
+(defn pay-bond-interest-pr [ d acc bond-list ]
+  "pay bond interest by pro-rata"
+  (let [ all-due-int  (map #(.cal-due-interest % d) bond-list)
+        total-bal (:balance acc)
+        int-to-each-bond (u/calc-pro-rata total-bal all-due-int)
+        int-bond-pair (map vector bond-list int-to-each-bond)
+        total-draw (reduce + int-to-each-bond)
+        acc-after-paid (.try-withdraw acc d "prorata-bond" total-draw)
+        bnds-after-paid (map #(-pay-interest %1 d %2 0) int-bond-pair)
+        ]
+    [acc-after-paid bnds-after-paid]
+    )
+  )
+
 (defn pay-bond-interest [ d acc bond ]
   (let [ due-int (.cal-due-interest bond d)
          acc-after-paid (.try-withdraw acc d (:name bond) due-int)
@@ -117,7 +132,6 @@
 (defn pay-bond-deal [ deal d source bk p ]
   (let [ b (get-in deal [:bond bk])
         a (get-in deal [:account source])]
-
     (as->
       (case p
       :due-int (pay-bond-interest d a b)
@@ -134,7 +148,6 @@
        :info i
        :balance bal :rate r :stmts stmts :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss}
            (->sequence-bond i bal  r stmts last-payment-date int-arrears prin-loss)
-
       :else nil
      )
   ))
