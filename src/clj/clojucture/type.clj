@@ -16,10 +16,5 @@
 (defprotocol pTable
 	(merge1 [x t]))
 
-(defprotocol Account
-	(withdraw [ x d to amount ])
-  (try-withdraw [ x d to amount ])
-	(deposit [ x d from amount ])
-  (last-txn [ x ])
-	)
+
 

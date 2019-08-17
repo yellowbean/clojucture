@@ -1,18 +1,22 @@
 (ns clojucture.account
-  (:require [clojucture.type :as t]
-            [java-time :as jt]
+  (:require
             )
   (:import
-    [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
     [java.time LocalDate])
   )
 
+(defprotocol Account
+  (withdraw [ x d to amount ])
+  (try-withdraw [ x d to amount ])
+  (deposit [ x d from amount ])
+  (last-txn [ x ])
+  )
 
 (defrecord stmt [^LocalDate date from to ^Double amount info])
 
 
 (defrecord account [name type ^Double balance stmts]
-  t/Account
+  Account
   (withdraw [x d to amount]
     (.deposit x d to (- amount))
     )
