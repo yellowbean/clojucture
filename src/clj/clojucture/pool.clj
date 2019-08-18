@@ -36,9 +36,13 @@
         (.removeColumns ^Table cfs ^"[Ljava.lang.String;" (into-array String ["balance"]))
         (.addColumns ^Table cfs (into-array DoubleColumn [balance-col])))))
 
+  ;(collect-cashflow [x assump collect-intervals]
+  ;  (-> (project-cashflow x assump)
+  ;      (u/agg-cashflow-by-interval collect-intervals)))
   (collect-cashflow [x assump collect-intervals]
     (-> (project-cashflow x assump)
-        (u/agg-cashflow-by-interval collect-intervals)))
+        (.aggregateByInterval "AggPoolCashflow" (u/dates collect-intervals) )
+        ))
   )
 
 
@@ -52,9 +56,6 @@
         (recur
           (next sfs)
           (let [deposit-amt (.getDouble current-collection (name this-sf))
-                ;_ (println "accs " accs )
-                ;_ (println (keys accs))
-                ;_ (println (keyword (mapping this-sf) ))
                 deposit-acc (accs (keyword (mapping this-sf)))]
             (assoc accs
               (:name deposit-acc)
@@ -64,7 +65,7 @@
 
 (defn calc-deposit-date
   [^Row collection-period adj]
-  (let [;_ (println collection-period)
+  (let [
         collection-end-date (.getDate collection-period "ending-date")
         deposit-delay-days (:delay-days adj)]
     (jt/plus collection-end-date (jt/days deposit-delay-days))))
