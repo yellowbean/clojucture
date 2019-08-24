@@ -23,9 +23,9 @@
                  [compojure "1.6.1"]
                  ]
   :plugins [
-            [lein-virgil "0.1.9"]
+            ;[lein-virgil "0.1.9"]
             ]
-  :main clojucture.core
+  :main clojucture.server
   :mirrors {"central" {:name "aliyun maven"
                        :url  "https://maven.aliyun.com/nexus/content/groups/public/"}}
   ;:user {:plugins [ [nightlight/lein-nightlight "RELEASE"]]}
