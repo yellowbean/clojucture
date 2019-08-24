@@ -4,6 +4,7 @@
     [clojure.java.io :as io]
     [clojure.data.json :as json]
     [clojure.core.match :as m]
+    [clojure.string :as str]
     [medley.core :as ml]
     [clojucture.util-cashflow :as cfu])
     
@@ -72,7 +73,7 @@
   ([start step]
    (jt/iterate jt/plus start step))
   ([start step end]
-   (take-while (partial jt/after? end) (jt/iterate jt/plus start step)))
+   (take-while (partial (complement jt/before?) end) (jt/iterate jt/plus start step)))
   ([start-date step end-date opt]
    (case opt
      :month-end
@@ -349,7 +350,6 @@
        (.appendMissing ^AbstractColumn c))
      c))
   ([^String n ^AbstractColumnType t]
-   (println t)
    (condp instance? t
      DoubleColumnType (DoubleColumn/create ^String n)
      BooleanColumnType (BooleanColumn/create ^String n)
@@ -501,7 +501,6 @@
         col-rm (into-array AbstractColumn col-list)
         y (-> xc (.removeColumns col-rm)) ; y = table without balance & dates field
         ary-agg-functions (into-array AggregateFunction [AggregateFunctions/sum])]
-    (println "X" x)
     (-> x
         (.summarize (.columnNames ^Table y) ary-agg-functions)
         (.apply))
@@ -514,18 +513,14 @@
 (defn agg-cashflow-by-interval [^Table x date-list]
   "Aggregate & combine cashflow by a vector of dates"
   (let [
-        ;_ (println "cashflow :" x)
         date-col (.dateColumn x "dates")
         first-date (.min date-col)
         last-date (.max date-col)
         date-intervals (gen-dates-interval (cons first-date (conj date-list last-date)))
         
         sel-list (map #(.isBetweenIncluding date-col (first %) (second %)) date-intervals)
-        ;_ (println "sel-list" sel-list)
-        
+
         split-cf-by-interval (map #(.where x %) sel-list)
-        ;_ (println "Split-cf-by-interval" split-cf-by-interval)
-        
         agg-cashflow-list (map #(agg-cashflow %) split-cf-by-interval)
         starting-dates (cfu/gen-column {:name "starting-date" :type :date :values (map first  date-intervals)})
         ending-dates (cfu/gen-column {:name "ending-date" :type :date :values (map second  date-intervals)})
@@ -599,3 +594,16 @@
       y-list
       (map #(* x %) pct-list) )
     ))
+
+(defn out-lists [ dest-file & o-list ]
+  "for debugging purpuse only"
+  (let [ max-rows (apply max (map count o-list))
+       ; _ (println o-list)
+        ]
+    (with-open [ o (io/writer dest-file)]
+     (doseq [ i (range 0 max-rows)]
+      (->>
+        (str i "," (str/join "," (map #(nth % i nil) o-list  )) "\r\n")
+        (.write o)) )
+      )
+     ))

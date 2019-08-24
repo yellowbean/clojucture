@@ -18,7 +18,10 @@
 
   (:use [clojure.core.match.regex])
   (:import [java.time LocalDate]
-           [clojucture.trigger pool-trigger])
+           [clojucture.trigger pool-trigger]
+           (tech.tablesaw.api Row)
+           (tech.tablesaw.columns AbstractColumn)
+           )
   )
 
 
@@ -79,7 +82,7 @@
      :stated-maturity stated-maturity-date
      :pay-dates       (rb/parsing-dates (str (get-in d [:日期 :支付日]) "," stated-maturity-date))
      :int-dates       (rb/parsing-dates (str (get-in d [:日期 :计息日]) "," stated-maturity-date))
-     :calc-dates      (rb/parsing-dates (str (get-in d [:日期 :计算日]) "," stated-maturity-date))
+     :calc-dates      (cons cut-off-date (rb/parsing-dates (str (get-in d [:日期 :计算日]) "," stated-maturity-date)))
      :dist-dates      (rb/parsing-dates (str (get-in d [:日期 :信托分配日]) "," stated-maturity-date))
      }
     )
@@ -195,18 +198,25 @@
 (defn update-map-with-list [mp i-list]
   (reduce (fn [x y] (update-map-by-name x y)) mp i-list))
 
-(defn distribute-funds [pay-date pool-collection accs exps bnds trgs dist-actions]
+(defn distribute-funds [ pool-collection-with-pd proj-period accs exps bnds trgs dist-actions]
   (let [fee? (fn [x] (contains? exps x))
         account? (fn [x] (contains? accs x))
         all-account? (fn [x] (every? account? x))
         trigger? (fn [x] (contains? trgs x))
         bond? (fn [x] (contains? bnds x))
 
-        ;split-obj (fn [x] (-> x (name) (str/split #"\.") (first) (keyword)   ))
+        pool-collection (doto (Row. pool-collection-with-pd) (.at proj-period))
+        pay-date (.getDate pool-collection "payment-date")
+
+
+        get-pc-field (fn [ pc f ] (.getDouble pc f) )
         split-obj (fn [x] (-> x (name) (str/split #"\.") (first) (keyword)))
+
+
         ]
     (loop [actions dist-actions accounts accs expenses exps bonds bnds]
       (println "Matching " (first actions))
+      (println "Using Pool " pool-collection)
       (if-let [action (first actions)]
         (as->
           (m/match action
@@ -220,7 +230,13 @@
                      )
 
                    {:from source-acc :to target-acc :formula fml}
-                   (let []
+                   (let [ a (get-pc-field pool-collection "default")
+                         b nil
+                         c nil
+                         d nil
+
+                         ]
+
                      [accounts expenses bonds]
                      )
 
@@ -309,25 +325,30 @@
 (defn run-deal [deal assump]
   (let [pool (get-in deal [:update :资产池])
         coll-dates (get-in deal [:projection :dates :calc-dates])
-        pay-dates (get-in deal [:projection :dates :pay-dates])
 
+        _ (println (count coll-dates) )
         pool-cf (run-pool pool assump coll-dates)
+        _ (println pool-cf)
+
+        pay-dates (-> (get-in deal [:projection :dates :pay-dates]) (u/dates))
+        _ (println "pay dates " (alength pay-dates))
+        pay-dates-col (u/gen-column [:payment-date  pay-dates])
+        _ (println "p cf length" (.rowCount pool-cf))
+        pool-cf-pd (.addColumns pool-cf (into-array AbstractColumn [pay-dates-col])) ; pool cashflow with bond payment dates
+
         wf (:分配方式 deal)
 
         bnds (get-in deal [:update :债券])
         accs (get-in deal [:update :账户])
         exps (get-in deal [:update :税费])
         trgs (get-in deal [:update :事件])
-        ;agg-mapping {:principal :本金分账户 :interest :收入分账户}
         ]
-    (loop [pds pay-dates bonds bnds accounts accs expenses exps triggers trgs pool-itr (.iterator pool-cf)]
-      (if (.hasNext pool-itr)
-        (let [pay-date (first pds)
-              pool-r (.next pool-itr)
-              eod (:违约事件 triggers)
+    (loop [ bonds bnds accounts accs expenses exps triggers trgs proj-index 0]
+      (if (<= proj-index (.rowCount pool-cf-pd) )
+        (let [ eod (:违约事件 triggers)
               current-wf (if (:status eod) (:违约后 wf) (:违约前 wf))
-              [acc-u exp-u bnd-u trg-u] (distribute-funds pay-date pool-r accounts expenses bonds triggers current-wf)]
-          (recur (next pds) bnd-u acc-u exp-u trg-u (.next pool-r)))
+              [acc-u exp-u bnd-u trg-u] (distribute-funds pool-cf-pd proj-index  accounts expenses bonds triggers current-wf)]
+          (recur bnd-u acc-u exp-u trg-u (inc proj-index)))
         (-> deal
             (assoc-in [:projection :bond] bonds)
             (assoc-in [:projection :account] accounts)
