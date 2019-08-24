@@ -1,9 +1,6 @@
 (ns clojucture.account
-  (:require
-            )
   (:import
-    [java.time LocalDate])
-  )
+   [java.time LocalDate]))
 
 (defprotocol Account
   (withdraw [ x d to amount ])

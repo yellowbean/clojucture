@@ -14,3 +14,4 @@ pom.xml.asc
 engine.iml
 *.iml
 /test_calculation
+/d-tie.out.txt
