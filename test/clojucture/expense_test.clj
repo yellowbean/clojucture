@@ -56,7 +56,7 @@
         ]
     (is (= (.cal-due-amount r-exp (jt/local-date 2018 1 1)) 100))
     (is (= (.cal-due-amount r-exp (jt/local-date 2019 1 1)) 100))
-    (is (= (.cal-due-amount r-exp (jt/local-date 2020 1 1)) 0))
+    (is (= (.cal-due-amount r-exp (jt/local-date 2020 1 1)) 100))
 
     )
 
