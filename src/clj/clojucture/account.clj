@@ -2,7 +2,7 @@
   (:import
    [java.time LocalDate]))
 
-(defprotocol Account
+(defprotocol pAccount
   (withdraw [ x d to amount ])
   (try-withdraw [ x d to amount ])
   (deposit [ x d from amount ])
@@ -13,7 +13,7 @@
 
 
 (defrecord account [name type ^Double balance stmts]
-  Account
+  pAccount
   (withdraw [x d to amount]
     (.deposit x d to (- amount))
     )
