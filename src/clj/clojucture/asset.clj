@@ -10,6 +10,9 @@
     (clojucture RateAssumption)))
 
 
+(defprotocol Asset
+  (project-cashflow [ x ] [ x assump ]  "project cashflow with/out assumption")
+  )
 
 (defn -loan-gen-prin [term balance opt]
   "Generate principal vector for loan with option of schedule principal"
@@ -38,7 +41,7 @@
 
 
 (defrecord mortgage [info history current-balance period-rate remain-term opt]
-  t/Asset
+  Asset
   (project-cashflow [x]
     (let [
           {start_date :start-date periodicity :periodicity
@@ -109,7 +112,7 @@
 
 
 (defrecord float-mortgage [^LocalDate start-date periodicity ^Integer term ^Integer remain-term ^Double current-rate ^Double current-balance day-count float-info opt]
-  t/Asset
+  Asset
   (project-cashflow [x]
     nil)
 
@@ -153,7 +156,7 @@
 
 
 (defrecord loan [info current-balance remain-term current-rate opt]
-  t/Asset
+  Asset
   (project-cashflow [x]
     (let [{first-pay :first-pay maturity-date :maturity-date} info
           def-a (a/gen-pool-assump-df :cdr [0 0] [first-pay maturity-date])
@@ -220,7 +223,7 @@
 
 
 (defrecord commercial-paper [balance start-date end-date opt]
-  t/Asset
+  Asset
   (project-cashflow [x]
     (let [
           dates (into-array LocalDate [start-date end-date])
@@ -236,7 +239,7 @@
 
 
 (defrecord installments [balance start-date periodicity term period-fee-rate opt]
-  t/Asset
+  Asset
   (project-cashflow [x]
     (let [
           dates (u/gen-dates-ary start-date periodicity (inc term))
@@ -269,7 +272,7 @@
 
 
 (defrecord leasing [start-date term periodicity rental opt]
-  t/Asset
+  Asset
   (project-cashflow [x]
     (let [dates (u/gen-dates-ary start-date periodicity (inc term))
           rental-flow-list (->> (take term (repeat rental)) (cons 0))

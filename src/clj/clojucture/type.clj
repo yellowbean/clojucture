@@ -1,9 +1,7 @@
 (ns clojucture.type )
 
 
-(defprotocol Asset
-	(project-cashflow [ x ] [ x assump ]  "project cashflow with/out assumption")
-	)
+
 
 (defprotocol Liability
   (cal-due-amount [ x d ] [ x d base ] )

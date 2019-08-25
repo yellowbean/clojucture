@@ -1,7 +1,6 @@
 (ns clojucture.pool
   (:require [java-time :as jt]
             [clojucture.util :as u]
-            [clojucture.type :as t]
             [clojucture.asset :as a]
             [clojucture.account :as acc]
             [clojure.core.match :as m])
@@ -12,7 +11,7 @@
     (clojucture RateAssumption Cashflow)))
 
 
-(defprotocol Pool
+(defprotocol pPool
   (project-cashflow [x assump])
   (collect-cashflow [x assump interval]))
 
@@ -23,7 +22,7 @@
 
 (defrecord pool
   [assets ^LocalDate cutoff-date]
-  Pool
+  pPool
   (project-cashflow [x assump]
     (let [total-balance (reduce + (map #(.current-balance %) assets))
           asset-cashflow (map #(.project-cashflow % assump) assets)
