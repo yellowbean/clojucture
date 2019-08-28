@@ -6,6 +6,7 @@
   (:use clojure.core.match.regex))
 
 (defn parsing-dates [x]
+  "given input string ,return a date or a vector of dates"
   (m/match x
 
            #"\d{4}\-\d{2}\-\d{2}M,\d{4}\-\d{2}\-\d{2}"      ;first date as s, following month at day d

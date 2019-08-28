@@ -1,5 +1,5 @@
 (ns clojucture.expense
-  (:require [clojucture.type :as t]
+  (:require
             [clojucture.account :as acc]
             [clojucture.core :as ccore]
             [java-time :as jt]
@@ -10,6 +10,11 @@
            )
   )
 
+
+(defprotocol pExpense
+  (cal-due-amount [x d] [ x d base ])
+  (receive [ x d amount])
+  )
 
 (defn pay-expense-at-base
   [^LocalDate d acc expense base]
@@ -95,7 +100,7 @@
 (defrecord pct-expense-by-amount
   ;"Expense type that due amount is annualized percentage of the base, i.e trustee fee"
   [info stmt ^LocalDate last-paid-date ^Double arrears]
-  t/Liability
+  pExpense
   (cal-due-amount [x d base]
     (-> (util/get-period-rate
           (Period/between last-paid-date d) (info :pct) (info :day-count))
@@ -121,7 +126,7 @@
 (defrecord pct-expense-by-rate
   ;"Expense type that due amount is percentage of the base, i.e VAT"
   [info stmt ^LocalDate last-paid-date ^Double arrears]
-  t/Liability
+  pExpense
   (cal-due-amount [x d base]
     (+ (* base (info :pct)) arrears)
     )
@@ -142,7 +147,7 @@
 
 (defrecord amount-expense
   [info stmt ^LocalDate last-paid-date ^Double balance]
-  t/Liability
+  pExpense
   (cal-due-amount [x d]
     balance
     )
@@ -160,7 +165,7 @@
 
 (defrecord recur-expense
   [info stmt ^Double arrears]
-  t/Liability
+  pExpense
   (cal-due-amount [x d]
     (let [{sd :start-date p :period e-date :end-date} info
           exp-dates (u/gen-dates-range sd p e-date)]

@@ -1,7 +1,6 @@
 (ns clojucture.spv
   (:require [clojucture.bond :as b]
             [clojucture.asset :as a]
-            [clojucture.type :as t]
             [clojucture.pool :as p]
             [java-time :as jt]
             [clojucture.util :as u]
@@ -132,20 +131,6 @@
   )
 )
 
-(defn cn-distribute [ d ^LocalDate dt accounts waterfall expenses bonds ]
-  "distribute funds from account to liabilities"
-  (loop [ accs accounts ws waterfall exps expenses bnds bonds]
-    (if-let [ current-action (first ws)]
-      (m/match (:target current-action)
-        :增值税 (as->
-                (exp/pay-expense-at-base dt ((:source current-action) accs)
-                                      ((:target current-action) expenses) 1000  )
-                [updated-acc updated-exp]
-                (recur updated-acc (next ws) updated-exp bnds ) )
-        :else :not-match-ws-action
-      )
-    )
-  ))
 
 (defn choose-distribution-fun [ d ]
   "Pick a distribution function by deal country"
@@ -175,13 +160,10 @@
         current-bonds (get-in d [:status :bond])
         current-expense (get-in d [:status :expense])
         current-accounts (get-in d [:status :account])
-        ;trial-table (doto (Table/create "Trial") (.addColumns (.column pool-cf "dates")))
         ]
     (loop [ pay-dates bond-rest-payment-dates exps current-expense bnds current-bonds accs current-accounts ]
-      ;(println pay-dates)
       (if-let [ current-pay-date (first pay-dates)]
         (let [ deposit-row (pick-deposit-row pool-cf current-pay-date)
-              ;_ (println deposit-row)
               accs-with-deposit (p/deposit-period-to-accounts deposit-row accs agg-mapping current-pay-date )
               [ update-accounts update-bonds update-expenses ] (dist-fun d current-pay-date accs-with-deposit waterfall exps bnds)
               ]

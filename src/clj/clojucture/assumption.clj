@@ -1,6 +1,5 @@
 (ns clojucture.assumption
-  (:require [clojucture.type :as t]
-            [java-time :as jt]
+  (:require [java-time :as jt]
             [clojure.core.match :as m]
             [clojucture.util :as u])
   (:import [java.time LocalDate]

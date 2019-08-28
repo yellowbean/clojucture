@@ -13,23 +13,19 @@
   )
 
 
-(defprotocol Bond
-  (cal-due-principal [ x d ] )
-  (cal-due-interest [ x d ] )
-  (amortize [ x d amt])
-  (cal-next-rate [ x d assump ])
-  (receive-payments [ x d principal interest ])
-  ;(load [ s ])
+(defprotocol pBond
+  (cal-due-principal [ x d ] "calculate principal due at date d" )
+  (cal-due-interest [ x d ] "calculate interest due at date d")
+  ;(cal-next-rate [ x d assump ])
   )
 
-(defprotocol Equity
+(defprotocol pEquity
   (cal-max-interest [ x d ])
   )
 
 
 (defn -amortize [ bond ^LocalDate d ^Double amt ^Double loss ]
-  (let [ new-stmt (acc/->stmt d :from :principal amt nil)
-        ]
+  (let [ new-stmt (acc/->stmt d :from :principal amt nil) ]
     (-> bond
       (update :balance - amt )
       (update :stmts conj new-stmt )
@@ -49,7 +45,7 @@
 
 (defrecord sequence-bond
   [ info balance rate stmts last-payment-date interest-arrears principal-loss ]
-  Bond
+  pBond
   (cal-due-principal [ x d ]
       (+ balance principal-loss))
 
@@ -59,13 +55,13 @@
 
 (defrecord equity-bond
   [ info balance stmt last-payment-date ]
-  Bond
+  pBond
   (cal-due-principal [ x d ]
     0 )
 
   (cal-due-interest [ x d ]
     0 )
-  Equity
+  pEquity
   (cal-max-interest [ x d ]
     (let [ { ul-rate :upper-limit-rate} info
            ul-interest (u/-cal-due-interest balance (:int last-payment-date) d (info :day-count) ul-rate) ]
@@ -75,7 +71,7 @@
 
 (defrecord schedule-bond
   [ info balance rate stmts last-payment-date interest-arrears principal-loss ]
-  Bond
+  pBond
   (cal-due-principal [ x d ]
     (let [ prin-due (u/find-first-in-vec d  (info :amortization-schedule) :dates = :after) ]
       (+ (:principal prin-due) principal-loss)))
@@ -110,6 +106,7 @@
   )
 
 (defn pay-bond-interest [ d acc bond ]
+  "pay bond interest from an account"
   (let [ due-int (.cal-due-interest bond d)
          acc-after-paid (.try-withdraw acc d (:name bond) due-int)
          interest-paid (Math/abs (:amount (.last-txn acc-after-paid)))
@@ -120,6 +117,7 @@
 )
 
 (defn pay-bond-principal [ d acc bond ]
+  "pay bond principal from an account"
   (let [ due-principal (.cal-due-principal bond d)
          acc-after-paid (.try-withdraw acc d (:name bond) due-principal)
          amortized-principal (Math/abs (:amount (.last-txn acc-after-paid)))
@@ -129,25 +127,16 @@
     )
   )
 
-(defn pay-bond-deal [ deal d source bk p ]
-  (let [ b (get-in deal [:bond bk])
-        a (get-in deal [:account source])]
-    (as->
-      (case p
-      :due-int (pay-bond-interest d a b)
-      :due-principal (pay-bond-principal d a b) )
-      [update-account update-bond]
-          (-> deal
-              (assoc-in [:bond bk] update-bond )
-              (assoc-in [:account source] update-account) )))
-
 
 (defn setup-bond [ m ]
+  "factory function : create bond instance base on input `m` "
   (m/match m
-     {:type :sequential
-       :info i
+     {:type :sequential :info i
        :balance bal :rate r :stmts stmts :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss}
-           (->sequence-bond i bal  r stmts last-payment-date int-arrears prin-loss)
+           (->sequence-bond i bal r stmts last-payment-date int-arrears prin-loss)
+     {:type :schedule :info i
+      :balance bal :rate r :stmts stmts :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss }
+           (->schedule-bond i bal r stmts last-payment-date int-arrears prin-loss)
       :else nil
      )
-  ))
+  )

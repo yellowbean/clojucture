@@ -1,7 +1,6 @@
 (ns clojucture.asset
   (:require [java-time :as jt]
             [clojucture.util :as u]
-            [clojucture.type :as t]
             [clojucture.assumption :as a]
             [clojure.core.match :as m])
   (:import
