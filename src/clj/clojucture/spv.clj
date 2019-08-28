@@ -135,7 +135,7 @@
 (defn choose-distribution-fun [ d ]
   "Pick a distribution function by deal country"
   (m/match d
-           {:country :China} cn-distribute
+           {:country :China} :china-distribute-function
            :else nil
      )
   )
