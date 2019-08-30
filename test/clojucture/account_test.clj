@@ -85,3 +85,24 @@
     (is (= (:balance (second acc-result) ) 0 ))
 
     ))
+
+
+(deftest tReserveAccount
+  (let [ test-account-1 (acc/->account :from :cash 1000 [])
+        rAcc1 (acc/->reserve-account "rAcc1" {:target 1000} 500 [])
+        ;rAcc2 (acc/->reserve-account "rAcc2" {:target 1000} 1000 [])
+
+        [acc-1 acc-2] (acc/transfer-fund test-account-1 rAcc1 (jt/local-date 2019 1 1 ) 400)
+        [acc-12 acc-22] (acc/transfer-fund test-account-1 rAcc1 (jt/local-date 2019 1 1 ) 600)
+        ]
+
+    ;transfer not meet target balance
+    (is (= (:balance acc-1 ) 600 ))
+    (is (= (:balance acc-2 ) 900 ))
+
+    ;transfer meet target balance
+    (is (= (:balance acc-12 ) 500 ))
+    (is (= (:balance acc-22 ) 1000 )) ;reserve account shall only accept fund up to balance = 1000
+
+    )
+  )
