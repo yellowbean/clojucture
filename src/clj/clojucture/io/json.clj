@@ -1,13 +1,13 @@
 (ns clojucture.io.json
   (:require
-    [clojucture.bond :as b ]
+    [clojucture.tranche :as b ]
     [clojucture.pool :as p ]
     [clojucture.account :as acc ]
     [clojucture.expense :as exp ]
     )
   (:import [tech.tablesaw.api Table])
   (:import
-    [clojucture.bond sequence-bond equity-bond]
+    [clojucture.tranche sequence-bond equity-bond]
         )
   )
 

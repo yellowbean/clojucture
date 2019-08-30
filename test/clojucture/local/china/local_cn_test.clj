@@ -202,7 +202,7 @@
         pay-dates (get-in jy-bank [:projection :dates :pay-dates])
         ]
     ;(is (= (count calc-dates) (inc (count pay-dates))))
-    (u/out-lists "d-tie.out.txt" calc-dates pay-dates)
+    ;(u/out-lists "d-tie.out.txt" calc-dates pay-dates)
 
     (is (=  (first pay-dates) (jt/local-date 2018 2 26)))
     (is (=  (first calc-dates) (jt/local-date 2017 11 14)))

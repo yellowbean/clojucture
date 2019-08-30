@@ -2,7 +2,7 @@
   (:require
     [clojure.core.match :as m]
     [clojucture.expense :as exp]
-    [clojucture.bond :as bnd])
+    [clojucture.tranche :as tranche])
   )
 
 
@@ -31,7 +31,7 @@
         [ _ (fk :guard fee-key?)  :due ]
           (exp/pay-expense-deal deal d source fk opt)
         [ _ (bk :guard bond-key?) (:or :due-int :due-principal) ]
-          (bnd/pay-bond-deal deal d source bk opt)
+          (tranche/pay-bond-deal deal d source bk opt)
 
         :else nil)
       nil)

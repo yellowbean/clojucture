@@ -1,6 +1,6 @@
 (ns clojucture.bond_test
   (:require [clojure.test :refer :all]
-            [clojucture.bond :as bnd]
+            [clojucture.tranche :as bnd]
             [clojucture.util :as util]
             [clojucture.account :as acc]
             [java-time :as jt])
