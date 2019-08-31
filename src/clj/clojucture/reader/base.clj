@@ -2,7 +2,8 @@
   (:require
     [java-time :as jt]
     [clojure.core.match :as m]
-    [clojucture.util :as u])
+    [clojucture.util :as u]
+    [clojure.string :as str])
   (:use clojure.core.match.regex))
 
 (defn parsing-dates [x]
@@ -64,4 +65,12 @@
 
 
            :else (println "failed with " x))
+  )
+
+(defn parsing-doubles [ x ]
+  "input: a string with doubles seperated by comma;
+  output: a vector with doubles"
+  (->> (str/split x #",")
+      (map #(Double/parseDouble %) )
+      )
   )
