@@ -1,14 +1,15 @@
 package clojucture;
 
+import it.unimi.dsi.fastutil.ints.IntList;
+import org.apache.commons.lang3.ArrayUtils;
 import tech.tablesaw.aggregate.AggregateFunctions;
 import tech.tablesaw.aggregate.Summarizer;
-import tech.tablesaw.api.DateColumn;
-import tech.tablesaw.api.DoubleColumn;
-import tech.tablesaw.api.Row;
-import tech.tablesaw.api.Table;
+import tech.tablesaw.api.*;
 import tech.tablesaw.joining.DataFrameJoiner;
+import tech.tablesaw.table.TableSliceGroup;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -40,17 +41,60 @@ public class Cashflow extends Table {
         this.addColumns(dts);
     }
 
-    public Cashflow aggregateByInterval(String name, LocalDate[] d){
+    public LocalDate startDate(){
+       return (LocalDate)this.column("dates").get(0);
+    }
+
+    public LocalDate lastDate(){
+       DateColumn dc =  (DateColumn)this.column("dates");
+       return (LocalDate)dc.get(this.rowCount()-1);
+    }
+
+    public List<Table> aggregateByInterval(String name, LocalDate[] d){
 
         Cashflow AggregatedCashflow = new Cashflow(name);
-        LocalDate[] endDates = Arrays.copyOfRange(d, 1, d.length);
-        LocalDate[] startDates = Arrays.copyOfRange(d, 0, d.length-1);
+
+        LocalDate[] dx = ArrayUtils.insert(0, d, this.startDate());
+        LocalDate[] dxx = ArrayUtils.insert(dx.length , dx, this.lastDate());
+
+        LocalDate[] startDates = Arrays.copyOfRange(dxx, 0, dxx.length-1);
+        LocalDate[] endDates = Arrays.copyOfRange(dxx, 1, dxx.length);
 
         DateColumn startDate = DateColumn.create("Start Date", startDates);
         DateColumn endDate = DateColumn.create("End Date", endDates);
 
+        AggregatedCashflow.addColumns(startDate,endDate);
 
-        return AggregatedCashflow;
+
+        DateColumn dc = (DateColumn)this.column("dates");
+
+        Integer dates_flag = -1;
+        LocalDate[] cfDates = dc.asObjectArray();
+        Integer group_id[] = new Integer[cfDates.length];
+        Arrays.fill(group_id, null);
+
+        LocalDate sd;
+        LocalDate ed;
+
+        //filling group id to split the cashflow table by intervals
+        for(int i = 0;i<startDates.length;i++){
+            sd = startDates[i];
+            ed = endDates[i];
+            do{
+                dates_flag++;
+                group_id[dates_flag] = i;
+            }while(  (cfDates[dates_flag].isBefore(ed) || cfDates[dates_flag].isEqual(ed))
+                    && (cfDates[dates_flag].isAfter(sd) || cfDates[dates_flag].isEqual(sd))
+                    && (dates_flag<(cfDates.length-1)) );
+        }
+
+        IntColumn grp_index = IntColumn.create("Group Index", ArrayUtils.toPrimitive(group_id,-1));
+
+        this.addColumns(grp_index);
+
+        TableSliceGroup tsg = this.splitOn("Group Index");
+
+        return tsg.asTableList();
     }
 
 
@@ -62,10 +106,10 @@ public class Cashflow extends Table {
 
         Table agg_cf = smr.by("dates");
 
-            agg_cf.column("Sum [principal]").setName("principal");
-            agg_cf.column("Sum [default]").setName("default");
-            agg_cf.column("Sum [prepayment]").setName("prepayment");
-            agg_cf.column("Sum [interest]").setName("interest");
+        agg_cf.column("Sum [principal]").setName("principal");
+        agg_cf.column("Sum [default]").setName("default");
+        agg_cf.column("Sum [prepayment]").setName("prepayment");
+        agg_cf.column("Sum [interest]").setName("interest");
 
         Double init_balance = (Double)this.column("balance").get(0) + (Double)cf.column("balance").get(0);
         Double[] bal_array = new Double[agg_cf.rowCount()];

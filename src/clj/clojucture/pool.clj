@@ -35,10 +35,7 @@
         (.removeColumns ^Table cfs ^"[Ljava.lang.String;" (into-array String ["balance"]))
         (.addColumns ^Table cfs (into-array DoubleColumn [balance-col])))))
 
-  ;(collect-cashflow [x assump collect-intervals]
-  ;  (-> (project-cashflow x assump)
-  ;      (u/agg-cashflow-by-interval collect-intervals)))
-  (collect-cashflow [x assump collect-intervals]
+  (collect-cashflow [ x assump collect-intervals ]
     (-> (project-cashflow x assump)
         (.aggregateByInterval "AggPoolCashflow" (u/dates collect-intervals) )
         ))

@@ -6,7 +6,8 @@
     [clojure.core.match :as m]
     [clojure.string :as str]
     [medley.core :as ml]
-    [clojucture.util-cashflow :as cfu])
+    ;[clojucture.util-cashflow :as cfu]
+    )
     
   (:import [java.util Arrays]
            [java.time LocalDate]
@@ -401,8 +402,19 @@
          column-list (map #(gen-column %) columns)
          flow_array (into-array AbstractColumn column-list)]
      (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array))))
-  
 
+
+(defn gen-column [desc]
+  (let [column-name (:name desc)]
+    (m/match desc
+             {:type :double :values v}
+             (DoubleColumn/create column-name (double-array v))
+             {:type :date :values v}
+             (DateColumn/create column-name (dates v))
+             {:type :bool :values v}
+             (BooleanColumn/create column-name (boolean-array v))
+             :else nil
+             )))
 
 (defn union-column
   [^Table x ^Table y]
@@ -445,10 +457,7 @@
 
     
 
-(defn add-cashflow [^Table x ^Table y]
-  "append two cashflow with same columns , return a copy of `x` "
-  (let [xc (.copy x)]
-    (.append xc y)))
+
     
 
 (defn remove-sum-column [^Table t]
@@ -494,43 +503,6 @@
   
 
 
-(defn agg-cashflow [^Table x]
-  "sum up a cashlfow excluding balance & dates"
-  (let [xc (.copy x)
-        col-list (map #(.column xc %) ["balance" "dates"])
-        col-rm (into-array AbstractColumn col-list)
-        y (-> xc (.removeColumns col-rm)) ; y = table without balance & dates field
-        ary-agg-functions (into-array AggregateFunction [AggregateFunctions/sum])]
-    (-> x
-        (.summarize (.columnNames ^Table y) ary-agg-functions)
-        (.apply))
-    
-    ))
-        
-
-
-
-(defn agg-cashflow-by-interval [^Table x date-list]
-  "Aggregate & combine cashflow by a vector of dates"
-  (let [
-        date-col (.dateColumn x "dates")
-        first-date (.min date-col)
-        last-date (.max date-col)
-        date-intervals (gen-dates-interval (cons first-date (conj date-list last-date)))
-        
-        sel-list (map #(.isBetweenIncluding date-col (first %) (second %)) date-intervals)
-
-        split-cf-by-interval (map #(.where x %) sel-list)
-        agg-cashflow-list (map #(agg-cashflow %) split-cf-by-interval)
-        starting-dates (cfu/gen-column {:name "starting-date" :type :date :values (map first  date-intervals)})
-        ending-dates (cfu/gen-column {:name "ending-date" :type :date :values (map second  date-intervals)})
-        combined-cashflow (reduce add-cashflow agg-cashflow-list)]
-        
-    (-> ^Table combined-cashflow
-        (.addColumns ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn [starting-dates ending-dates]))
-        (remove-sum-column))))
-        
-    
 
 
 (defn load-interest-rate [p]
