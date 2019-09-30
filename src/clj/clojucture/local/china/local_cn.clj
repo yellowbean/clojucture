@@ -2,7 +2,6 @@
   (:require
     [clojucture.asset :as asset]
     [clojucture.account :as acc]
-    [clojucture.spv :as spv]
     [clojucture.tranche :as b]
     [clojucture.expense :as exp]
     [clojucture.trigger :as trigger]
@@ -149,9 +148,7 @@
     ))
 
 
-(defn load-deal-from-file [ f-path ]
-  (let [ deal-inst (-> (slurp f-path) (edn/read-string) )]
-    deal-inst ) )
+
 
 (defn load-deal
   ([deal-info u]
@@ -214,13 +211,11 @@
 
         ]
     (loop [actions dist-actions accounts accs expenses exps bonds bnds]
-      (println "Matching " (first actions))
-      (println "Using Pool " pool-collection)
       (if-let [action (first actions)]
         (as->
           (m/match action
                    {:from pool-c :to t-cc :fields f-list}   ;:to target-acc :fields f-list }
-                   (let [
+                   (let [_ (prn (.columnNames pool-collection))
                          amounts-to-deposit (map #(.getDouble pool-collection %) f-list)
                          acc-to-dep (accs t-cc)
                          acc-u (.deposit acc-to-dep pay-date :pool-collection (reduce + amounts-to-deposit))
@@ -250,7 +245,7 @@
                      [accounts expenses bonds]
                      )
                    {:from source-acc :to target-acc :expense (obj :guard seqable?)}
-                   (let [_ (println "E list")]
+                   (let []
                      [accounts expenses bonds]
                      )
                    {:from source-acc :to target-acc :expense (obj :guard fee?)}
@@ -321,18 +316,14 @@
   )
 
 
-(defn run-deal [deal assump]
+(defn run-deal [ deal assump ]
   (let [pool (get-in deal [:update :资产池])
         coll-dates (get-in deal [:projection :dates :calc-dates])
 
-        _ (println (count coll-dates) )
         pool-cf (run-pool pool assump coll-dates)
-        _ (println pool-cf)
 
         pay-dates (-> (get-in deal [:projection :dates :pay-dates]) (u/dates))
-        _ (println "pay dates " (alength pay-dates))
         pay-dates-col (u/gen-column [:payment-date  pay-dates])
-        _ (println "p cf length" (.rowCount pool-cf))
         pool-cf-pd (.addColumns pool-cf (into-array AbstractColumn [pay-dates-col])) ; pool cashflow with bond payment dates
 
         wf (:分配方式 deal)
