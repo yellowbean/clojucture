@@ -1,5 +1,6 @@
 (ns clojucture.spv
-  (:require [clojucture.tranche :as b]
+  (:require [clojure.edn :as edn]
+            [clojucture.tranche :as b]
             [clojucture.asset :as a]
             [clojucture.pool :as p]
             [java-time :as jt]
@@ -7,7 +8,7 @@
             [clojure.java.io :as io]
             [clojure.core.match :as m]
             [clojucture.expense :as exp]
-            )
+            [clojucture.local.china.local_cn :as cn])
   (:import [tech.tablesaw.api ColumnType Table Row]
            [tech.tablesaw.columns AbstractColumn Column]
            [java.time LocalDate]
@@ -110,6 +111,47 @@
       )
     )
   )
+
+
+;; return available of assumptions given a deal instance
+
+(defn gen-assumptions [ x ]
+  (m/match x
+
+
+
+
+
+           )
+  )
+
+
+
+
+(defn load-deal-from-file [ f-path ]
+   "read deal edn file into memory, return a map"
+  (let [ deal-inst (-> (slurp f-path) (edn/read-string) )]
+    (m/match deal-inst
+             {:info {:flavor "china"} }  (cn/load-deal deal-inst)
+
+
+             :else :not-found-local-deal
+             )
+    ) )
+
+
+;; run a deal, it will dispatch input deal to different local namespaces
+(defn run-deal [ deal assump ]
+  (m/match deal
+           {:info {:flavor "china"} } (cn/run-deal deal assump)
+
+
+
+   :else :not-found-local-deal
+   )
+  )
+
+
 
 
 (defn build-deal [ m ]
