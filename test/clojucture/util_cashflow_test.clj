@@ -23,7 +23,7 @@
 
 (deftest tCol
   (let [ m1 {:name "double-col" :type :double :values [1 2 3 4]}
-        c1 (cfu/gen-column m1)]
+        c1 (u/gen-column m1)]
     (is (= (.get c1 0) 1.0))
     (is (= (.get c1 1) 2.0))
     (is (= (.get c1 2) 3.0))

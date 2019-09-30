@@ -52,7 +52,7 @@
 
 (defn project-pool-trigger [ trigger pool-cf ]
   (let [r (run-pool-trigger trigger pool-cf)
-        c (u/gen-column [(:name trigger) (boolean-array r)])]
+        c (u/gen-column {:name (:name trigger) :type :bool :values r})]
     (.addColumns pool-cf (into-array AbstractColumn [c])) ) )
 
 (defn project-pool-triggers [ triggers pool-cf ]

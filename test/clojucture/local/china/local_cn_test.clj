@@ -3,8 +3,11 @@
             [java-time :as jt]
             [clojucture.local.china.local_cn :as cn]
             [clojucture.spv :as spv]
+            [clojucture.assumption :as assump]
             [medley.core :as mc]
-            [clojucture.util :as u])
+            [clojucture.util :as u]
+            [clojucture.util-cashflow :as cfu]
+            )
   ;(:import (clojucture RateAssumption))
   )
 
@@ -204,8 +207,8 @@
     ;(is (= (count calc-dates) (inc (count pay-dates))))
     ;(u/out-lists "d-tie.out.txt" calc-dates pay-dates)
 
-    (is (=  (first pay-dates) (jt/local-date 2018 2 26)))
-    (is (=  (first calc-dates) (jt/local-date 2017 11 14)))
+    (is (= (first pay-dates) (jt/local-date 2018 2 26)))
+    (is (= (first calc-dates) (jt/local-date 2017 11 14)))
     ;(prn (get-in finish-run-deal [:projection :bond :A-2]))
     )
   )
@@ -219,6 +222,36 @@
   (let [jy-bank (cn/load-deal jy-info)
         update-date-loaded (get-in jy-bank [:update :info :update-date])]
     (is (= update-date-loaded "2018-05-26"))
+    )
+
+  )
+
+(deftest tPoolCf
+  (let [jy-bank (cn/load-deal jy-info "2018-05-26")
+        pool (get-in jy-bank [:update :资产池])
+        calc-intervals (get-in jy-bank [:projection :dates :calc-dates])
+        assmp (assump/build {:p {:name   :prepayment :type :cpr
+                                 :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
+                                 :values [0.5]}
+                             :d {:name   :default :type :cdr
+                                 :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
+                                 :values [0.5]}})
+
+        pool-cf (cn/run-pool pool assmp calc-intervals)
+
+        ]
+
+    (->
+      (first (:assets pool))
+      (.project-cashflow assmp)
+      (cfu/agg-cashflow-by-interval [ (jt/local-date 2017 5 25 )
+                                                 (jt/local-date 2019 5 25 )
+                                                 (jt/local-date 2039 5 25 )])
+      (prn)
+      )
+    ;(prn (seq pool-cf))
+    ;(prn (.columnNames pool-cf))
+
     )
 
   )

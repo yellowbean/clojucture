@@ -327,21 +327,21 @@
                    (dec e)
                    (reduce + (ArrayUtils/subarray ary-accrued ^Integer s ^Integer e))))
     ary-int-due))
-    
 
 
-(defn gen-column [[k v]]
-  "Create a table column with given column name and value vector"
-  (try
-    (case (str (.getComponentType (.getClass v)))
-      "double" (DoubleColumn/create (name k) v)
-      "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
-      "boolean" (BooleanColumn/create (name k) ^booleans v)
-      "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v))
-      
-    (catch Exception e
-      (println "Exception:" e))))
-      
+(comment
+  (defn gen-column [[k v]]
+    "Create a table column with given column name and value vector"
+    (try
+      (case (str (.getComponentType (.getClass v)))
+        "double" (DoubleColumn/create (name k) v)
+        "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
+        "boolean" (BooleanColumn/create (name k) ^booleans v)
+        "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v))
+
+      (catch Exception e
+        (println "Exception:" e))))
+  )
 
 
 (defn new-empty-column
@@ -382,7 +382,7 @@
   [name ds vs]
   (DoubleFlow. name (dates ds) (double-array vs)) )
 
-
+(declare gen-column)
 (defn gen-cashflow
   "Create a cashflow table"
   [name columns]
@@ -391,21 +391,44 @@
         flow_array (into-array AbstractColumn column-list)]
    (.addColumns ^Cashflow t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array)))
 
+
+(defn trans-kv-col
+  "read a key/value and return a map descrble it as a column"
+  [ k v ]
+  (let [ t (condp = (type (first v))
+    java.lang.Long :double
+    java.lang.Double :double
+    java.lang.Integer :double
+    java.time.LocalDate :date ) ]
+  {:name k :type t :values v})
+  )
+
+
 (defn gen-table
   "Create a table with columns and name"
-  ([column-pairs]                                           ;table with empty columns
-   (let [t (Table/create "EMPTY")
-         cols (map #(new-empty-column (first %) (second %)) column-pairs)]
-     (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn cols))))
+  ([ x ] ;table with empty columns
+   (m/match x
+            (x :guard list?)
+              (let [t (Table/create "EMPTY")
+                  cols (map #(new-empty-column (first %) (second %)) x)]
+                (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn cols)))
+
+            {:name n }
+            (let [ col-map (seq (dissoc x :name))
+                  col-list (map #(trans-kv-col (first %) (second %)) col-map ) ]
+              (gen-table n col-list))
+            :else (throw (Exception. "not-match-table"))
+            )
+   )
   ([name columns]                                           ;table with columns were described in map
    (let [t (Table/create name)
          column-list (map #(gen-column %) columns)
          flow_array (into-array AbstractColumn column-list)]
      (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array))))
 
-
+(declare dates)
 (defn gen-column [desc]
-  (let [column-name (:name desc)]
+  (let [column-name (name (:name desc))]
     (m/match desc
              {:type :double :values v}
              (DoubleColumn/create column-name (double-array v))
@@ -413,7 +436,7 @@
              (DateColumn/create column-name (dates v))
              {:type :bool :values v}
              (BooleanColumn/create column-name (boolean-array v))
-             :else nil
+             :else :gen-column-failure
              )))
 
 (defn union-column

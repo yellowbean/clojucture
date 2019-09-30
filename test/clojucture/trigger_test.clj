@@ -11,14 +11,14 @@
 
 (def test-pool-cf
   (u/gen-cashflow "pool-cf-test"
-                     [[:dates (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 2) 10)]
-                      [:default (double-array 10 0.01)]
+                     [{:name :dates :type :date  :values (u/gen-dates (jt/local-date 2018 1 1) (jt/months 2) 10)}
+                      {:name :default :type :double :values (repeat 10 0.01)}
                       ]))
 
 (def test-pool-cf2
   (u/gen-cashflow "pool-cf-test"
-                     [[:dates (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 2) 18)]
-                      [:default (double-array 18 0.001)]
+                     [{:name :dates :type :date :values (u/gen-dates (jt/local-date 2018 1 1) (jt/months 2) 18)}
+                      {:name :default :type :double :values (repeat 18 0.001)}
                       ]))
 
 (def test-pool-cf-cum (p/calc-cumulative-amount test-pool-cf "default"))

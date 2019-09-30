@@ -62,31 +62,21 @@
   (smm2cpr smm))
 
 (defn gen-pool-assump-df [curve-type v observe-dates]
+  " v -> a vector list ; observe-dates -> a list of LocalDates"
   (let [ds (u/dates observe-dates)]
     (as->
       (m/match [curve-type v]
                ;[:smm (v :guard #(vector? %))]
                ;(map #(- 1 (Math/pow (- 1 (second %)) (first %))) factors-m)
-               [(:or :cpr :cdr) (v :guard #(vector? %))]
+               [(:or :cpr :cdr) (v :guard #(seqable? %))]
                (map cpr2d v)                                ; daily rate
                :else nil) rs
       (RateAssumption. (name curve-type) ds (u/ldoubles rs)))))
 
-(defn build-pool-assump [ d ]
-  (let [ ds (:dates d)
-        ppy-d (:prepayment d)
-        def-d (:default d)
-        ]
-    (loop []
 
-
-
-
-      )
-    )
-  )
 
 (defn gen-asset-assump
+  "convert a pool assumption to asset level assumption"
   [^RateAssumption pool-assumption observe-dates]
   (let [obs-ary (u/dates observe-dates)]
     (if (= (alength obs-ary) 0)
@@ -95,6 +85,7 @@
 
 
 (defn complete-assump [x]
+  ""
   (cond-> x
           (not (contains? x :default)) (assoc :default nil)
           (not (contains? x :prepayment)) (assoc :prepayment nil)
@@ -102,7 +93,7 @@
           (not (contains? x :recovery-rate)) (assoc :recovery-rate 0)))
 
 
-(defn gen-assump-curve [ds assump]                          ; remain dates  assumption
+(defn gen-assump-curve [ ds assump ]                          ; remain dates  assumption
   "convert a pool level assumption to asset level"
   (let [ppy-curve (:prepayment assump)
         def-curve (:default assump)
@@ -117,6 +108,25 @@
      :default-curve    (apply-rate-fn def-curve)
      :recovery-curve   :nil
      :recover-lag      :nil}))
-     
 
-    
+(defn -build-assump [ x ]
+  "dispatch to different assumption type "
+  (m/match x
+           {:name (:or :prepayment :default) :type tpe :dates ds :values vs }
+           (gen-pool-assump-df tpe vs ds)
+
+          :else :not-match-assmp
+           )
+
+  )
+
+(defn build [ d ]
+  "take a assumption list and return a map of assumption in form of records"
+    (loop [ r {} input-assump-list d ]
+      (if-let [ assump-item (first input-assump-list)]
+        (recur (assoc r (:name assump-item) (-build-assump assump-item)) (next input-assump-list))
+        r
+        )
+      )
+
+  )

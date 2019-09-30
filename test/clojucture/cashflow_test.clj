@@ -26,24 +26,24 @@
     (doto (Cashflow. "sample1")
       (.addColumns column-array))))
 
-
-(deftest tAggCashflow
-  (let [aggResult (.aggregateByInterval (sample-cf nil) "N"
-                                        (u/dates [;(jt/local-date 2018 1 1)
-                                                  (jt/local-date 2018 6 1)]))]
-    (is (= (count aggResult) 2))
-
-
-
+(comment
+  (deftest tAggCashflow
     (let [aggResult (.aggregateByInterval (sample-cf nil) "N"
                                           (u/dates [;(jt/local-date 2018 1 1)
-                                                    (jt/local-date 2018 6 1)
-                                                    (jt/local-date 2018 8 1)]))]
-      (is (= (count aggResult) 3))
+                                                    (jt/local-date 2018 6 1)]))]
+      (is (= (count aggResult) 2))
 
-      ))
+
+
+      (let [aggResult (.aggregateByInterval (sample-cf nil) "N"
+                                            (u/dates [;(jt/local-date 2018 1 1)
+                                                      (jt/local-date 2018 6 1)
+                                                      (jt/local-date 2018 8 1)]))]
+        (is (= (count aggResult) 3))
+
+        ))
+    )
   )
-      
 
 
 

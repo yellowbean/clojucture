@@ -86,8 +86,6 @@
                }
         {ppy-curve :prepayment-curve def-curve :default-curve} (a/gen-assump-curve ods assp)
         ]
-    ;(println "ODS SIZE: " (count ods))
-    ;(println "PPY-curve: " (count ppy-curve))
     (is (= (count ods) (inc (count ppy-curve))))
     (is (= (count ods) (inc (count def-curve))))
     )
@@ -119,7 +117,7 @@
 
 
     
-  
+
 
  (deftest tApplyCurve
    (let [ curves (assump/setup-curve :Libor1M
@@ -162,8 +160,32 @@
      (is (< (- (first (.column aCPR 1)) 0.004849) 0.001))
      (is (< (- (first (.column aCDR 1)) 0.004849) 0.001)))))
 
-    
-  
+
+(deftest tBuild
+  (let [
+        b1 (assump/build  {:p {:name :prepayment :type :cpr
+                           :dates  [(jt/local-date 2018 1 1) (jt/local-date 2019 1 1) ]
+                           :values [0.5] }
+                          :d {:name :default :type :cdr
+                           :dates  [(jt/local-date 2018 1 1) (jt/local-date 2019 1 1) ]
+                           :values [0.5] }})
+        ]
+    (println b1)
+    )
+  (comment
+    (let [
+          b2 (assump/build {:prepayment
+                            [[(jt/local-date 2018 1 1) 0.3] [(jt/local-date 2019 1 1) 0.5]]})
+          ]
+      )
+
+    (let [
+          b3 (assump/build {:prepayment
+                            [[(jt/local-date 2018 1 1) 0.3] [(jt/local-date 2019 1 1) 0.5]]})
+          ]
+      )
+    )
+  )
 
 
 (deftest tApplyPoolAssump
@@ -183,7 +205,6 @@
     (is (< (Math/abs (- dr-1 (.get projected-pool-assump  0 2))) 0.0001 ))
     (is (< (Math/abs (- dr-2 (.get projected-pool-assump  1 2))) 0.00001 ))
     (is (= (.rowCount projected-pool-assump) 4))
-    ;(println  (.apply aCDR od)))
 
   ))
   

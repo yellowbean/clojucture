@@ -56,8 +56,9 @@
 
 
 (deftest gen-column-test
-  (let [ dat-col (u/gen-column [:date-col (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 1) 4)])
-         dou-col (u/gen-column [:double-col (double-array [1 2 3 4])])]
+  (let [ dat-c (u/gen-dates (jt/local-date 2018 1 1) (jt/months 1) 4)
+         dat-col (u/gen-column {:name :date-col :type :date :values dat-c })
+         dou-col (u/gen-column {:name :double-col :type :double :values [1 2 3 4]})]
          ;str-col (u/gen-column [:string-col (into-array String ["HEE" "LOO" "WWW" "WORD"])])
         
     (is (= (.size dat-col) 4))

@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 
 public class Cashflow extends Table {
 
-    public Cashflow(Table t){
+    public Cashflow(Table t) {
         super(t.name());
-        for(int i = 0; i<t.columnCount();i++){
+        for (int i = 0; i < t.columnCount(); i++) {
             this.addColumns(t.column(i));
         }
 
@@ -31,44 +31,49 @@ public class Cashflow extends Table {
         this.sortAscendingOn("dates");
     }
 
-    public Cashflow(String name){
+    public Cashflow(String name) {
         super(name);
     }
 
-    public Cashflow(String name, LocalDate[] d){
+    public Cashflow(String name, LocalDate[] d) {
         super(name);
         DateColumn dts = DateColumn.create("DATES", d);
         this.addColumns(dts);
     }
 
-    public LocalDate startDate(){
-       return (LocalDate)this.column("dates").get(0);
+    public LocalDate getStartDate() {
+        return (LocalDate) this.column("dates").get(0);
     }
 
-    public LocalDate lastDate(){
-       DateColumn dc =  (DateColumn)this.column("dates");
-       return (LocalDate)dc.get(this.rowCount()-1);
+    public LocalDate getLastDate() {
+        DateColumn dc = (DateColumn) this.column("dates");
+        return dc.get(dc.size() - 1);
     }
 
-    public List<Table> aggregateByInterval(String name, LocalDate[] d){
+    public List<Table> aggregateByInterval(String name, LocalDate[] d) {
+
+        if (d[0].isBefore(this.getStartDate()) || d[d.length - 1].isBefore(this.getLastDate()))
+            throw new IllegalArgumentException("Invalid dates to aggregate for current cashflow"+"starting d[0]"+d[0].toString()+"thisStartDate"+this.getStartDate().toString()+"d[-1]"+d[d.length-1].toString());
+
 
         Cashflow AggregatedCashflow = new Cashflow(name);
 
-        LocalDate[] dx = ArrayUtils.insert(0, d, this.startDate());
-        LocalDate[] dxx = ArrayUtils.insert(dx.length , dx, this.lastDate());
+        LocalDate[] dx = ArrayUtils.insert(0, d, this.getStartDate());
+        System.out.println(this.getLastDate());
+        LocalDate[] dxx = ArrayUtils.insert(dx.length, dx, this.getLastDate());
 
-        LocalDate[] startDates = Arrays.copyOfRange(dxx, 0, dxx.length-1);
+        LocalDate[] startDates = Arrays.copyOfRange(dxx, 0, dxx.length - 1);
         LocalDate[] endDates = Arrays.copyOfRange(dxx, 1, dxx.length);
 
         DateColumn startDate = DateColumn.create("Start Date", startDates);
         DateColumn endDate = DateColumn.create("End Date", endDates);
 
-        AggregatedCashflow.addColumns(startDate,endDate);
+        AggregatedCashflow.addColumns(startDate, endDate);
 
 
-        DateColumn dc = (DateColumn)this.column("dates");
+        DateColumn dc = (DateColumn) this.column("dates");
 
-        Integer dates_flag = -1;
+        Integer dates_flag = 0;
         LocalDate[] cfDates = dc.asObjectArray();
         Integer group_id[] = new Integer[cfDates.length];
         Arrays.fill(group_id, null);
@@ -77,18 +82,18 @@ public class Cashflow extends Table {
         LocalDate ed;
 
         //filling group id to split the cashflow table by intervals
-        for(int i = 0;i<startDates.length;i++){
+        for (int i = 0; i < startDates.length; i++) {
             sd = startDates[i];
             ed = endDates[i];
-            do{
-                dates_flag++;
-                group_id[dates_flag] = i;
-            }while(  (cfDates[dates_flag].isBefore(ed) || cfDates[dates_flag].isEqual(ed))
+            while ((cfDates[dates_flag].isBefore(ed) || cfDates[dates_flag].isEqual(ed))
                     && (cfDates[dates_flag].isAfter(sd) || cfDates[dates_flag].isEqual(sd))
-                    && (dates_flag<(cfDates.length-1)) );
+                    && (dates_flag < group_id.length-1)) {
+                group_id[dates_flag] = i;
+                dates_flag++;
+            }
         }
 
-        IntColumn grp_index = IntColumn.create("Group Index", ArrayUtils.toPrimitive(group_id,-1));
+        IntColumn grp_index = IntColumn.create("Group Index", ArrayUtils.toPrimitive(group_id, -1));
 
         this.addColumns(grp_index);
 
@@ -98,11 +103,11 @@ public class Cashflow extends Table {
     }
 
 
-    public Cashflow add( Cashflow cf){
+    public Cashflow add(Cashflow cf) {
         Table combined_cf = this.append(cf);
-        final List<String> agg_exl_field = Arrays.asList("dates","balance");
-        List<String> all_column_names = this.columnNames().stream().filter( e -> !agg_exl_field.contains(e)).collect(Collectors.toList());
-        Summarizer smr = combined_cf.summarize( all_column_names , AggregateFunctions.sum);
+        final List<String> agg_exl_field = Arrays.asList("dates", "balance");
+        List<String> all_column_names = this.columnNames().stream().filter(e -> !agg_exl_field.contains(e)).collect(Collectors.toList());
+        Summarizer smr = combined_cf.summarize(all_column_names, AggregateFunctions.sum);
 
         Table agg_cf = smr.by("dates");
 
@@ -111,12 +116,12 @@ public class Cashflow extends Table {
         agg_cf.column("Sum [prepayment]").setName("prepayment");
         agg_cf.column("Sum [interest]").setName("interest");
 
-        Double init_balance = (Double)this.column("balance").get(0) + (Double)cf.column("balance").get(0);
+        Double init_balance = (Double) this.column("balance").get(0) + (Double) cf.column("balance").get(0);
         Double[] bal_array = new Double[agg_cf.rowCount()];
         bal_array[0] = init_balance;
 
-        for(int i = 1 ;i<agg_cf.rowCount();i++){
-            bal_array[i] = bal_array[i-1] - (Double)agg_cf.column("principal").get(i) - (Double)agg_cf.column("default").get(i) - (Double)agg_cf.column("prepayment").get(i);
+        for (int i = 1; i < agg_cf.rowCount(); i++) {
+            bal_array[i] = bal_array[i - 1] - (Double) agg_cf.column("principal").get(i) - (Double) agg_cf.column("default").get(i) - (Double) agg_cf.column("prepayment").get(i);
         }
         DoubleColumn bal_col = DoubleColumn.create("balance", bal_array);
 
@@ -124,24 +129,24 @@ public class Cashflow extends Table {
 
     }
 
-    public void trim_sum( String[] exclude_column_names ){
+    public void trim_sum(String[] exclude_column_names) {
         String p = ".*\\[(\\S+)\\].*";
         Pattern pp = Pattern.compile(p);
 
-        for(int i = 0;i<this.columnCount();i++){
+        for (int i = 0; i < this.columnCount(); i++) {
             String c_name = this.column(i).name();
 
             if (Arrays.stream(exclude_column_names).anyMatch(c_name::equals))
                 continue;
             Matcher m = pp.matcher(c_name);
-            if (m.find()){
+            if (m.find()) {
                 this.column(i).setName(m.group(1));
             }
         }
     }
 
-    public Cashflow insertDates( LocalDate [] d){
-        Cashflow dcf =  new Cashflow("dates cashflow", d);
+    public Cashflow insertDates(LocalDate[] d) {
+        Cashflow dcf = new Cashflow("dates cashflow", d);
 
         DataFrameJoiner dfj = new DataFrameJoiner(this, "DATES");
 

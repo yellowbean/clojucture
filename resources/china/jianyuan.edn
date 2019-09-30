@@ -1,5 +1,6 @@
 {
               :info {:name "jianyuan"
+                     :flavor "china"
                      }
               :日期       {:初始起算日 "2017-11-14"
                          :支付日   "2018-02-26M"

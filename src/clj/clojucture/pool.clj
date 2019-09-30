@@ -12,7 +12,7 @@
 
 
 (defprotocol pPool
-  (project-cashflow [x assump])
+  (project-cashflow [ x ][ x assump])
   (collect-cashflow [x assump interval]))
 
 
@@ -23,19 +23,25 @@
 (defrecord pool
   [assets ^LocalDate cutoff-date]
   pPool
-  (project-cashflow [x assump]
+  (project-cashflow [ x ]
+    (let [ assump {:settle-date (jt/local-date 2000 1 1)}]
+      (project-cashflow x assump)
+      )
+    )
+
+  (project-cashflow [ x assump ]
     (let [total-balance (reduce + (map #(.current-balance %) assets))
           asset-cashflow (map #(.project-cashflow % assump) assets)
           cfs (reduce u/combine-cashflow asset-cashflow)
           prin-ary (-> (.column ^Table cfs "principal") (.asDoubleArray))
           balance-ary (u/gen-balance ^"[D" prin-ary ^Double total-balance)
-          balance-col (DoubleColumn/create "balance" ^"[D" balance-ary)]
-
+          balance-col (DoubleColumn/create "balance" ^"[D" balance-ary) ]
       (do
         (.removeColumns ^Table cfs ^"[Ljava.lang.String;" (into-array String ["balance"]))
         (.addColumns ^Table cfs (into-array DoubleColumn [balance-col])))))
 
   (collect-cashflow [ x assump collect-intervals ]
+    (println (project-cashflow x assump))
     (-> (project-cashflow x assump)
         (.aggregateByInterval "AggPoolCashflow" (u/dates collect-intervals) )
         ))
