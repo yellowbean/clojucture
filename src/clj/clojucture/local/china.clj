@@ -1,4 +1,4 @@
-(ns clojucture.local.china.local_cn
+(ns clojucture.local.china
   (:require
     [clojucture.asset :as asset]
     [clojucture.account :as acc]
