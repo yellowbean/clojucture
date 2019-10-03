@@ -2,51 +2,25 @@
 
 :warning: Pre-alpha - not yet usable! :warning: 
 
-### What & why is clojucture ?
+### Clojucture
+a library that provides buidling blocks for:
+* modelling structure products (CLO/MBS/ABS).
+* structuring deals, cashflow projection and investment analysis
+* monitoring and ongoing operation support (accounting, issuance reports etc)
 
-a clojure library for modelling structure products (CLO/MBS/ABS).
-it can be used for structuring deals, cashflow projection and investment analysis
-
-The reason behind choosing clojure as modelling language is that :
-1. it is simply enough for tech/non-tech background language.
-2. Powerful macro language for modelling complex structure of ABS/MBS products.
 
 ### Overview
-investor side of structured products or structuring an CLO/MBS/ABS deal.
-#### Structuring & Issuance
-#### Modelling & Analysis
-#### Accounting & Surveillance/Reporting 
-
-### clojucture features
+### Clojucture features
 * Json as input/output, language independent ,flexible
 * Provides low level functions to build up country specific deal dentures
 * High performance with multi-thread and interpolate with JVM world
 * Heavily using `core.match` to manage complexity of structured finance world
-
-#### Coverage
-
-##### Deal Type
-Deal Type | Support ? 
- ---|---
-China Interbank deal | yes |
- .... | WIP |
-
-##### Asset Type
-Asset Type | Support?  | Stress Support ? 
-------|----|-----
- Loan  | yes   | WIP |
- Mortgage   |  yes  | WIP |
- Installments |  yes |WIP |
- Commercial Paper |  yes |WIP |
- Leasing | yes | WIP |
-
-
-##### Bond Type
-Bond Type | Support?
-------|----
- Bond with schedule amortization  | yes   |
- Pass through Bond   |  yes  |
-
+* Shipped with a REST server for centerilized operation
+* Visualized waterfall presentation with [graphviz](https://www.graphviz.org/)
+### Building blocks for structure finance world
+* Structuring
+* Investment analysis
+* Issuance solution
 
 Development Internal
 ----
