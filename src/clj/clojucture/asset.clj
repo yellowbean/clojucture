@@ -76,11 +76,11 @@
         (if (or (empty? payment-dates) (< last-bal 0.01))
             (u/gen-cashflow "cashflow"
                             [{:name :dates :type :date :values paid-dates}
-                             {:name :balance :type :double :values bal-list}
-                             {:name :principal :type :double :values prin-list}
-                             {:name :interest :type :double :values int-list}
-                             {:name :prepayment :type :double :values ppy-bal-list}
-                             {:name :default :type :double :values def-bal-list}])
+                             {:name :balance :type :balance :values bal-list}
+                             {:name :principal :type :cash :values prin-list}
+                             {:name :interest :type :cash :values int-list}
+                             {:name :prepayment :type :cash :values ppy-bal-list}
+                             {:name :default :type :cash :values def-bal-list}])
           (let [
                 f-bal last-bal                       ; beginning balance
                 int-amount (* f-bal period-rate)            ; current interest amount
