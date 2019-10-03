@@ -5,13 +5,14 @@ import org.apache.commons.lang3.ArrayUtils;
 import tech.tablesaw.aggregate.AggregateFunctions;
 import tech.tablesaw.aggregate.Summarizer;
 import tech.tablesaw.api.*;
+import tech.tablesaw.columns.AbstractColumn;
+import tech.tablesaw.columns.Column;
 import tech.tablesaw.joining.DataFrameJoiner;
 import tech.tablesaw.table.TableSliceGroup;
 
+import java.security.InvalidParameterException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -23,12 +24,6 @@ public class Cashflow extends Table {
         for (int i = 0; i < t.columnCount(); i++) {
             this.addColumns(t.column(i));
         }
-
-        String[] c2t = new String[]{"dates"};
-
-        this.setName("CF");
-        this.trim_sum(c2t);
-        this.sortAscendingOn("dates");
     }
 
     public Cashflow(String name) {
@@ -37,9 +32,10 @@ public class Cashflow extends Table {
 
     public Cashflow(String name, LocalDate[] d) {
         super(name);
-        DateColumn dts = DateColumn.create("DATES", d);
+        DateColumn dts = DateColumn.create("dates", d);
         this.addColumns(dts);
     }
+
 
     public LocalDate getStartDate() {
         return (LocalDate) this.column("dates").get(0);
@@ -50,26 +46,41 @@ public class Cashflow extends Table {
         return dc.get(dc.size() - 1);
     }
 
-    public List<Table> aggregateByInterval(String name, LocalDate[] d) {
+    //public List<Table> aggregateByInterval(String name, LocalDate[] d, ){
+    //}
 
-        if (d[0].isBefore(this.getStartDate()) || d[d.length - 1].isBefore(this.getLastDate()))
-            throw new IllegalArgumentException("Invalid dates to aggregate for current cashflow"+"starting d[0]"+d[0].toString()+"thisStartDate"+this.getStartDate().toString()+"d[-1]"+d[d.length-1].toString());
+    public Cashflow groupByInterval(String name, LocalDate[] d) {
 
 
+        Cashflow new_table = new Cashflow(this);
         Cashflow AggregatedCashflow = new Cashflow(name);
 
-        LocalDate[] dx = ArrayUtils.insert(0, d, this.getStartDate());
-        System.out.println(this.getLastDate());
-        LocalDate[] dxx = ArrayUtils.insert(dx.length, dx, this.getLastDate());
+        LocalDate cf_first_date = this.getStartDate();
+        LocalDate cf_last_date = this.getLastDate();
 
-        LocalDate[] startDates = Arrays.copyOfRange(dxx, 0, dxx.length - 1);
-        LocalDate[] endDates = Arrays.copyOfRange(dxx, 1, dxx.length);
+        if (cf_first_date.isAfter(d[0])||cf_last_date.isBefore(d[d.length-1]))
+            throw new InvalidParameterException("Seperate Dates should fall within date range of Cashflow");
 
-        DateColumn startDate = DateColumn.create("Start Date", startDates);
-        DateColumn endDate = DateColumn.create("End Date", endDates);
+        ArrayList<LocalDate> dl = new ArrayList<LocalDate>(Arrays.asList(d));
 
-        AggregatedCashflow.addColumns(startDate, endDate);
+        dl.add(cf_first_date);
+        dl.add(cf_last_date);
+        Collections.sort(dl);
 
+        LocalDate[] dxx = dl.toArray(new LocalDate[dl.size()]);
+
+        //generate intervals : start dates
+        //LocalDate[] startDates = Arrays.copyOfRange(dxx, 0, dxx.length - 1);
+
+        //generate intervals : end dates
+        //LocalDate[] endDates = Arrays.copyOfRange(dxx, 1, dxx.length);
+        //List<LocalDate> adj_endDates = Arrays.asList(endDates).stream().map(x -> x.minusDays(1)).collect(Collectors.toList());
+        //LocalDate[] adj_endDates_array = adj_endDates.toArray(new LocalDate[adj_endDates.size()]);
+
+        //DateColumn startDate = DateColumn.create("Start Date", startDates);
+        //DateColumn endDate = DateColumn.create("End Date", adj_endDates_array);
+
+        //AggregatedCashflow.addColumns(startDate, endDate);
 
         DateColumn dc = (DateColumn) this.column("dates");
 
@@ -82,27 +93,46 @@ public class Cashflow extends Table {
         LocalDate ed;
 
         //filling group id to split the cashflow table by intervals
-        for (int i = 0; i < startDates.length; i++) {
-            sd = startDates[i];
-            ed = endDates[i];
-            while ((cfDates[dates_flag].isBefore(ed) || cfDates[dates_flag].isEqual(ed))
-                    && (cfDates[dates_flag].isAfter(sd) || cfDates[dates_flag].isEqual(sd))
-                    && (dates_flag < group_id.length-1)) {
+        for (int i = 0; i < dxx.length-1; i++) {
+            sd = dxx[i];
+            ed = dxx[i+1];
+            do{
                 group_id[dates_flag] = i;
                 dates_flag++;
-            }
+
+                if (dates_flag == group_id.length-1)
+                    group_id[dates_flag] = i;
+
+            } while (  (dates_flag<group_id.length) && (cfDates[dates_flag].isBefore(ed))&& cfDates[dates_flag].isAfter(sd) ) ;
         }
 
-        IntColumn grp_index = IntColumn.create("Group Index", ArrayUtils.toPrimitive(group_id, -1));
+        IntColumn grp_index = IntColumn.create("Group Index", ArrayUtils.toPrimitive(group_id, -99));
+        new_table.addColumns(grp_index);
+        return new_table;
+    }
 
-        this.addColumns(grp_index);
-
+    public List<Table>splitByGroup() {
         TableSliceGroup tsg = this.splitOn("Group Index");
-
         return tsg.asTableList();
     }
 
 
+    protected List<String> getCashColumnNames(){
+        List<String> r = this.columns()
+                    .stream()
+                    .filter(p -> p instanceof CashColumn)
+                    .map(p -> p.name())
+                    .collect(Collectors.toList());
+        return r;
+    }
+
+    public Table aggByGroup(){
+       List<String> col_to_agg = this.getCashColumnNames();
+       Summarizer smr = new Summarizer(this, col_to_agg,AggregateFunctions.sum);
+       return smr.by("Group Index");
+    }
+
+    /*
     public Cashflow add(Cashflow cf) {
         Table combined_cf = this.append(cf);
         final List<String> agg_exl_field = Arrays.asList("dates", "balance");
@@ -127,7 +157,7 @@ public class Cashflow extends Table {
 
         return new Cashflow(agg_cf.addColumns(bal_col));
 
-    }
+    }*/
 
     public void trim_sum(String[] exclude_column_names) {
         String p = ".*\\[(\\S+)\\].*";
@@ -145,12 +175,5 @@ public class Cashflow extends Table {
         }
     }
 
-    public Cashflow insertDates(LocalDate[] d) {
-        Cashflow dcf = new Cashflow("dates cashflow", d);
-
-        DataFrameJoiner dfj = new DataFrameJoiner(this, "DATES");
-
-        return new Cashflow(dfj.fullOuter(dcf));
-    }
 
 }

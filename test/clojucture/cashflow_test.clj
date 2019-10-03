@@ -7,7 +7,7 @@
     [tech.tablesaw.api DoubleColumn DateColumn]
     [tech.tablesaw.columns AbstractColumn]
     [clojucture Cashflow]
-    )
+    (java.security InvalidParameterException))
   )
 
 (defn sample-cf [dummy]
@@ -26,24 +26,71 @@
     (doto (Cashflow. "sample1")
       (.addColumns column-array))))
 
-(comment
-  (deftest tAggCashflow
-    (let [aggResult (.aggregateByInterval (sample-cf nil) "N"
-                                          (u/dates [;(jt/local-date 2018 1 1)
-                                                    (jt/local-date 2018 6 1)]))]
-      (is (= (count aggResult) 2))
 
+(deftest tGrpCf
 
+  (let [groupResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1) (jt/local-date 2018 8 1)]))
+        grp-idx-list (-> (.column groupResult "Group Index") (.asList) (seq))]
 
-      (let [aggResult (.aggregateByInterval (sample-cf nil) "N"
-                                            (u/dates [;(jt/local-date 2018 1 1)
-                                                      (jt/local-date 2018 6 1)
-                                                      (jt/local-date 2018 8 1)]))]
-        (is (= (count aggResult) 3))
-
-        ))
+    ;(println groupResult)
+    (is (= 0 (first grp-idx-list)))
+    (is (= 1 (nth grp-idx-list 5)))
+    (is (= 1 (nth grp-idx-list 6)))
+    (is (= 2 (nth grp-idx-list 7)))
+    (is (= 2 (nth grp-idx-list 8)))
+    (is (= 2 (last grp-idx-list)))
     )
+
+  (let [groupResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)]))
+        grp-idx-list (-> (.column groupResult "Group Index") (.asList) (seq))]
+
+    ;(println groupResult)
+    (is (= 0 (first grp-idx-list)))
+    (is (= 0 (nth grp-idx-list 4)))
+    (is (= 1 (nth grp-idx-list 5)))
+    (is (= 1 (nth grp-idx-list 7)))
+    (is (= 1 (last grp-idx-list)))
+    )
+
+  (let []
+    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2017 9 1)]))))
+    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2017 9 1) (jt/local-date 2018 6 1)]))))
+    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2019 9 1)]))))
+    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 9 1) (jt/local-date 2019 9 1)]))))
+    )
+
   )
 
+(comment
+
+  (deftest tAggCashflow
+    (let [aggResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)]))
+
+          cf-groups (.splitByGroup aggResult)
+          ]
+
+      (is (= (count cf-groups) 2))
+      )
+
+    (let [aggResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)
+                                                                    (jt/local-date 2018 8 1)]))
+          cf-groups (.splitByGroup aggResult)]
+      (is (= (count cf-groups) 3))
+      )
+    (let [aggResult (.groupByInterval (sample-cf nil) "N"
+                                      (u/dates [(jt/local-date 2018 6 1)
+                                                (jt/local-date 2018 8 1)]))
+          cf-groups (.splitByGroup aggResult)
+          aggResult2 (.aggByGroup aggResult)
+          ]
+
+      (is (= (count cf-groups) 3))
+
+
+      (println aggResult2)
+      )
+
+    )
+  )
 
 
