@@ -1,4 +1,4 @@
-(ns clojucture.local.china.local_cn_test
+(ns clojucture.local.china-test
   (:require [clojure.test :refer :all]
             [java-time :as jt]
             [clojucture.local.china.local_cn :as cn]
