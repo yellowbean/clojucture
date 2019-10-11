@@ -12,7 +12,7 @@
 
     [java-time :as jt]
 
-    [clojucture.local.china.local_cn :as cn]
+    [clojucture.local.china :as cn]
     [clojucture.spv :as spv]
     [clojucture.reader.base :as base]
     [clojucture.assumption :as assump]

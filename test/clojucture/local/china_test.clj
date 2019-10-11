@@ -1,7 +1,7 @@
 (ns clojucture.local.china-test
   (:require [clojure.test :refer :all]
             [java-time :as jt]
-            [clojucture.local.china.local_cn :as cn]
+            [clojucture.local.china :as cn]
             [clojucture.spv :as spv]
             [clojucture.assumption :as assump]
             [medley.core :as mc]
@@ -240,15 +240,8 @@
         pool-cf (cn/run-pool pool assmp calc-intervals)
 
         ]
+    (prn pool-cf)
 
-    (->
-      (first (:assets pool))
-      (.project-cashflow assmp)
-      (cfu/agg-cashflow-by-interval [ (jt/local-date 2017 5 25 )
-                                                 (jt/local-date 2019 5 25 )
-                                                 (jt/local-date 2039 5 25 )])
-      (prn)
-      )
     ;(prn (seq pool-cf))
     ;(prn (.columnNames pool-cf))
 

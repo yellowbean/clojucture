@@ -2,24 +2,27 @@
   (:require [clojure.test :refer :all]
             [clojucture.asset :as asset]
             [java-time :as jt]
-            [clojucture.util :as u])
+            [clojucture.util :as u]
+            [clojucture.util-cashflow :as uc])
   (:import
     [tech.tablesaw.api DoubleColumn DateColumn]
     [tech.tablesaw.columns AbstractColumn]
     [clojucture Cashflow]
-    (java.security InvalidParameterException))
+    (java.security InvalidParameterException)
+    (clojucture CashColumn BalanceColumn)
+    )
   )
 
 (defn sample-cf [dummy]
   (let [df (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 1) 12)
-        balf (double-array (range 2200 -1 -200))
-        bf (double-array 12 200)
-        if (double-array [0 10 20 30 40 50 60 70 80 90 100 110])
+        balf (vec (range 2200.0 -1 -200.0))
+        bf (repeat 12 200.0)
+        if [0.0 10.0 20.0 30.0 40.0 50.0 60.0 70.0 80.0 90.0 100.0 110.0]
 
         df-col (DateColumn/create "dates" df)
-        balf-col (DoubleColumn/create "balance" balf)
-        bf-col (DoubleColumn/create "principal" bf)
-        if-col (DoubleColumn/create "interest" if)
+        balf-col (u/gen-column {:name :balance :type :balance :values balf})
+        bf-col (u/gen-column {:name :principal :type :cash :values bf})
+        if-col (u/gen-column {:name :interest :type :cash :values if})
 
         column-array (into-array AbstractColumn [df-col balf-col bf-col if-col])
         ]
@@ -28,49 +31,27 @@
 
 
 (deftest tGrpCf
+  (let [groupResult (uc/agg-cashflow-by-interval (sample-cf nil) [(jt/local-date 2018 6 1) (jt/local-date 2018 8 1)]) ]
 
-  (let [groupResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1) (jt/local-date 2018 8 1)]))
-        grp-idx-list (-> (.column groupResult "Group Index") (.asList) (seq))]
-
-    ;(println groupResult)
-    (is (= 0 (first grp-idx-list)))
-    (is (= 1 (nth grp-idx-list 5)))
-    (is (= 1 (nth grp-idx-list 6)))
-    (is (= 2 (nth grp-idx-list 7)))
-    (is (= 2 (nth grp-idx-list 8)))
-    (is (= 2 (last grp-idx-list)))
+    (println groupResult)
     )
 
-  (let [groupResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)]))
-        grp-idx-list (-> (.column groupResult "Group Index") (.asList) (seq))]
 
-    ;(println groupResult)
-    (is (= 0 (first grp-idx-list)))
-    (is (= 0 (nth grp-idx-list 4)))
-    (is (= 1 (nth grp-idx-list 5)))
-    (is (= 1 (nth grp-idx-list 7)))
-    (is (= 1 (last grp-idx-list)))
-    )
 
-  (let []
-    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2017 9 1)]))))
-    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2017 9 1) (jt/local-date 2018 6 1)]))))
-    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2019 9 1)]))))
-    (is (thrown? InvalidParameterException (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 9 1) (jt/local-date 2019 9 1)]))))
-    )
 
   )
 
 (comment
-
-  (deftest tAggCashflow
-    (let [aggResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)]))
-
-          cf-groups (.splitByGroup aggResult)
-          ]
-
-      (is (= (count cf-groups) 2))
-      )
+(deftest tAggCashflow
+  (let [ grpCf (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)]) )
+        aggResult (.aggByGroup (sample-cf nil) (u/dates [(jt/local-date 2018 6 1)])) ]
+    ;(println grpCf)
+    ;(println aggResult)
+    (is (= 2 (.rowCount aggResult)))
+    (is (= 1000.0 (-> (.column aggResult "Sum [principal]") (.get 0))))
+    (is (= 560.0 (-> (.column aggResult "Sum [interest]") (.get 1))))
+    )
+  (comment
 
     (let [aggResult (.groupByInterval (sample-cf nil) "N" (u/dates [(jt/local-date 2018 6 1)
                                                                     (jt/local-date 2018 8 1)]))
@@ -89,8 +70,7 @@
 
       (println aggResult2)
       )
-
-    )
+    ))
   )
 
 
