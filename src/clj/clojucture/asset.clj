@@ -80,7 +80,7 @@
                              {:name :principal :type :cash :values prin-list}
                              {:name :interest :type :cash :values int-list}
                              {:name :prepayment :type :cash :values ppy-bal-list}
-                             {:name :default :type :cash :values def-bal-list}])
+                             {:name :default :type :balance :values def-bal-list}])
           (let [
                 f-bal last-bal                       ; beginning balance
                 int-amount (* f-bal period-rate)            ; current interest amount
