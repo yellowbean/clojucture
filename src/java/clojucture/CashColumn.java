@@ -9,6 +9,4 @@ public class CashColumn extends DoubleColumn{
     public CashColumn(String name, Double[] v){
         super(name, new DoubleArrayList(ArrayUtils.toPrimitive(v)));
     }
-
-
 }
