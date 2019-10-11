@@ -8,6 +8,10 @@
                  [tech.tablesaw/tablesaw-core "0.32.7"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [org.apache.commons/commons-lang3 "3.7"]
+                 ;; https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
+                 ;[org.apache.commons/commons-collections4 "4.4"]
+
+
                  [org.threeten/threeten-extra "1.4"]
                  [nrepl "0.6.0"]
                  [clojure.java-time "0.3.2"]
@@ -21,6 +25,7 @@
 
                  [ring "1.7.1"]
                  [compojure "1.6.1"]
+
                  ]
   :plugins [
             ;[lein-virgil "0.1.9"]
@@ -37,6 +42,8 @@
                        :plugins [
                                  [lein-ring "0.12.5"]
                                  [lein-shell "0.5.0"]
+                                 [lein-virgil "0.1.9"]
+                                 [jonase/eastwood "0.3.5"]
                                  ]
                        }
              }
