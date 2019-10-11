@@ -1,6 +1,7 @@
 (ns clojucture.pool
   (:require [java-time :as jt]
             [clojucture.util :as u]
+            [clojucture.util-cashflow :as uc]
             [clojucture.asset :as a]
             [clojucture.account :as acc]
             [clojure.core.match :as m])
@@ -30,20 +31,13 @@
     )
 
   (project-cashflow [ x assump ]
-    (let [total-balance (reduce + (map #(.current-balance %) assets))
-          asset-cashflow (map #(.project-cashflow % assump) assets)
-          cfs (reduce u/combine-cashflow asset-cashflow)
-          prin-ary (-> (.column ^Table cfs "principal") (.asDoubleArray))
-          balance-ary (u/gen-balance ^"[D" prin-ary ^Double total-balance)
-          balance-col (DoubleColumn/create "balance" ^"[D" balance-ary) ]
-      (do
-        (.removeColumns ^Table cfs ^"[Ljava.lang.String;" (into-array String ["balance"]))
-        (.addColumns ^Table cfs (into-array DoubleColumn [balance-col])))))
+    (let [ asset-cashflows (map #(.project-cashflow % assump) assets)
+           cfs (reduce #(.append %1 %2 ) asset-cashflows) ]
+        cfs))
 
   (collect-cashflow [ x assump collect-intervals ]
-    (println (project-cashflow x assump))
     (-> (project-cashflow x assump)
-        (.aggregateByInterval "AggPoolCashflow" (u/dates collect-intervals) )
+        (uc/agg-cashflow-by-interval collect-intervals)
         ))
   )
 
