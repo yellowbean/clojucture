@@ -61,15 +61,9 @@
            (-gen-dates sd int n)
            {:first-date sd :interval int :last-date ld}
            (-gen-dates-range sd int ld)
-
-
-
            :else :not-match-desc
            )
   )
-
-
-
 
 
 (defn add-columns [^Cashflow t c-list]
@@ -79,20 +73,16 @@
   (let [ts-name (:name desc)
         dates (gen-dates (:dates desc))
         vs (u/gen-column (:values desc))
-        init-cf (Cashflow. ts-name (-dates dates))
-        ]
+        init-cf (Cashflow. ts-name (-dates dates)) ]
     (add-columns init-cf [vs])))
 
 
 (defn gen-cashflow [desc]
   (let [dates (gen-dates (:dates desc))
-        init-cf (Cashflow. (:name desc) (-dates dates))
-        ]
+        init-cf (Cashflow. (:name desc) (-dates dates)) ]
     (m/match desc
              {:name _ :dates _ :init-bal bal :principal pal}
              nil
-
-
              {:name _ :dates _ :init-bal bal}
              (add-columns init-cf
                           [(u/gen-column

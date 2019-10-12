@@ -18,17 +18,13 @@
 
 
 
-
-
-
 (defrecord pool
   [assets ^LocalDate cutoff-date]
   pPool
   (project-cashflow [ x ]
     (let [ assump {:settle-date (jt/local-date 2000 1 1)}]
       (project-cashflow x assump)
-      )
-    )
+      ))
 
   (project-cashflow [ x assump ]
     (let [ asset-cashflows (map #(.project-cashflow % assump) assets)

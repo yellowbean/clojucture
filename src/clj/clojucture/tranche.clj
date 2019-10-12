@@ -56,11 +56,9 @@
 (defrecord equity-bond
   [ info balance stmt last-payment-date ]
   pBond
-  (cal-due-principal [ x d ]
-    0 )
+  (cal-due-principal [ x d ] 0 )
 
-  (cal-due-interest [ x d ]
-    0 )
+  (cal-due-interest [ x d ] 0 )
   pEquity
   (cal-max-interest [ x d ]
     (let [ { ul-rate :upper-limit-rate} info
@@ -80,7 +78,7 @@
     (u/-cal-due-interest balance (:int last-payment-date) d (info :day-count) rate interest-arrears))
   )
 
-
+(comment
 (defn pay-bond-yield [ d acc bond]
   (let [ max-interest (.cal-max-interest bond d)
         acc-after-paid (.try-withdraw acc d (:name bond) max-interest)
@@ -88,7 +86,7 @@
         ]
     [acc-after-paid (-pay-interest bond d interest-paid 0)]
     )
-  )
+  ))
 
 
 (defn pay-bond-interest-pr [ d acc bond-list ]
@@ -126,6 +124,8 @@
       (-amortize bond d amortized-principal principal-loss) ]
     )
   )
+
+
 
 
 (defn setup-bond [ m ]

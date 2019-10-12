@@ -8,7 +8,7 @@
     [medley.core :as ml]
     ;[clojucture.util-cashflow :as cfu]
     )
-    
+
   (:import [java.util Arrays]
            [java.time LocalDate]
            [java.time.temporal ChronoUnit]
@@ -21,10 +21,10 @@
            [tech.tablesaw.columns.booleans BooleanColumnType]
            [tech.tablesaw.aggregate AggregateFunction AggregateFunctions]
            [org.threeten.extra Temporals]
-           [clojucture Cashflow DoubleFlow]))
-           
+           [clojucture Cashflow DoubleFlow CashColumn BalanceColumn RateColumn]))
 
-  
+
+
 
 (defn previous-n-workday [x n]
   (loop [d x i n]
@@ -46,15 +46,15 @@
     :next-month-first-day (-> (jt/plus x (jt/months 1)) (jt/adjust :first-in-month))
     :previous-workday ((.with x (Temporals/previousWorkingDay)))
     :nil))
-    
-  
+
+
 
 (defn gen-dates
   ([start step n]
    (take n (jt/iterate jt/plus start step)))
   ([start step]
    (jt/iterate jt/plus start step)))
-  
+
 
 (defn gen-dates-ary
   [start step n]
@@ -66,8 +66,8 @@
   [^LocalDate start-date step ^LocalDate end-date]
   (let [all-months (gen-dates-range start-date step end-date)]
     (map #(jt/adjust % :last-day-of-month) all-months)))
-    
-  
+
+
 
 
 (defn gen-dates-range
@@ -82,19 +82,19 @@
        regular-dates)
      (let [regular-dates (gen-dates-range start-date step end-date)]
        regular-dates))))
-    
-  
+
+
 
 
 (defn gen-dates-range-ary
   ([start step end]
    (into-array java.time.LocalDate (gen-dates-range start step end))))
-  
+
 
 (defn gen-dates-interval [dates]
   (let [interval-pairs (partition 2 1 dates)]
     (map #(list (first %) (jt/plus (second %) (jt/days -1))) interval-pairs)))
-  
+
 
 (defn cal-period-rate
   [^java.time.LocalDate s ^java.time.LocalDate e ^Double year-rate day-count]
@@ -112,7 +112,7 @@
       (* bt-days r-360)
       :ACT_365
       (* bt-days r-365))))
-    
+
 
 
 (defn get-period-rate [^java.time.Period per ^Double year-rate day-count]
@@ -120,8 +120,8 @@
         ds (.getDays per)
         ms (.getMonths per)
         ys (.getYears per)]
-        ;nd (jt/local-date ys ms ds)
-        
+    ;nd (jt/local-date ys ms ds)
+
     (case day-count
       :30_360
       (+
@@ -143,9 +143,9 @@
         (* ys year-rate)
         (* ms (/ year-rate 12))
         (* ds (/ year-rate 365))))))
-      
-    
-  
+
+
+
 
 
 
@@ -189,8 +189,8 @@
     (/ (jt/time-between ^LocalDate d1 ^LocalDate d2 :days) 360)
     :ACT_365
     (/ (jt/time-between ^LocalDate d1 ^LocalDate d2 :days) 365)))
-    
-  
+
+
 
 (defn gen-coupon-factor
   [^Double annual-rate ^"[Ljava.time.LocalDate;" ary-dates day-count]
@@ -203,7 +203,7 @@
                              day-count)
                            annual-rate)]
         (aset-double ary-coupon-factor (inc i) rate-factor)))
-        
+
     ary-coupon-factor))
 
 (defn gen-vector-coupon-factor
@@ -217,9 +217,9 @@
                              day-count)
                            (aget ary-rate i))]
         (aset-double ary-coupon-factor (inc i) rate-factor)))
-        
+
     ary-coupon-factor))
-  
+
 
 
 
@@ -241,7 +241,7 @@
     (-
       date-size
       (count (drop-while #(jt/after? d %) ary-dates)))))
-    
+
 
 (defn find-first
   [f coll]
@@ -255,12 +255,12 @@
 (defn find-first-by-func [d comp-f test-vec]
   (let [com-fun (partial (complement comp-f) d)]
     (find-first com-fun test-vec)))
-    
+
 
 (defn find-first-before-by-func [d comp-f test-vec]
   (let [com-fun (partial comp-f d)]
     (find-last com-fun test-vec)))
-    
+
 
 
 
@@ -268,15 +268,15 @@
   (case cmp
     :after (find-first-by-func d jt/after? date-vector)
     :before (find-first-before-by-func d jt/after? date-vector)))
-    
-  
+
+
 
 (defn find-first-in-vec [d data-vector field comp-f cmp]
   (let [f (fn [x] ((partial comp-f d) (field x)))]
     (case cmp
       :after (first (filter f data-vector))
       :before (last (filter (complement f) data-vector)))))
-      
+
 
 
 
@@ -289,11 +289,11 @@
                   ary-dates-size)
         indexes-interval (partition 2 1 indexes)
         rng-vals (map vector indexes-interval curve-to-use)]
-        
+
     (doseq [[[s-index end-index] [d r]] rng-vals]
       (Arrays/fill ary-period-rates ^Integer s-index ^Integer end-index ^Double r))
     ary-period-rates))
-    
+
 
 ;get-period-rate
 (defn gen-vector-accrued-interest
@@ -321,27 +321,13 @@
         ary-int-due (double-array ary-accrued-size 0)]
     (if (not= (mod (dec ary-accrued-size) pay-freq) 0)
       (throw (Exception. "Total terms is not a multiplier of Interest Pay Frequency is not ")))
-      
+
     (doseq [[s e] sum-intervals]
       (aset-double ary-int-due
                    (dec e)
                    (reduce + (ArrayUtils/subarray ary-accrued ^Integer s ^Integer e))))
     ary-int-due))
 
-
-(comment
-  (defn gen-column [[k v]]
-    "Create a table column with given column name and value vector"
-    (try
-      (case (str (.getComponentType (.getClass v)))
-        "double" (DoubleColumn/create (name k) v)
-        "string" (StringColumn/create (name k) ^"[Ljava.lang.String;" v)
-        "boolean" (BooleanColumn/create (name k) ^booleans v)
-        "class java.time.LocalDate" (DateColumn/create (name k) ^"[Ljava.time.LocalDate;" v))
-
-      (catch Exception e
-        (println "Exception:" e))))
-  )
 
 
 (defn new-empty-column
@@ -356,8 +342,8 @@
      BooleanColumnType (BooleanColumn/create ^String n)
      StringColumnType (StringColumn/create ^String n)
      DateColumnType (DateColumn/create ^String n))))
-     
-  
+
+
 
 (defn init-column [t n]
   (let [cn (name n)]
@@ -366,21 +352,21 @@
       :boolean (BooleanColumn/create cn)
       :string (StringColumn/create cn)
       :date (DateColumn/create cn))))
-      
-  
+
+
 
 (defn init-table [n col]
   (let [tb (Table/create n)
         cols (map #(init-column (first %) (second %)) col)
         col-array (into-array AbstractColumn cols)]
-        
+
     (.addColumns ^Table tb ^"[Ltech.tablesaw.columns.AbstractColumn;" col-array)))
 
 (declare dates)
 (defn gen-dflow
   "generate a time series flow with dates and values in pair"
   [name ds vs]
-  (DoubleFlow. name (dates ds) (double-array vs)) )
+  (DoubleFlow. name (dates ds) (double-array vs)))
 
 (declare gen-column)
 (defn gen-cashflow
@@ -389,49 +375,56 @@
   (let [t (Cashflow. name)
         column-list (map #(gen-column %) columns)
         flow_array (into-array AbstractColumn column-list)]
-   (.addColumns ^Cashflow t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array)))
+    (.addColumns ^Cashflow t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array)))
 
 
 (defn trans-kv-col
   "read a key/value and return a map descrble it as a column"
-  [ k v ]
-  (let [ t (condp = (type (first v))
-    java.lang.Long :double
-    java.lang.Double :double
-    java.lang.Integer :double
-    java.time.LocalDate :date ) ]
-  {:name k :type t :values v})
+  [k v]
+  (let [t (condp = (type (first v))
+            java.lang.Long :double
+            java.lang.Double :double
+            java.lang.Integer :double
+            java.time.LocalDate :date)]
+    {:name k :type t :values v})
   )
 
 
 (defn gen-table
   "Create a table with columns and name"
-  ([ x ] ;table with empty columns
+  ([x]                                                      ;table with empty columns
    (m/match x
             (x :guard list?)
-              (let [t (Table/create "EMPTY")
+            (let [t (Table/create "EMPTY")
                   cols (map #(new-empty-column (first %) (second %)) x)]
-                (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn cols)))
+              (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn cols)))
 
-            {:name n }
-            (let [ col-map (seq (dissoc x :name))
-                  col-list (map #(trans-kv-col (first %) (second %)) col-map ) ]
+            {:name n}
+            (let [col-map (seq (dissoc x :name))
+                  col-list (map #(trans-kv-col (first %) (second %)) col-map)]
               (gen-table n col-list))
             :else (throw (Exception. "not-match-table"))
             )
-   )
+    )
   ([name columns]                                           ;table with columns were described in map
    (let [t (Table/create name)
          column-list (map #(gen-column %) columns)
          flow_array (into-array AbstractColumn column-list)]
      (.addColumns ^Table t ^"[Ltech.tablesaw.columns.AbstractColumn;" flow_array))))
 
+(declare ldoubles)
 (declare dates)
 (defn gen-column [desc]
   (let [column-name (name (:name desc))]
     (m/match desc
              {:type :double :values v}
              (DoubleColumn/create column-name (double-array v))
+             {:type :cash :values v}
+             (CashColumn. column-name (ldoubles v))
+             {:type :balance :values v}
+             (BalanceColumn. column-name (ldoubles v))
+             {:type :rate :values v}
+             (RateColumn. column-name (ldoubles v))
              {:type :date :values v}
              (DateColumn/create column-name (dates v))
              {:type :bool :values v}
@@ -448,10 +441,10 @@
         col-names-add (vec (clojure.set/difference y-col-names x-col-names))
         col-types-add (map #(.type (.column ^Table y ^String %)) col-names-add)
         col-pairs-add (map vector col-names-add col-types-add)]
-        
+
     (concat col-pairs-keep col-pairs-add)))
-    
-  
+
+
 
 
 (defn add-missing-col [^Table x ^Table y]
@@ -472,16 +465,16 @@
 
         x-col-add-ary (into-array AbstractColumn (map #(new-empty-column (first %) (second %) x-size) x-col-add))
         y-col-add-ary (into-array AbstractColumn (map #(new-empty-column (first %) (second %) y-size) y-col-add))]
-        
+
     [
      (.addColumns x ^"[Ltech.tablesaw.columns.AbstractColumn;" x-col-add-ary)
      (.addColumns y ^"[Ltech.tablesaw.columns.AbstractColumn;" y-col-add-ary)]))
-     
-
-    
 
 
-    
+
+
+
+
 
 (defn remove-sum-column [^Table t]
   (let [columns-list (.columns t)
@@ -491,66 +484,64 @@
             col-name (.name ^AbstractColumn current-col)]
         (if-let [m-result (second (re-matches #".*\[(\S+)\].*" col-name))]
           (.setName current-col m-result)))))
-        
   t)
 
 (defn combine-cashflow
   " 'Plus' 2 cashflow tables with same column names,return combined table"
   ([^"[Ltech.tablesaw.columns.AbstractColumn;" cols ^Cashflow x ^Cashflow y]
-   (let [ combined-cashflow (.add x y)
+   (let [combined-cashflow (.aggByDates x y)
          col-to-add (filter #(not= % "dates") (.columnNames combined-cashflow))
-         ;_ (println col-to-add)
          summary-table (.summarize combined-cashflow
                                    col-to-add
                                    (into-array AggregateFunction [AggregateFunctions/sum]))
          sorted-by-dates-table (.by summary-table (into-array String ["dates"]))]
-     (Cashflow. sorted-by-dates-table)))
+     sorted-by-dates-table))
 
   ([^Cashflow x ^Cashflow y]
    (let [[x-complete y-complete] (add-missing-col x y)
          common-cols (.columnNames x)]
      (combine-cashflow common-cols x-complete y-complete))))
-     
-  
-
-;Table summary = table.summarize("sales", mean, sum, min, max).by("province", "status");
-(defn trancate-date [x u]
-  (let [y (.getYear x)
-        m (.getMonth x)
-        d (.getDayOfMonth x)]
-    (case u
-      :year (jt/local-date y 1 1)
-      :month (jt/local-date y m 1)
-      :day x)))
-      
-  
 
 
 
+(comment
+  ;Table summary = table.summarize("sales", mean, sum, min, max).by("province", "status");
+  (defn trancate-date [x u]
+    (let [y (.getYear x)
+          m (.getMonth x)
+          d (.getDayOfMonth x)]
+      (case u
+        :year (jt/local-date y 1 1)
+        :month (jt/local-date y m 1)
+        :day x)))
 
-(defn load-interest-rate [p]
-  (let [x (slurp (io/resource p))]
-    (json/read-str x :key-fn keyword)))
-
-(defn load-json-to-map [p]
-  "load a json file into clojure map"
-  (-> (slurp p)
-      (json/read-str :key-fn keyword)))
 
 
-(defn backout-original-balance [current-balance term-remains term-origin asset-type]
-  (case asset-type
-    :installments (-> (/ term-origin term-remains) (* current-balance))
-    nil))
-    
+
+
+
+  (defn load-interest-rate [p]
+    (let [x (slurp (io/resource p))]
+      (json/read-str x :key-fn keyword)))
+
+  (defn load-json-to-map [p]
+    "load a json file into clojure map"
+    (-> (slurp p)
+        (json/read-str :key-fn keyword)))
+
+  (defn backout-original-balance [current-balance term-remains term-origin asset-type]
+    (case asset-type
+      :installments (-> (/ term-origin term-remains) (* current-balance))
+      nil)))
+
 
 (def constant
   {:periodicity
    {"P1M" (jt/months 1) "P2M" (jt/months 2) "P3M" (jt/months 3) "P6M" (jt/months 6)
     "P1Y" (jt/years 1) "P2Y" (jt/years 2)}})
-    
-   
-  
+
+
+
 
 (defn -cal-due-interest
   ([balance start-d end-d day-count rate]
@@ -561,44 +552,44 @@
      (-cal-due-interest balance start-d end-d day-count rate)
      arrears)))
 
-(defn build-map-from-field [ field list-of-maps]
-  (loop [ lm list-of-maps  r {}]
-    (if-let [  this-m (first lm)]
+(defn build-map-from-field [field list-of-maps]
+  (loop [lm list-of-maps r {}]
+    (if-let [this-m (first lm)]
       (recur
         (next lm)
         (assoc r (:name this-m) this-m))
-        
+
       r)))
 
-(defn dates [ x ]
+(defn dates [x]
   (into-array LocalDate x))
 
-(defn ldoubles [ x ]
+(defn ldoubles [x]
   (into-array Double x))
 
-(defn strings [ x ]
+(defn strings [x]
   (into-array String x))
 
 
 
-(defn calc-pro-rata [ x y-list ]
+(defn calc-pro-rata [x y-list]
   "x -> total payment ; y-list -> a list of amounts to pay"
-  (let [ due-sum (reduce + y-list)
-        pct-list (map #(/ % due-sum) y-list ) ]
+  (let [due-sum (reduce + y-list)
+        pct-list (map #(/ % due-sum) y-list)]
     (if (>= x due-sum)
       y-list
-      (map #(* x %) pct-list) )
+      (map #(* x %) pct-list))
     ))
 
-(defn out-lists [ dest-file & o-list ]
+(defn out-lists [dest-file & o-list]
   "for debugging purpuse only"
-  (let [ max-rows (apply max (map count o-list))
-       ; _ (println o-list)
+  (let [max-rows (apply max (map count o-list))
+        ; _ (println o-list)
         ]
-    (with-open [ o (io/writer dest-file)]
-     (doseq [ i (range 0 max-rows)]
-      (->>
-        (str i "," (str/join "," (map #(nth % i nil) o-list  )) "\r\n")
-        (.write o)) )
+    (with-open [o (io/writer dest-file)]
+      (doseq [i (range 0 max-rows)]
+        (->>
+          (str i "," (str/join "," (map #(nth % i nil) o-list)) "\r\n")
+          (.write o)))
       )
-     ))
+    ))

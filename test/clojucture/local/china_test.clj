@@ -210,6 +210,8 @@
     (is (= (first pay-dates) (jt/local-date 2018 2 26)))
     (is (= (first calc-dates) (jt/local-date 2017 11 14)))
     ;(prn (get-in finish-run-deal [:projection :bond :A-2]))
+
+    (println pool-cf)
     )
   )
 
