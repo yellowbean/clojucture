@@ -5,6 +5,9 @@
     [clojucture.util :as u]
     [clojure.string :as str])
   (:use clojure.core.match.regex))
+; this ns is used for reading string and return clojure/java objects
+
+
 
 (defn parsing-dates [x]
   "given input string ,return a date or a vector of dates"
