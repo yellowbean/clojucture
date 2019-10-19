@@ -3,15 +3,21 @@
             [clojucture.asset :as asset]
             [java-time :as jt]
             [clojucture.util :as u]
+            [clojucture.io.csv :as io-csv ]
+            [clojure.java.io :as io]
             [clojucture.util-cashflow :as uc])
   (:import
-    [tech.tablesaw.api DoubleColumn DateColumn]
+    [tech.tablesaw.api DoubleColumn DateColumn ]
     [tech.tablesaw.columns AbstractColumn]
     [clojucture Cashflow]
-    (java.security InvalidParameterException)
     (clojucture CashColumn BalanceColumn)
     )
   )
+
+
+(def cf1 (io-csv/read-cf "pool_cfs.csv" [:date :double :double]))
+
+
 
 (defn sample-cf [dummy]
   (let [df (u/gen-dates-ary (jt/local-date 2018 1 1) (jt/months 1) 12)
