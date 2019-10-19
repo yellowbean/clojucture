@@ -19,6 +19,14 @@
                          :计算日   "2018-01-31ME"
                          :信托分配日 "2018-02-26M-6WD"
                          :法定到期日 "2049-04-26"}
+              :信息 {
+                     
+                    :资产池 {
+                                              :封包日 "2017-11-20"
+                                              :类型  :住房按揭
+                             } 
+                     
+                     }
               :snapshot {
                          "2018-05-26" {
                                        :账户   {
@@ -211,7 +219,9 @@
     (is (= (first calc-dates) (jt/local-date 2017 11 14)))
     ;(prn (get-in finish-run-deal [:projection :bond :A-2]))
 
-    (println pool-cf)
+    (is (= ( get-in jy-bank [:projection :agg-map])   ))
+
+    ;(println pool-cf)
     )
   )
 
