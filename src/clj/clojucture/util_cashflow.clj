@@ -144,3 +144,10 @@
         (.addColumns ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn [starting-dates ending-dates]))
         (u/remove-sum-column))))
 
+(defn drop-rows-if-empty [^Table x ]
+  "Dates with no cashflow will be dropped"
+  (let [ non-date-columns (filter #(not (instance? DateColumn %)) (.columns x) )
+         non-missing-columns-selection (map #(.isNotMissing %) non-date-columns)
+         union-selection (reduce #(.or %1 %2) non-missing-columns-selection)
+        ]
+    (.where x union-selection) ) )

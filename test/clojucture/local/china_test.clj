@@ -40,8 +40,6 @@
 
                                               }
                                        :资产池  {
-                                              :封包日 "2017-11-20"
-                                              :类型  :住房按揭
                                               :资产清单
                                                    [
                                                     {:初始面额 1250000000 :当前面额 1010000000 :年利率 0.049 :摊销 "等额本息" :初始日 "2013-12-25"
@@ -249,7 +247,7 @@
                                  :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
                                  :values [0.5]}})
 
-        pool-cf (cn/run-pool pool assmp calc-intervals)
+        pool-cf (.collect-cashflow pool assmp calc-intervals)
 
         ]
     (prn pool-cf)

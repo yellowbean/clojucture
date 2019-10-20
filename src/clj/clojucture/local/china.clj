@@ -13,7 +13,8 @@
     [clojure.edn :as edn]
     [clojure.string :as str]
     [medley.core :as mc]
-    [clojure.java.io :as io])
+    [clojure.java.io :as io]
+    [clojucture.util-cashflow :as uc])
 
   (:use [clojure.core.match.regex])
   (:import [java.time LocalDate]
@@ -58,7 +59,7 @@
 
 (defn setup-assets [d u]
   (let [assets (get-in d [:snapshot u :资产池 :资产清单])
-        coll-type (get-in d [:snapshot u :资产池 :类型])]
+        coll-type (get-in d [:信息 :资产池 :类型])]
     (m/match coll-type
              :住房按揭 (map setup-asset-mortgage assets)
              :else nil)
@@ -66,7 +67,7 @@
 
 (defn setup-pool [d u]
   (let [assets (setup-assets d u)
-        cut-off-date (-> (get-in d [:snapshot u :资产池 :封包日]) (rb/parsing-dates))
+        cut-off-date (-> (get-in d [:信息 :资产池 :封包日]) (rb/parsing-dates))
         ]
     (p/->pool assets cut-off-date)
 
@@ -178,8 +179,7 @@
     )
   )
 
-(defn run-pool [pool assump coll-int]
-  (.collect-cashflow pool assump coll-int))
+
 
 (defn init-account [deal n]
   (get-in deal [:update :账户 n]))
