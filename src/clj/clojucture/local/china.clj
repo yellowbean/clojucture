@@ -317,10 +317,11 @@
 
 
 (defn run-deal [ deal assump ]
+  "project bond/pool cashflow given assumptions passed "
   (let [pool (get-in deal [:update :资产池])
         coll-dates (get-in deal [:projection :dates :calc-dates])
 
-        pool-cf (run-pool pool assump coll-dates)
+        pool-cf (.collect-cashflow pool assump coll-dates)
 
         pay-dates (-> (get-in deal [:projection :dates :pay-dates]) (u/dates))
         pay-dates-col (u/gen-column [:payment-date  pay-dates])

@@ -34,6 +34,7 @@
   (collect-cashflow [ x assump collect-intervals ]
     (-> (project-cashflow x assump)
         (uc/agg-cashflow-by-interval collect-intervals)
+        (uc/drop-rows-if-empty)
         ))
   )
 

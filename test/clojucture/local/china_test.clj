@@ -204,7 +204,7 @@
 
         pl (get-in jy-bank [:update :资产池])
         col-int (get-in jy-bank [:projection :dates :calc-dates])
-        pool-cf (cn/run-pool pl pool-assump col-int)
+        pool-cf (.collect-cashflow pl pool-assump col-int)
 
         ;finish-run-deal (cn/run-deal jy-bank pool-assump)
         calc-dates (get-in jy-bank [:projection :dates :calc-dates])

@@ -130,7 +130,8 @@
         date-col (.dateColumn x "dates")
         first-date (.min date-col)
         last-date (.max date-col)
-        date-intervals (u/gen-dates-interval (cons first-date (conj date-list last-date)))
+        trancated-date-list (filter #(and (.isBefore % last-date) (.isAfter % first-date) )  date-list)
+        date-intervals (u/gen-dates-interval (cons first-date (conj trancated-date-list last-date)))
 
         sel-list (map #(.isBetweenIncluding date-col (first %) (second %)) date-intervals)
 
@@ -147,7 +148,11 @@
 (defn drop-rows-if-empty [^Table x ]
   "Dates with no cashflow will be dropped"
   (let [ non-date-columns (filter #(not (instance? DateColumn %)) (.columns x) )
-         non-missing-columns-selection (map #(.isNotMissing %) non-date-columns)
-         union-selection (reduce #(.or %1 %2) non-missing-columns-selection)
+         non-missing-columns-selection (map #(.isNotMissing %)  non-date-columns)
+         non-missing-union-selection (reduce #(.or %1 %2) non-missing-columns-selection)
+         non-zero-columns-selection (map #(.isNotIn % (double-array [0.0]))  non-date-columns)
+         non-zero-union-selection (reduce #(.or %1 %2) non-zero-columns-selection)
+         result-selection (.and  non-missing-union-selection non-zero-union-selection )
+
         ]
-    (.where x union-selection) ) )
+    (.where x result-selection) ) )

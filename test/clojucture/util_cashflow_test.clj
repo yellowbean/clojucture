@@ -78,10 +78,11 @@
     (is (= 12 (.rowCount t-cf)))
     (is (= 11 (.rowCount (cfu/drop-rows-if-empty t-cf))))
     )
+  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty2.csv" [:date :double :double])]
+      (is (= 12 (.rowCount t-cf)))
+      (is (= 11 (.rowCount (cfu/drop-rows-if-empty t-cf))))
+      )
   )
-
-
-
 
 (comment
 
