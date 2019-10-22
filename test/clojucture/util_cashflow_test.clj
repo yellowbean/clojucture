@@ -71,16 +71,17 @@
 
 (deftest tTrancateEmptyRows
   (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty.csv" [:date :double :double])]
-    (is (= 12 (.rowCount t-cf)))
-    (is (= 10 (.rowCount (cfu/drop-rows-if-empty t-cf))))
-    )
-  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty1.csv" [:date :double :double])]
-    (is (= 12 (.rowCount t-cf)))
+    (is (= 13 (.rowCount t-cf)))
     (is (= 11 (.rowCount (cfu/drop-rows-if-empty t-cf))))
     )
+  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty1.csv" [:date :double :double])]
+    (is (= 13 (.rowCount t-cf)))
+    (println (cfu/drop-rows-if-empty t-cf))
+    (is (= 12 (.rowCount (cfu/drop-rows-if-empty t-cf))))
+    )
   (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty2.csv" [:date :double :double])]
-      (is (= 12 (.rowCount t-cf)))
-      (is (= 11 (.rowCount (cfu/drop-rows-if-empty t-cf))))
+      (is (= 13 (.rowCount t-cf)))
+      (is (= 12 (.rowCount (cfu/drop-rows-if-empty t-cf))))
       )
   )
 
