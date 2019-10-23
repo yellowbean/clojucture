@@ -22,6 +22,7 @@
                  [dk.ative/docjure "1.12.0"]
                  [org.clojure/tools.cli "0.4.2"]
                  [medley "1.2.0"]
+                 [com.rpl/specter "1.1.3"]
 
                  [ring "1.7.1"]
                  [compojure "1.6.1"]
