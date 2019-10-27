@@ -1,8 +1,38 @@
 (ns clojucture.spv_test
   (:require
     [clojure.test :refer :all]
-    [clojucture.spv :as dl ]
+    [clojucture.spv :as spv ]
+    [clojucture.local.china :as cn ]
+    [clojucture.local.china-test :as cn-t ]
     [java-time :as jt]))
+
+
+
+
+
+
+
+
+(deftest query-deal
+  (let [jy-bank (cn/load-deal cn-t/jy-info "2018-05-26") ]
+    ; test current total bond balance
+    (is (=
+          (spv/query-deal jy-bank [:update :bond :sum-current-balance]))
+        (+ 10.1e8 10.1e8 1299999999.72))
+
+    (is (=
+          (spv/query-deal jy-bank [:update :pool :sum-current-balance]))
+        (+ 101e7 101e7))
+
+    ;(println (spv/query-deal jy-bank [:update :pool :sum-current-balance]))
+
+    )
+
+  )
+
+
+
+
 
 
 
