@@ -96,4 +96,9 @@
       [result target-acc])))
 
 
-
+(defn update-target-account [ new-source-acc target-account  ]
+  "When a source account transfer cash to target account , create a new target account base on `delta` of new & old source account "
+  (let [  last-stmt (last-txn new-source-acc)
+        {txn-date :date fr :from to :to amt :amount } last-stmt ]
+    (-deposit target-account txn-date nil (- amt ))
+  ))
