@@ -14,7 +14,7 @@ a library that provides buidling blocks for:
 * Json as input/output, language independent ,flexible
 * Provides low level functions to build up country specific deal dentures
 * High performance with multi-thread and interpolate with JVM world
-* Heavily using `core.match` to manage complexity of structured finance world
+* Heavily using `core.match` and `com.rpl.specter` to manage complexity of structured finance world
 * Shipped with a REST server for centerilized operation
 * Visualized waterfall presentation with [graphviz](https://www.graphviz.org/)
 ### Building blocks for structure finance world
@@ -29,6 +29,8 @@ Credits
 ----
 * [clojure 1.10](https://clojure.github.io/clojure/) 
 * [jTablesaw](https://jtablesaw.github.io/tablesaw/)
+* [core.match](https://https://github.com/clojure/core.match)
+* [com.rpl.specter](https://https://github.com/redplanetlabs/specter)
 * [java.time](http://dm3.github.io/clojure.java-time/index.html)
 
 Resource
