@@ -1,19 +1,18 @@
 (ns clojucture.expense
   (:require
-            [clojucture.account :as acc]
-            [clojucture.core :as ccore]
-            [java-time :as jt]
-            [clojucture.util :as util]
-            [clojucture.util :as u]
-            [clojure.core.match :as m])
+    [clojucture.account :as acc]
+    [java-time :as jt]
+    [clojucture.util :as u]
+    [clojure.core.match :as m]
+    [medley.core :as mc]
+    )
   (:import [java.time LocalDate Period]
            )
   )
 
 
 (defprotocol pExpense
-  (cal-due-amount [x d] [ x d base ])
-  (receive [ x d amount])
+  (receive [x d amount])
   )
 
 (defn pay-expense-at-base
@@ -30,84 +29,72 @@
      ])
   )
 
-(defn pay-expense
-  [^LocalDate d acc expense]
-  (let [due-amount (.cal-due-amount expense d)
-        draw-amount (min (.balance acc) due-amount)
-        new-acc (.try-withdraw acc d (:info acc) draw-amount)
-        ]
-    [new-acc
-     (.receive expense d draw-amount)
-     ]
-    )
-  )
 
-(defn pay-expense-amount [d acc expense amt]
+
+(defn -pay-expense-amount [^LocalDate d acc expense amt]
   (let [draw-amount (min (.balance acc) amt)
         new-acc (.try-withdraw acc d (:info acc) draw-amount)]
     [new-acc (.receive expense d draw-amount)]
     )
   )
 
-(defn get-base [deal d e]
-  (let [exp-base (:base (:info e))]
-    (get-in deal [:status :snapshot d exp-base])))
 
-(defn get-due [deal d e]
-  (if (contains? (:info e) :base)
-    (.cal-due-amount e d (.get-base deal d e))
-    (.cal-due-amount e d)))
+(defn- apply-rule [due-amount opt]
+  (m/match opt
+           {:upper-limit-amount r}
+           (min r due-amount)
+           {:upper-limit-pct p}
+           (* due-amount p)
+           :else nil))
 
-(defn pay-expense-deal [deal d acc exp opt]
-  (let [account (get-in deal [:account acc])
-        expense (get-in deal [:fee exp])
-        base? (contains? (:info expense) :pct)]
-    (as->
-      (m/match base?
-               true (pay-expense-at-base d account expense (get-base deal d expense))
-               false (pay-expense d account expense))
-      [update-acc update-expense]
-      (-> deal
-          (assoc-in [:account acc] update-acc)
-          (assoc-in [:fee exp] update-expense)))
+
+(defn pay-expense [deal ^LocalDate d source-acc expense opt]
+  "pay a single expense ; return [ account , expense ]"
+  (let [due-amount (cal-due-expense deal expense d)
+        avail-amount (.balance source-acc)
+        adj-due (apply-rule due-amount opt)
+        amt (min avail-amount adj-due)
+        new-acc (.withdraw source-acc d (get-in expense [:info :name]) amt)]
+    [new-acc (.receive expense d amt)]
     ))
 
-(defn pay-expenses-deal [deal d acc exp-list opt]
-  (let [account (get-in deal [:account acc])
-        expense-list (select-keys (deal :fee) exp-list)
-        due-list (map #(get-due deal d %) expense-list)
-        total-due-amount (reduce + due-list)
-        total-due-factors (map #(/ % total-due-amount) due-list)
-        available-bal (.balance acc)
-        total-payment (min available-bal total-due-amount)
-        ]
-    (m/match opt
-             {:upper-limit-amount amt}
-             (as-> (min total-payment amt) capped-payment
-                   (let [each-payment (map #(* capped-payment %) total-due-factors)]
-                     (loop [ep each-payment exp expense-list paying-acc account rexp-list []]
-                       (if (nil? ep)
-                         [paying-acc rexp-list]
-                         (let [[acc-after-pay exp-after-pay] (pay-expense-amount d paying-acc (first exp) (first ep))]
-                           (recur (next ep) (next exp) acc-after-pay (cons exp-after-pay rexp-list)))
-                         ))
-                     ))
-             nil
-             )
+
+
+(defn- distribute-amount-to-expenses [^Double amount ^LocalDate d due-factors source-acc exp-map]
+  (let [each-payment (map #(* amount %) due-factors)]
+    (loop [ep each-payment exp-m exp-map paying-acc source-acc rexp-map {}]
+      (if-let [[ek ev] (first exp-m)]
+        (let [[acc-after-pay exp-after-pay] (-pay-expense-amount d paying-acc ev (first ep))]
+          (recur (next ep) (next exp-m) acc-after-pay (assoc rexp-map ek exp-after-pay)))
+        [paying-acc rexp-map]
+        )
+      )
     )
   )
+
+
+
+(defn pay-expenses-pr
+  ([deal ^LocalDate d source-acc exp-map opt]
+   "pay a list of expenses on pro-rata basis, with optional cap; return [ account, expense-map ]  "
+   (let [due-amt-list (map #(cal-due-expense deal % d) (vals exp-map))
+         total-due-amount (reduce + due-amt-list)
+         total-due-factors (map #(/ % total-due-amount) due-amt-list)
+         avail-amount (.balance source-acc)
+         total-payment (min avail-amount (apply-rule total-due-amount opt))]
+     (distribute-amount-to-expenses total-payment d total-due-factors source-acc exp-map)
+     ))
+  ([deal ^LocalDate d source-acc exp-map]
+   (pay-expenses-pr deal d source-acc exp-map nil)
+   )
+  )
+
+
 
 (defrecord pct-expense-by-amount
   ;"Expense type that due amount is annualized percentage of the base, i.e trustee fee"
   [info stmt ^LocalDate last-paid-date ^Double arrears]
   pExpense
-  (cal-due-amount [x d base]
-    (-> (util/get-period-rate
-          (Period/between last-paid-date d) (info :pct) (info :day-count))
-        (* base)
-        (+ arrears)
-        )
-    )
   (receive [x d amount]
     (let [pay-to-arrears (min arrears amount)
           pay-to-expense (- amount pay-to-arrears)]
@@ -124,12 +111,9 @@
   )
 
 (defrecord pct-expense-by-rate
-  ;"Expense type that due amount is percentage of the base, i.e VAT"
+  ;"Pct expense type that is percentage of the base, i.e VAT"
   [info stmt ^LocalDate last-paid-date ^Double arrears]
   pExpense
-  (cal-due-amount [x d base]
-    (+ (* base (info :pct)) arrears)
-    )
   (receive [x d amount]
     (let [pay-to-arrears (min arrears amount)
           pay-to-expense (- amount pay-to-arrears)]
@@ -148,9 +132,6 @@
 (defrecord amount-expense
   [info stmt ^LocalDate last-paid-date ^Double balance]
   pExpense
-  (cal-due-amount [x d]
-    balance
-    )
   (receive [x d amount]
     (if (> amount balance)
       (throw (Exception. "Expense paid over balance"))
@@ -166,13 +147,6 @@
 (defrecord recur-expense
   [info stmt ^Double arrears]
   pExpense
-  (cal-due-amount [x d]
-    (let [{sd :start-date p :period e-date :end-date} info
-          exp-dates (u/gen-dates-range sd p e-date)]
-      (if (some #(= % d) exp-dates)
-        (:amount info)
-        0
-        )))
   (receive [x d amount]
     (let [pay-to-arrears (min arrears amount)
           pay-to-expense (- amount pay-to-arrears)]
@@ -186,3 +160,19 @@
       )
     )
   )
+
+
+
+(defn setup-expense [x]
+  (m/match x
+           {:name n :last-paid-date pd :year-rate r :arrears ars}
+           (->pct-expense-by-amount {:name n :pct r :day-count :ACT_365} nil pd ars)
+           {:name n :balance v :last-paid-date pd}
+           (->amount-expense {:name n} nil pd v)
+           {:name n :last-paid-date pd :base-rate r :arrears ars}
+           (->pct-expense-by-rate {:name n :pct r} nil pd ars)
+           :else :not-match-expense
+           )
+  )
+
+
