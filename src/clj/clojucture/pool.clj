@@ -1,7 +1,7 @@
 (ns clojucture.pool
   (:require [java-time :as jt]
             [clojucture.util :as u]
-            [clojucture.util-cashflow :as uc]
+            [clojucture.util-cashflow :as cfu]
             [clojucture.asset :as a]
             [clojucture.account :as acc]
             [clojure.core.match :as m])
@@ -19,22 +19,20 @@
 
 
 (defrecord pool
-  [assets ^LocalDate cutoff-date]
+  [assets  ^LocalDate cutoff-date]
   pPool
   (project-cashflow [ x ]
-    (let [ assump {:settle-date (jt/local-date 2000 1 1)}]
-      (project-cashflow x assump)
-      ))
+    (project-cashflow x nil))
 
   (project-cashflow [ x assump ]
     (let [ asset-cashflows (map #(.project-cashflow % assump) assets)
            cfs (reduce #(.append %1 %2 ) asset-cashflows) ]
-        cfs))
+      (cfu/sub-cashflow cfs :>= cutoff-date )))
 
   (collect-cashflow [ x assump collect-intervals ]
     (-> (project-cashflow x assump)
         (uc/agg-cashflow-by-interval collect-intervals)
-        (uc/drop-rows-if-empty)
+        (uc/drop-rows-if-empty) ;trancate empty cashflow at end
         ))
   )
 
