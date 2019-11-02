@@ -9,8 +9,7 @@
 (def t-account-2 (acc/->account :acc2 :int 0 []))
 
 (deftest deposit-test
-  (let [test-account (acc/->account :acc-1 :cash 0 [])
-        ]
+  (let [test-account (acc/->account :acc-1 :cash 0 []) ]
     (is (:balance (.deposit test-account (jt/local-date 2018 11 1) :originator 200)) 200)
     )
   )
@@ -73,7 +72,7 @@
         test-account-3 (acc/->account :to :cash 0 [])
         [acc-1 acc-2] (acc/transfer-fund test-account-1 test-account-2 (jt/local-date 2018 1 1))
 
-        [acc-result acc-target] (acc/transfer-funds [test-account-1 test-account-2]
+        [acc-result-map acc-target] (acc/transfer-funds {:a test-account-1 :b test-account-2}
                                                     test-account-3 (jt/local-date 2018 1 1))
         ]
     (is (= (:balance acc-1) 0))
@@ -81,9 +80,7 @@
 
 
     (is (= (:balance acc-target) 2000))
-    (is (= (:balance (first acc-result)) 0))
-    (is (= (:balance (second acc-result)) 0))
-
+    (is (= [ 0 0 ]   (mapv :balance (vals acc-result-map) )))
     ))
 
 
