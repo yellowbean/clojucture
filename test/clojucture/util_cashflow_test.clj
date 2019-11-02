@@ -69,31 +69,29 @@
 
     ))
 
-(comment
-  (deftest tTrancateEmptyRows
-    (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty.csv" [:date :double :double])]
-      (is (= 13 (.rowCount t-cf)))
-      (is (= 11 (.rowCount (cfu/drop-rows-if-empty t-cf))))
-      )
-    (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty1.csv" [:date :double :double])]
-      (is (= 13 (.rowCount t-cf)))
-      (is (= 12 (.rowCount (cfu/drop-rows-if-empty t-cf))))
-      )
-    (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty2.csv" [:date :double :double])]
-      (is (= 13 (.rowCount t-cf)))
-      (is (= 12 (.rowCount (cfu/drop-rows-if-empty t-cf))))
-      )
+(deftest tTrancateEmptyRows
+  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty.csv" [:date :double :double])]
+    (is (= 13 (.rowCount t-cf)))
+    (is (= 11 (.rowCount (cfu/drop-rows-if-empty t-cf))))
+    )
+  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty1.csv" [:date :double :double])]
+    (is (= 13 (.rowCount t-cf)))
+    (is (= 12 (.rowCount (cfu/drop-rows-if-empty t-cf))))
+    )
+  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty2.csv" [:date :double :double])]
+    (is (= 13 (.rowCount t-cf)))
+    (is (= 12 (.rowCount (cfu/drop-rows-if-empty t-cf))))
     )
   )
 
 
 (deftest tSubTableByDates
-  (let [ t-cf (io-csv/read-cf "pool_cfs_ending_empty.csv" [:date :double :double])
+  (let [t-cf (io-csv/read-cf "pool_cfs_ending_empty.csv" [:date :double :double])
         after-may-2 (cfu/sub-cashflow t-cf :> (jt/local-date 2019 5 2))
         after-may-1 (cfu/sub-cashflow t-cf :> (jt/local-date 2019 5 1))
-        after-on-may-1 (cfu/sub-cashflow t-cf :>= (jt/local-date 2019 5 1)) ]
-    (is (= (dec (.rowCount after-on-may-1)) (.rowCount after-may-1)  ))
-    (is (=  (.rowCount after-may-2) (.rowCount after-may-1)))
+        after-on-may-1 (cfu/sub-cashflow t-cf :>= (jt/local-date 2019 5 1))]
+    (is (= (dec (.rowCount after-on-may-1)) (.rowCount after-may-1)))
+    (is (= (.rowCount after-may-2) (.rowCount after-may-1)))
 
     )
   )
