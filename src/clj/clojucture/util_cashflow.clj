@@ -52,7 +52,7 @@
        regular-dates)
      (let [regular-dates (-gen-dates-range start-date step end-date)]
        regular-dates))
-    )
+   )
   )
 
 (defn gen-dates [desc]
@@ -73,13 +73,13 @@
   (let [ts-name (:name desc)
         dates (gen-dates (:dates desc))
         vs (u/gen-column (:values desc))
-        init-cf (Cashflow. ts-name (-dates dates)) ]
+        init-cf (Cashflow. ts-name (-dates dates))]
     (add-columns init-cf [vs])))
 
 
 (defn gen-cashflow [desc]
   (let [dates (gen-dates (:dates desc))
-        init-cf (Cashflow. (:name desc) (-dates dates)) ]
+        init-cf (Cashflow. (:name desc) (-dates dates))]
     (m/match desc
              {:name _ :dates _ :init-bal bal :principal pal}
              nil
@@ -114,7 +114,7 @@
   (let [xc (.copy x)
         col-list (map #(.column xc %) ["balance" "dates"])
         col-rm (into-array AbstractColumn col-list)
-        y (-> xc (.removeColumns col-rm)) ; y = table without balance & dates field
+        y (-> xc (.removeColumns col-rm))                   ; y = table without balance & dates field
         ary-agg-functions (into-array AggregateFunction [AggregateFunctions/sum])]
     (-> x
         (.summarize (.columnNames ^Table y) ary-agg-functions)
@@ -130,29 +130,42 @@
         date-col (.dateColumn x "dates")
         first-date (.min date-col)
         last-date (.max date-col)
-        trancated-date-list (filter #(and (.isBefore % last-date) (.isAfter % first-date) )  date-list)
+        trancated-date-list (filter #(and (.isBefore % last-date) (.isAfter % first-date)) date-list)
         date-intervals (u/gen-dates-interval (cons first-date (conj trancated-date-list last-date)))
 
         sel-list (map #(.isBetweenIncluding date-col (first %) (second %)) date-intervals)
 
         split-cf-by-interval (map #(.where x %) sel-list)
         agg-cashflow-list (map #(agg-cashflow %) split-cf-by-interval)
-        starting-dates (u/gen-column {:name "starting-date" :type :date :values (map first  date-intervals)})
-        ending-dates (u/gen-column {:name "ending-date" :type :date :values (map second  date-intervals)})
+        starting-dates (u/gen-column {:name "starting-date" :type :date :values (map first date-intervals)})
+        ending-dates (u/gen-column {:name "ending-date" :type :date :values (map second date-intervals)})
         combined-cashflow (reduce add-cashflow agg-cashflow-list)]
 
     (-> ^Table combined-cashflow
         (.addColumns ^"[Ltech.tablesaw.columns.AbstractColumn;" (into-array AbstractColumn [starting-dates ending-dates]))
         (u/remove-sum-column))))
 
-(defn drop-rows-if-empty [^Table x ]
+(defn drop-rows-if-empty [^Table x]
   "Dates with no cashflow will be dropped"
-  (let [ non-date-columns (filter #(not (instance? DateColumn %)) (.columns x) )
-         non-missing-columns-selection (map #(.isNotMissing %)  non-date-columns)
-         non-missing-union-selection (reduce #(.or %1 %2) non-missing-columns-selection)
-         non-zero-columns-selection (map #(.isNotIn % (double-array [0.0]))  non-date-columns)
-         non-zero-union-selection (reduce #(.or %1 %2) non-zero-columns-selection)
-         result-selection (.and  non-missing-union-selection non-zero-union-selection )
+  (let [non-date-columns (filter #(not (instance? DateColumn %)) (.columns x))
+        non-missing-columns-selection (map #(.isNotMissing %) non-date-columns)
+        non-missing-union-selection (reduce #(.or %1 %2) non-missing-columns-selection)
+        non-zero-columns-selection (map #(.isNotIn % (double-array [0.0])) non-date-columns)
+        non-zero-union-selection (reduce #(.or %1 %2) non-zero-columns-selection)
+        result-selection (.and non-missing-union-selection non-zero-union-selection)
 
         ]
-    (.where x result-selection) ) )
+    (.where x result-selection)))
+
+(defn sub-cashflow [^Table x op ^LocalDate d]
+  (let [date-col (.column x "dates")]
+    (->> (case op
+           :>= (.isOnOrAfter date-col d)
+           :> (.isAfter date-col d)
+           :<= (.isOnOrBefore date-col d)
+           :< (.isBefore date-col d)
+           := (.isEqualTo date-col d)
+           :else nil )
+         (.where x)
+         ))
+  )
