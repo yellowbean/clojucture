@@ -1,5 +1,7 @@
 (ns clojucture.account
-  (:require [clojure.core.match :as m])
+  (:require
+    [clojure.core.match :as m]
+    [com.rpl.specter :as s])
   (:import
     [java.time LocalDate]))
 
@@ -7,6 +9,7 @@
   (withdraw [x d to amount])
   (try-withdraw [x d to amount])
   (deposit [x d from amount])
+
   (last-txn [x])
   )
 
@@ -26,6 +29,18 @@
     (-> x
         (update :balance + amount)
         (update :stmts conj new-stmt))))
+
+(defn select-stmts [x e]
+  (let [stmts (:stmts x)]
+    (m/match e
+             {:to target}
+             (s/select [  s/ALL s/MAP-VALS #(= % target) ] stmts)
+
+             :else :not-match-stmts-pattern
+             )
+
+    )
+  )
 
 
 (defrecord account [name type ^Double balance stmts]
@@ -61,7 +76,7 @@
              {:target target-balance}
              (let [upper-limit-to-deposit (max (- target-balance balance) 0)
                    amount-to-deposit (min upper-limit-to-deposit amount)]
-               (-deposit x d from amount-to-deposit)) )
+               (-deposit x d from amount-to-deposit)))
     )
 
   (last-txn [x]
@@ -75,25 +90,25 @@
      (transfer-fund from-acc to-acc d transfer-amt)))
   ([from-acc to-acc ^LocalDate d ^Double amount]
    (if (>= (:balance from-acc) amount)
-     (let [updated-to-acc (.deposit to-acc d from-acc amount)
+     (let [updated-to-acc (.deposit to-acc d (:name from-acc) amount)
            amt-to-wd (:amount (last-txn updated-to-acc))
-           updated-from-acc (.withdraw from-acc d to-acc amt-to-wd)]
-       [ updated-from-acc updated-to-acc ]
+           updated-from-acc (.withdraw from-acc d (:name to-acc) amt-to-wd)]
+       [updated-from-acc updated-to-acc]
        )
      :not-enough-cash)))
 
 (defn transfer-funds
   [accs-map to-acc ^LocalDate d]
   (loop [target-acc to-acc from-acc-map accs-map result {}]
-    (if-let [ [ k f-acc] (first from-acc-map)]
+    (if-let [[k f-acc] (first from-acc-map)]
       (let [[new-from new-to] (transfer-fund f-acc target-acc d)]
         (recur new-to (next from-acc-map) (assoc result k new-from)))
       [result target-acc])))
 
 
-(defn update-target-account [ new-source-acc target-account  ]
+(defn update-target-account [new-source-acc target-account]
   "When a source account transfer cash to target account , create a new target account base on `delta` of new & old source account "
-  (let [  last-stmt (last-txn new-source-acc)
-        {txn-date :date fr :from to :to amt :amount } last-stmt ]
-    (-deposit target-account txn-date nil (- amt ))
-  ))
+  (let [last-stmt (last-txn new-source-acc)
+        {txn-date :date fr :from to :to amt :amount} last-stmt]
+    (-deposit target-account txn-date (:name new-source-acc) (- amt))
+    ))

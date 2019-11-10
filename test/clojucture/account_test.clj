@@ -31,8 +31,8 @@
 
 
 (deftest transfer-test
-  (let [test-account-1 (acc/->account :from :cash 1000 [])
-        test-account-2 (acc/->account :to :cash 1000 [])
+  (let [test-account-1 (acc/->account :from-acc :cash 1000 [])
+        test-account-2 (acc/->account :to-acc :cash 1000 [])
         [acc-1 acc-2] (acc/transfer-fund test-account-1 test-account-2 (jt/local-date 2018 11 11) 300)
         [acc-1-2 acc-2-2] (acc/transfer-fund acc-1 acc-2 (jt/local-date 2018 11 12) 20)
         ]
@@ -62,6 +62,10 @@
 
     (is (= 300 (:amount (first (:stmts acc-2-2)))))
     (is (= 20 (:amount (second (:stmts acc-2-2)))))
+
+    ; test select stmts
+    (is (= [:to-acc :to-acc]
+           (acc/select-stmts acc-1-2 {:to :to-acc})))
 
     ))
 
