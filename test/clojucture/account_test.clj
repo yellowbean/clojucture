@@ -63,9 +63,11 @@
     (is (= 300 (:amount (first (:stmts acc-2-2)))))
     (is (= 20 (:amount (second (:stmts acc-2-2)))))
 
-    ; test select stmts
-    (is (= [:to-acc :to-acc]
-           (acc/select-stmts acc-1-2 {:to :to-acc})))
+
+
+      ; test select stmts
+    (is (= 2 (count
+           (acc/select-stmts acc-1-2 {:to :to-acc}))))
 
     ))
 
@@ -120,3 +122,24 @@
     (is (= (:amount (.last-txn new-to)) (:amount (.last-txn bench-acc))))
 
     ))
+
+
+(deftest tSetupAccount
+  (let [ acc-map0 {:name "cash1" :balance 100.0}
+        t-txn [(acc/->stmt (jt/local-date 2019 12 1) :from :to 50 nil)]
+        acc-map1 {:name "cash2" :balance 100.0 :stmts t-txn }
+        acc-1 (acc/setup-account acc-map0)
+        acc-2 (acc/setup-account acc-map1)
+        ]
+    (is (= (:name acc-1) "cash1"))
+    (is (= (:name acc-2) "cash2"))
+
+
+    (is (= (:balance acc-1) 100.0))
+    (is (= (:balance acc-2) 100.0))
+
+    (is (= (count  (:stmts acc-2) ) 1))
+    )
+
+
+  )

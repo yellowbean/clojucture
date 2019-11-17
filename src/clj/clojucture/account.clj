@@ -34,13 +34,22 @@
   (let [stmts (:stmts x)]
     (m/match e
              {:to target}
-             (s/select [  s/ALL s/MAP-VALS #(= % target) ] stmts)
+             (s/select [  s/ALL  #(= (:to %) target) ] stmts)
+
+             {:from source}
+             (s/select [  s/ALL  #(= % (:from %) source) ] stmts)
 
              :else :not-match-stmts-pattern
              )
 
     )
   )
+
+(defn sum-stmts [ x ]
+  (if (nil? x)
+    0
+    (reduce + (s/select [s/ALL :amount] x ) ) )
+   )
 
 
 (defrecord account [name type ^Double balance stmts]
@@ -112,3 +121,16 @@
         {txn-date :date fr :from to :to amt :amount} last-stmt]
     (-deposit target-account txn-date (:name new-source-acc) (- amt))
     ))
+
+
+(defn setup-account [ x ]
+  (m/match x
+           {:name n :balance b :stmts txn}
+           (map->account {:name n :type nil :stmts txn :balance b})
+           {:name n :balance b}
+           (map->account {:name n :type nil :stmts [] :balance b})
+
+
+
+           )
+  )
