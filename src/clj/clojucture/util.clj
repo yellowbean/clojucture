@@ -145,6 +145,10 @@
         (* ds (/ year-rate 365))))))
 
 
+(defn filter-projection-dates [ds ^LocalDate sp-date]
+  (let [dates-after-sp-date (fn [x] (if (instance? clojure.lang.PersistentVector x) (filter (partial jt/after? sp-date) x) x))]
+    (reduce-kv #(assoc %1 %2 (dates-after-sp-date %3)) {} ds)
+    ))
 
 
 
@@ -379,7 +383,7 @@
 
 
 (defn trans-kv-col
-  "read a key/value and return a map descrble it as a column"
+  "read a key/value and return a map describe it as a column"
   [k v]
   (let [t (condp = (type (first v))
             java.lang.Long :double
@@ -405,7 +409,7 @@
               (gen-table n col-list))
             :else (throw (Exception. "not-match-table"))
             )
-    )
+   )
   ([name columns]                                           ;table with columns were described in map
    (let [t (Table/create name)
          column-list (map #(gen-column %) columns)
@@ -593,3 +597,9 @@
           (.write o)))
       )
     ))
+
+(defn list-to-map-by [l f]
+  "convert a list of maps into a single map with a key from maps"
+  (-> (fn [m e]
+        (assoc m (f e) e))
+      (reduce {} l) ) )

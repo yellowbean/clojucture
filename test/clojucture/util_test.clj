@@ -189,6 +189,14 @@
 
   )
   
-  
+
+(deftest mlist2map
+  (let [ mlist [{:a 1 :b 2 } {:a 3 :b 4}]
+        r (u/list-to-map-by mlist :a)
+        ]
+    (is (= (set (keys r ))  (set '(1 3)) ))
+    )
+
+  )
     
   
