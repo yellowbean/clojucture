@@ -282,9 +282,16 @@
   (project-cashflow [x assump]))
 
 
-(defn build-asset [x]
-  (m/match x
-           {:type :mortgage :balance bal } nil
+(defn build-asset [x t]
+  "map as input, return a record instance representing the asset"
+  (m/match (assoc x :type t)
+
+           {:type :mortgage :current-balance bal :annual-rate ar :originate-date od :remain-term rt
+            :original-term ot :original-balance ob }
+           (->mortgage {:start-date (jt/local-date od) :periodicity (jt/months 1) :term ot :balance ob :period-rate (/ ar 12)} nil bal ar rt nil)
+
+           ;(map->mortgage (dissoc x :type))
+
            :else :not-match-asset
            )
 
