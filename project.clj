@@ -27,6 +27,8 @@
                  [ring "1.7.1"]
                  [compojure "1.6.1"]
 
+                 [rm-hull/infix "0.3.3"]
+
                  ]
   :plugins [
             ;[lein-virgil "0.1.9"]
