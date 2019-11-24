@@ -7,6 +7,10 @@
 
 
 
+(defrecord simple-trigger [name p status])
+;general trigger
+
+
 (defrecord pool-trigger [name p status])
 ; trigger on pool's event
 
@@ -61,6 +65,14 @@
         cs (map #(u/gen-column [ (:name (first %)) (boolean-array (second %))])  zipped ) ]
     (.addColumns pool-cf (into-array AbstractColumn cs)) ) )
 
+
+(defn setup-trigger [ m ]
+  (m/match m
+           {:name n :cond cnd :status st }
+           (->simple-trigger n cnd st)
+
+           )
+  )
 
 
 
