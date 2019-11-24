@@ -7,28 +7,26 @@
             [medley.core :as mc]
             [clojucture.util :as u]
             [clojucture.util-cashflow :as cfu]
-            )
+            [com.rpl.specter :as s])
   ;(:import (clojucture RateAssumption))
   )
 
 
-(def jy-info {
+(def jy-info {;; JIANYUAN with tree waterfall
+
+              :信息       {:name   "jianyuan"
+                         :flavor "china"
+                         }
               :日期       {:初始起算日 "2017-11-14"
                          :支付日   "2018-02-26M"
                          :计息日   "2018-01-23,2018-02-26M"
-                         :计算日   "2018-01-31ME"
+                         :计算日   "2019-01-31ME"
                          :信托分配日 "2018-02-26M-6WD"
-                         :法定到期日 "2049-04-26"}
-              :信息 {
-                     
-                    :资产池 {
-                                              :封包日 "2017-11-20"
-                                              :类型  :住房按揭
-                             } 
-                     
-                     }
+                         :法定到期日 "2049-01-01"}
               :snapshot {
-                         "2018-05-26" {
+                         "2018-05-26" {:信息   {
+                                              :当前期数 5
+                                              }
                                        :账户   {
                                               :收入分账户       {:名称 :收入分账户 :余额 0}
                                               :本金分账户       {:名称 :本金分账户 :余额 0}
@@ -37,9 +35,12 @@
                                               :分配费用账户      {:名称 :分配费用账户 :余额 0}
                                               :服务转移和通知储备账户 {:名称 :服务转移和通知储备账户 :余额 0}
                                               :税收储备账户      {:名称 :税收储备账户 :余额 0}
+                                              :信托收款账户      {:名称 :信托收款账户 :余额 0}
 
                                               }
                                        :资产池  {
+                                              :封包日 "2017-11-20"
+                                              :类型  :住房按揭
                                               :资产清单
                                                    [
                                                     {:初始面额 1250000000 :当前面额 1010000000 :年利率 0.049 :摊销 "等额本息" :初始日 "2013-12-25"
@@ -58,18 +59,10 @@
                                               }
 
                                        :费用   {
-                                              :受托机构报酬   {:name :受托机构报酬 :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
-                                              :资金保管机构报酬 {:name :资金保管机构报酬 :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
-                                              :支付代理机构报酬 {:name :支付代理机构报酬 :year-rate 0.0005 :arrears 0 :last-paid-date "2018-04-26"}
-                                              :评级机构报酬   {:name :评级机构报酬 :balance 5000 :last-paid-date "2018-04-26"}
-                                              :审计师报酬    {:name :审计师报酬 :balance 5000 :last-paid-date "2018-04-26"}
-                                              :服务机构服务报酬 {:name :服务机构服务报酬 :year-rate 0.001 :arrears 0 :last-paid-date "2018-04-26"}
+                                              :受托机构报酬   {:name :受托机构报酬  :info {:base [:projection :pool :sum-current-balance] :annual-pct 0.005 } :arrears 0 :last-paid-date "2018-04-26"}
+                                              :服务机构服务报酬 {:name :服务机构服务报酬 :info {:base [:projection :pool :sum-current-balance] :annual-pct 0.01} :arrears 0 :last-paid-date "2018-04-26"}
                                               ;{:name :后备贷款服务机构报酬 :year-rate 0.0000 :arrears 0}
-                                              :法律顾问报酬   {:name :法律顾问报酬 :balance 5000 :last-paid-date "2018-04-26"}
-                                              :增值税      {:name :增值税 :base-rate 0.0326 :last-paid-date "2018-04-26"}
-                                              :预计通知费用   {:name :预计通知费用 :balance 50000 :last-paid-date "2018-04-26"}
-                                              :预计转移费用   {:name :预计转移费用 :balance 50000 :last-paid-date "2018-04-26"}
-                                              :报销       {:name :报销 :balance 100000 :last-paid-date "2018-04-26"}
+                                              :增值税      {:name :增值税 :info {:base [:current-collection :interest] :pct 0.0326} :last-paid-date "2018-04-26" :arrears 0}
                                               }
 
                                        :风险事件 {
@@ -79,70 +72,72 @@
                                        }
                          }
 
-              :分配方式     {
-                         :违约前 [
-                               {:from :收入回收款 :to :收入分账户 :fields ["interest"]}
-                               {:from [:本金分账户 :服务转移和通知储备账户 :税收储备账户] :to :收入分账户}
-                               {:from :收入分账户 :to :税收储备账户 :expense :增值税}
-                               {:from    :收入分账户 :to :分配费用账户
-                                :expense [:法律顾问报酬 :会计师报酬 :初始评级费用 :承销报酬 :财务顾问报酬 :登记托管服务费]
-                                }
-                               {:from :收入分账户 :to :服务转移和通知储备账户 :expense :预计通知费用}
-                               {:from :收入分账户 :to :服务转移和通知储备账户 :expense :预计转移费用}
+              :分配方式     [
+                         :违约事件? [[
+                                  {:from [:本金分账户 :收入分账户 :服务转移和通知储备账户 :税收储备账户] :to :信托收款账户}
+                                  {:from :信托收款账户 :to :税收储备账户 :expense :增值税}
+                                  {:from    :信托收款账户 :to :分配费用账户
+                                   :expense [:法律顾问报酬 :会计师报酬 :初始评级费用 :承销报酬 :财务顾问报酬 :登记托管服务费]}
+                                  {:from    :信托收款账户 :to :分配费用账户
+                                   :expense [:受托机构报酬 :资金保管机构报酬 :支付代理机构报酬 :评级机构报酬 :审计师报酬 :后备贷款服务机构报酬 :报销]}
+                                  {:from :信托收款账户 :to :分配利息账户 :interest [:A-1 :A-2]}
+                                  {:from :信托收款账户 :to :分配本金账户 :principal [:A-1 :A-2]}
+                                  {:from :信托收款账户 :to :分配本金账户 :principal :次级}
+                                  {:from :收入分账户 :to :分配利息账户 :interest :次级}
+                                  ]
 
-                               {:from    :收入分账户 :to :分配费用账户
-                                :expense [:受托机构报酬 :资金保管机构报酬 :支付代理机构报酬 :评级机构报酬 :审计师报酬 :后备贷款服务机构报酬]}
-                               {:from    :收入分账户 :to :分配费用账户
-                                :expense :报销 :limit :优先支出上限
-                                }
-                               {:from :收入分账户 :to :分配费用账户 :expense :服务机构服务报酬 :with-limit-percentage 0.5}
-                               {:from :收入分账户 :to :分配利息账户 :interest [:A-1.DueInt :A-2.DueInt]}
-                               {:from :收入分账户 :to :分配费用账户 :expense :服务机构服务报酬}
-                               {:if :加速清偿事件
-                                :breached
+                                 [
+                                  {:from :收入回收款 :to :收入分账户 :fields ["interest"]}
+                                  {:from [:本金分账户 :服务转移和通知储备账户 :税收储备账户] :to :收入分账户}
+                                  {:from :收入分账户 :to :税收储备账户 :expense :增值税}
+                                  ; {:if :from :收入分账户 :to :增值税}
+                                  {:from    :收入分账户 :to :分配费用账户
+                                   :expense [:法律顾问报酬 :会计师报酬 :初始评级费用 :承销报酬 :财务顾问报酬 :登记托管服务费]
+                                   }
+                                  {:from :收入分账户 :to :服务转移和通知储备账户 :expense :预计通知费用}
+                                  {:from :收入分账户 :to :服务转移和通知储备账户 :expense :预计转移费用}
+
+                                  {:from    :收入分账户 :to :分配费用账户
+                                   :expense [:受托机构报酬 :资金保管机构报酬 :支付代理机构报酬 :评级机构报酬 :审计师报酬 :后备贷款服务机构报酬]}
+                                  {:from    :收入分账户 :to :分配费用账户
+                                   :expense :报销 :limit :优先支出上限
+                                   }
+                                  {:from :收入分账户 :to :分配费用账户 :expense :服务机构服务报酬 :with-limit-percentage 0.5}
+                                  {:from :收入分账户 :to :分配利息账户 :interest [:A-1 :A-2]}
+                                  {:from :收入分账户 :to :分配费用账户 :expense :服务机构服务报酬}
+                                  [:加速清偿事件?
+                                   [
                                     [{:from :收入分账户 :to :本金分账户}]
-                                :unbreach
-                                    [
-                                     {:from :收入分账户 :to :本金分账户 :formula :a+b+c-d} ;a+b+c-d
+
+                                    [{:from :收入分账户 :to :本金分账户 :formula
+                                            "[:current-collection :sum-new-default-current-balance]
+                                            + [:post-collection :sum-new-default-current-balance]
+                                            + [:post-dist :本金分账户 :transfer-to :收入分账户 :net-amount]"} ;a+b+c-d
                                      {:from :收入分账户 :to :分配费用账户 :expense :报销}
                                      {:from :收入分账户 :to :本金分账户}]
-                                }
-                               ; 本金账户
-                               {:from :本金回收款 :to :本金分账户 :fields ["principal"]}
-                               ;{:from :本金分账户 :to :收入分账户 :amount nil} ;用于足额支付信托合同ai to a vii
-                               {:from :收入分账户 :to :本金分账户}    ; 收入分账户
-                               {:if :加速清偿事件
-                                :breached
-                                    [{:from :本金分账户 :to :分配本金账户 :principal [:A-1.Balance :A-2.Balance]}]
-                                :unbreach
-                                    [{:from :本金分账户 :to :分配本金账户 :principal :A-1.Balance}
-                                     {:from :本金分账户 :to :分配本金账户 :principal :A-2.Balance}]
-                                }
-                               {:from :收入分账户 :to :分配本金账户 :principal :次级.Balance}
-                               {:from :收入分账户 :to :分配利息账户 :interest :次级.Interest}]
-                         :违约后 [
-                               {:from [:本金分账户 :收入分账户 :服务转移和通知储备账户 :税收储备账户] :to :信托收款账户}
-                               {:from :信托收款账户 :to :税收储备账户 :amount :增值税}
-                               {:from   :信托收款账户 :to :分配费用账户
-                                :amount [:法律顾问报酬 :会计师报酬 :初始评级费用 :承销报酬 :财务顾问报酬 :登记托管服务费]}
-                               {:from   :信托收款账户 :to :分配费用账户
-                                :amount [:受托机构报酬 :资金保管机构报酬 :支付代理机构报酬 :评级机构报酬 :审计师报酬 :后备贷款服务机构报酬 :报销]}
-                               {:from :信托收款账户 :to :分配利息账户 :amount [:A-1.DueInt :A-2.DueInt]}
-                               {:from :信托收款账户 :to :分配本金账户 :amount [:A-1.Balance :A-2.Balance]}
-                               {:from :信托收款账户 :to :分配本金账户 :amount :次级.Balance}
-                               {:from :收入分账户 :to :分配利息账户 :amount :次级.Interest}
-                               ]
-                         :终止  [
-                               {:from :信托账户 :to :税收储备账户 :amount :增值税}
-                               {:from :信托账户 :to :分配费用账户 :amount :清算费用}
-                               {:from   :信托收款账户 :to :分配费用账户
-                                :amount [:受托机构报酬 :资金保管机构报酬 :支付代理机构报酬 :评级机构报酬 :审计师报酬 :后备贷款服务机构报酬 :报销]}
-                               {:from :信托收款账户 :to :分配利息账户 :amount [:A-1.DueInt :A-2.DueInt]}
-                               {:from :信托收款账户 :to :分配本金账户 :amount [:A-1.Balance :A-2.Balance]}
-                               {:from :信托收款账户 :to :分配本金账户 :amount :次级.Balance}
-                               {:from :收入分账户 :to :分配利息账户 :amount :次级.Interest}
+                                    ]
+                                   ; 本金账户
+                                   {:from :本金回收款 :to :本金分账户 :fields ["principal"]}
+                                   ;{:from :本金分账户 :to :收入分账户 :amount nil} ;用于足额支付信托合同ai to a vii
+                                   {:from :收入分账户 :to :本金分账户} ; 收入分账户
+                                   [:加速清偿事件?
+                                    [
+                                     [{:from :本金分账户 :to :分配本金账户 :principal [:A-1 :A-2]}]
 
-                               ]
+                                     [{:from :本金分账户 :to :分配本金账户 :principal :A-1}
+                                      {:from :本金分账户 :to :分配本金账户 :principal :A-2}]
+                                     ]
+                                    ]
+                                   {:from :收入分账户 :to :分配本金账户 :principal :次级}
+                                   {:from :收入分账户 :to :分配利息账户 :interest :次级}
+                                   ]]
+
+                                 ]]
+              :受托报告     {
+                         "2019-01-01" {
+
+                                       :新增违约 10000.0
+                                       }
                          }
 
               })
@@ -151,7 +146,7 @@
   (let [accounts (cn/setup-accounts jy-info "2018-05-26")]
     (is (= (:name (second (first accounts))) :收入分账户))
     (is (= (:balance (second (first accounts))) 0))
-    (is (= (count accounts) 7))
+    (is (= (count accounts) 8))
     )
   )
 
@@ -173,7 +168,7 @@
 
 (deftest tFees
   (let [fees (cn/setup-expenses jy-info "2018-05-26")]
-    (is (= (count fees) 11))
+    (is (= (count fees) 3))
     )
   )
 
@@ -185,7 +180,12 @@
 
 (deftest tBond
   (let [bnds (cn/setup-bonds jy-info "2018-05-26")]
-    (is (= (count bnds) 3)))
+    (is (= (count bnds) 3))
+
+    ;(println bnds)
+    ;(is (= (count bnds) 3))
+
+    )
   )
 
 
@@ -196,7 +196,7 @@
     ))
 
 
-
+(def l-jy (cn/load-deal jy-info "2018-05-26"))
 
 (deftest tLoadBankDeal
   (let [jy-bank (cn/load-deal jy-info "2018-05-26")
@@ -204,7 +204,7 @@
 
         pl (get-in jy-bank [:update :资产池])
         col-int (get-in jy-bank [:projection :dates :calc-dates])
-        pool-cf (.collect-cashflow pl pool-assump col-int)
+        ;pool-cf (.collect-cashflow pl pool-assump col-int)
 
         ;finish-run-deal (cn/run-deal jy-bank pool-assump)
         calc-dates (get-in jy-bank [:projection :dates :calc-dates])
@@ -217,7 +217,7 @@
     (is (= (first calc-dates) (jt/local-date 2017 11 14)))
     ;(prn (get-in finish-run-deal [:projection :bond :A-2]))
 
-    (is (= ( get-in jy-bank [:projection :agg-map])   ))
+    ;(is (= (get-in jy-bank [:projection :agg-map])))
 
     ;(println pool-cf)
     )
@@ -231,14 +231,13 @@
 
   (let [jy-bank (cn/load-deal jy-info)
         update-date-loaded (get-in jy-bank [:update :info :update-date])]
-    (is (= update-date-loaded "2018-05-26"))
-    )
+    (is (= update-date-loaded "2018-05-26")) )
 
   )
 
 (deftest tPoolCf
   (let [jy-bank (cn/load-deal jy-info "2018-05-26")
-        pool (get-in jy-bank [:update :资产池])
+        pool (get-in jy-bank [:update :pool])
         calc-intervals (get-in jy-bank [:projection :dates :calc-dates])
         assmp (assump/build {:p {:name   :prepayment :type :cpr
                                  :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
@@ -248,13 +247,26 @@
                                  :values [0.5]}})
 
         pool-cf (.collect-cashflow pool assmp calc-intervals)
-
         ]
-    (prn pool-cf)
+    ;(println pool-cf)
 
     ;(prn (seq pool-cf))
     ;(prn (.columnNames pool-cf))
-
     )
-
   )
+(deftest tRunDeal
+  (let [jy-bank (cn/load-deal jy-info "2018-05-26")
+        ; pool (get-in jy-bank [:update :资产池])
+        ; calc-intervals (get-in jy-bank [:projection :dates :calc-dates])
+        assmp (assump/build {:p {:name   :prepayment :type :cpr
+                                 :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
+                                 :values [0.5]}
+                             :d {:name   :default :type :cdr
+                                 :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
+                                 :values [0.5]}})
+        deal-after-run (cn/run-deal jy-bank assmp)
+        ]
+
+    ;(println (s/select [:projection :bond :A-1] deal-after-run))
+
+    ))

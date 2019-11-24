@@ -5,8 +5,10 @@
     [clojucture.tranche :as b]
     [clojucture.expense :as exp]
     [clojucture.trigger :as trigger]
+    [clojucture.waterfall :as wf]
     [clojucture.pool :as p]
     [clojucture.util :as u]
+    [clojucture.spv :as spv]
     [clojucture.reader.base :as rb]
     [java-time :as jt]
     [clojure.core.match :as m]
@@ -14,7 +16,11 @@
     [clojure.string :as str]
     [medley.core :as mc]
     [clojure.java.io :as io]
-    [clojucture.util-cashflow :as uc])
+    [clojucture.util-cashflow :as uc]
+    [com.rpl.specter :as s]
+    [com.rpl.specter.zipper :as sz]
+    [clojure.zip :as zip]
+    [clojure.set :as set])
 
   (:use [clojure.core.match.regex])
   (:import [java.time LocalDate]
@@ -59,7 +65,7 @@
 
 (defn setup-assets [d u]
   (let [assets (get-in d [:snapshot u :资产池 :资产清单])
-        coll-type (get-in d [:信息 :资产池 :类型])]
+        coll-type (get-in d [:snapshot u :资产池 :类型])]
     (m/match coll-type
              :住房按揭 (map setup-asset-mortgage assets)
              :else nil)
@@ -67,7 +73,7 @@
 
 (defn setup-pool [d u]
   (let [assets (setup-assets d u)
-        cut-off-date (-> (get-in d [:信息 :资产池 :封包日]) (rb/parsing-dates))
+        cut-off-date (-> (get-in d [:snapshot u :资产池 :封包日]) (rb/parsing-dates))
         ]
     (p/->pool assets cut-off-date)
 
@@ -89,24 +95,14 @@
   )
 
 
-(defn setup-expense [x]
-  (m/match x
-           {:name n :last-paid-date pd :year-rate r :arrears ars}
-           (exp/->pct-expense-by-amount {:name n :pct r :day-count :ACT_365} nil pd ars)
-           {:name n :balance v :last-paid-date pd}
-           (exp/->amount-expense {:name n} nil pd v)
-           {:name n :last-paid-date pd :base-rate r :arrears ars}
-           (exp/->pct-expense-by-rate {:name n :pct r} nil pd ars)
-           :else :not-match-expense
-           )
-  )
+
 
 
 (defn setup-expenses [d u]
   (let [exps (get-in d [:snapshot u :费用])]
     (loop [r {} expense exps]
       (if-let [[k v] (first expense)]
-        (recur (assoc r k (setup-expense v)) (next expense))
+        (recur (assoc r k (exp/setup-expense v)) (next expense))
         r))))
 
 (defn setup-trigger [x]
@@ -142,41 +138,53 @@
         (recur (assoc r k (setup-bond v)) (next bonds))
         r))))
 
+(defn setup-trustee-report [ tr-report ]
+  (set/rename-keys tr-report
+                   {:新增违约 :new-default-balance}
+                   )
+  )
 
-(defn filter-projection-dates [ds ^LocalDate sp-date]
-  (let [dates-after-sp-date (fn [x] (if (instance? clojure.lang.PersistentVector x) (filter (partial jt/after? sp-date) x) x))]
-    (reduce-kv #(assoc %1 %2 (dates-after-sp-date %3)) {} ds)
-    ))
+(defn setup-trustee-reports [d]
+  (->>
+      (set/rename-keys d {:受托报告 :trustee-report})
+      (s/transform [:trustee-report s/ALL ] setup-trustee-report )
+      ))
+
+
 
 
 
 
 (defn load-deal
   ([deal-info u]
-  (let [; initialized deal from a clojure map
-        accounts (setup-accounts deal-info u)
-        dates (setup-dates deal-info)
-        pool (setup-pool deal-info u)
-        bond (setup-bonds deal-info u)
-        triggers (setup-triggers deal-info u)
-        expense (setup-expenses deal-info u)
-        base-snapshot-date (jt/local-date u)
-        ]
-    (-> deal-info
-        (assoc-in [:projection :dates] (filter-projection-dates dates base-snapshot-date)) ;need to trancate by update date
-        (assoc-in [:update :info] {:update-date u})
-        (assoc-in [:update :资产池] pool)
-        (assoc-in [:update :债券] bond)
-        (assoc-in [:update :税费] expense)
-        (assoc-in [:update :账户] accounts)
-        (assoc-in [:update :事件] triggers)
-        )
-    ))
-  ([ deal-info ]
-   (let [ avail-updates (:snapshot deal-info)
-         latest (-> (sort-by jt/local-date (keys avail-updates)) (last)) ]
-     (load-deal deal-info latest) )
-    )
+   (let [; initialized deal from a clojure map
+         accounts (setup-accounts deal-info u)
+         dates (setup-dates deal-info)
+         pool (setup-pool deal-info u)
+         bond (setup-bonds deal-info u)
+         triggers (setup-triggers deal-info u)
+         expense (setup-expenses deal-info u)
+         base-snapshot-date (jt/local-date u)
+
+         proj-start-index (get-in deal-info [:snapshot u :信息 :当前期数])
+         ]
+     (-> deal-info
+         (assoc-in [:projection :dates] (u/filter-projection-dates dates base-snapshot-date)) ;need to truncate by update date
+         (assoc-in [:update :info] {:update-date u})
+         (assoc-in [:update :pool] pool)
+         (assoc-in [:update :bond] bond)
+         (assoc-in [:update :expense] expense)
+         (assoc-in [:update :account] accounts)
+         (assoc-in [:update :trigger] triggers)
+         (assoc-in [:projection :period] (inc proj-start-index))
+         (assoc-in [:waterfall] (zip/vector-zip (:分配方式 deal-info))
+                   )
+         )))
+  ([deal-info]
+   (let [avail-updates (:snapshot deal-info)
+         latest (-> (sort-by jt/local-date (keys avail-updates)) (last))]
+     (load-deal deal-info latest))
+   )
   )
 
 
@@ -192,167 +200,35 @@
   (let [k (:name new-acc)]
     (assoc mp k new-acc)))
 
-(defn update-map-with-list [mp i-list]
-  (reduce (fn [x y] (update-map-by-name x y)) mp i-list))
-
-(defn distribute-funds [ pool-collection-with-pd proj-period accs exps bnds trgs dist-actions]
-  (let [fee? (fn [x] (contains? exps x))
-        account? (fn [x] (contains? accs x))
-        all-account? (fn [x] (every? account? x))
-        trigger? (fn [x] (contains? trgs x))
-        bond? (fn [x] (contains? bnds x))
-
-        pool-collection (doto (Row. pool-collection-with-pd) (.at proj-period))
-        pay-date (.getDate pool-collection "payment-date")
-
-
-        get-pc-field (fn [ pc f ] (.getDouble pc f) )
-        split-obj (fn [x] (-> x (name) (str/split #"\.") (first) (keyword)))
-
-        ]
-    (loop [actions dist-actions accounts accs expenses exps bonds bnds]
-      (if-let [action (first actions)]
-        (as->
-          (m/match action
-                   {:from pool-c :to t-cc :fields f-list}   ;:to target-acc :fields f-list }
-                   (let [_ (prn (.columnNames pool-collection))
-                         amounts-to-deposit (map #(.getDouble pool-collection %) f-list)
-                         acc-to-dep (accs t-cc)
-                         acc-u (.deposit acc-to-dep pay-date :pool-collection (reduce + amounts-to-deposit))
-                         ]
-                     [(update-map-with-list accounts [acc-u]) expenses bonds]
-                     )
-
-                   {:from source-acc :to target-acc :formula fml}
-                   (let [ a (get-pc-field pool-collection "default")
-                         b nil
-                         c nil
-                         d nil
-
-                         ]
-
-                     [accounts expenses bonds]
-                     )
-
-                   {:if trig-key :breached sub-actions-t :unbreach sub-actions-f}
-                   (let [test-trigger (trgs trig-key)]
-                     (if (:status test-trigger)
-                       (distribute-funds pay-date pool-collection accounts expenses bonds trgs sub-actions-t)
-                       (distribute-funds pay-date pool-collection accounts expenses bonds trgs sub-actions-f)))
-
-                   {:from source-acc :to target-acc :expense (obj :guard fee?) :with-limit-percentage pct}
-                   (let [exp (expenses obj)]
-                     [accounts expenses bonds]
-                     )
-                   {:from source-acc :to target-acc :expense (obj :guard seqable?)}
-                   (let []
-                     [accounts expenses bonds]
-                     )
-                   {:from source-acc :to target-acc :expense (obj :guard fee?)}
-                   (let [fee-to-pay (expenses obj)
-                         acc-to-pay (accounts source-acc)
-
-                         ]
-                     [accounts expenses bonds]
-                     )
-
-                   {:from source-acc :to target-acc :interest (obj :guard seqable?)}
-                   (let [acc-to-pay (accounts source-acc)
-                         objs-to-pay (map split-obj obj)
-                         bonds-to-pay (map bonds objs-to-pay)
-                         [acc-u bnd-u] (b/pay-bond-interest-pr pay-date acc-to-pay bonds-to-pay)
-                         ]
-                     [(update-map-with-list accounts [acc-u]) expenses (update-map-with-list bonds [bnd-u])]
-                     )
-
-                   {:from source-acc :to target-acc :interest (obj :guard bond?)  }
-                   (let [ b-name (split-obj obj)
-                         bond-to-pay (b-name bonds)
-                         s-acc (accounts source-acc)
-                         [acc-u bond-u] (b/pay-bond-interest pay-date s-acc bond-to-pay)
-                         ]
-                     [(assoc accounts source-acc acc-u) expenses (assoc bonds b-name bond-u)]
-                     )
 
 
 
-                   {:from source-acc :to target-acc :principal (obj :guard bond?) }
-                   (let [;s (name obj)
-                         b-name (split-obj obj)
-                         s-acc (accounts source-acc)
-                         bond-to-pay (-> (keyword b-name) (bonds))
-                         [acc-u bond-u] (b/pay-bond-principal pay-date s-acc bond-to-pay)
-                         ]
-                     [ (assoc accounts source-acc acc-u) expenses (assoc bonds b-name bond-u)]
-                     )
-
-                   {:from (source-acc :guard account?) :to (target-acc :guard account?)}
-                   (let [[s-acc t-acc] (acc/transfer-fund (accounts source-acc) (accounts target-acc) pay-date)
-                         up-accs (update-map-with-list accounts [s-acc t-acc])
-                         ]
-                     [up-accs expenses bonds]
-                     )
-
-                   {:from (acc-key-list :guard all-account?) :to (acc-key :guard account?)}
-                   (let [source-acc-list (-> (select-keys accounts acc-key-list) (vals))
-                         target-acc (accounts acc-key)
-                         [update-s-accs update-t-acc] (acc/transfer-funds source-acc-list target-acc pay-date)
-                         up-accs (update-map-with-list accounts (conj update-s-accs update-t-acc))]
-                     [up-accs expenses bonds])
-
-                   {:from (source-acc :guard account?) :to (target-acc :guard account?) :amount (amt :guard number?)}
-                   (let [[s-acc t-acc] (acc/transfer-fund (accounts source-acc) (accounts target-acc) pay-date amt)
-                         up-accs (update-map-with-list accounts [s-acc t-acc])]
-                     [up-accs expenses bonds])
-
-                   :else (throw (Exception. "NOT MATCH"))   ;[ accounts expenses bonds ]
-                   )
-          [updated-accs updated-exps updated-bnds]
-          (recur (next actions) updated-accs updated-exps updated-bnds))
-        [accounts expenses bonds trgs]
-        )
-      )
-    )
-  )
-
-
-(defn run-deal [ deal assump ]
-  "project bond/pool cashflow given assumptions passed "
-  (let [pool (get-in deal [:update :资产池])
+(defn run-deal [deal assump]
+  "project bond/pool cashflow given assumptions passed in"
+  (let [pool (get-in deal [:update :pool])
         coll-dates (get-in deal [:projection :dates :calc-dates])
 
         pool-cf (.collect-cashflow pool assump coll-dates)
+        pool-cf-size (.rowCount pool-cf)
 
-        pay-dates (-> (get-in deal [:projection :dates :pay-dates]) (u/dates))
-        pay-dates-col (u/gen-column [:payment-date  pay-dates])
+        pay-dates (-> (get-in deal [:projection :dates :pay-dates]) (vec) (subvec 0 pool-cf-size))
+        pay-dates-col (u/gen-column {:name :payment-date :type :date :values pay-dates})
         pool-cf-pd (.addColumns pool-cf (into-array AbstractColumn [pay-dates-col])) ; pool cashflow with bond payment dates
 
-        wf (:分配方式 deal)
+        current-wf (deal :waterfall)
+        proj-starting-per (get-in deal [:projection :period])
 
-        bnds (get-in deal [:update :债券])
-        accs (get-in deal [:update :账户])
-        exps (get-in deal [:update :税费])
-        trgs (get-in deal [:update :事件])
+        ;preparation for projection, copy account/triggers/bonds/assets from `update` to `projection`
+        deal-for-proj (spv/copy-update-to-proj deal)
+        deal-for-proj2 (assoc-in deal-for-proj [:projection :pool-collection] pool-cf-pd)
+
         ]
-    (loop [ bonds bnds accounts accs expenses exps triggers trgs proj-index 0]
-      (if (<= proj-index (.rowCount pool-cf-pd) )
-        (let [ eod (:违约事件 triggers)
-              current-wf (if (:status eod) (:违约后 wf) (:违约前 wf))
-              [acc-u exp-u bnd-u trg-u] (distribute-funds pool-cf-pd proj-index  accounts expenses bonds triggers current-wf)]
-          (recur bnd-u acc-u exp-u trg-u (inc proj-index)))
-        (-> deal
-            (assoc-in [:projection :bond] bonds)
-            (assoc-in [:projection :account] accounts)
-            (assoc-in [:projection :expense] expenses)
-            (assoc-in [:projection :triggers] triggers)
-            )
-        )
-      )
-    )
+
+    (loop [dp deal-for-proj2 proj-index 0]
+      (if (< (get-in dp [:projection :period])  (.rowCount pool-cf-pd))
+        (let [pay-date (-> (doto (Row. pool-cf-pd) (.at proj-index)) (.getDate "payment-date"))
+              [ update-d run-path ] (wf/walk-waterfall current-wf dp pay-date)]
+          (recur update-d (inc proj-index)))
+        dp)))
   )
 
-(defn dump-deal [ d ]
-  (let [ d-map (into {} d)]
-
-    )
-  )
