@@ -83,6 +83,7 @@
              )
   )
 
+(comment
 (defn cn-load-model! [ wb-path ]
   (let [ wb (load-workbook wb-path)
         info-s (select-sheet "info" wb)
@@ -147,6 +148,6 @@
          }}
       )
     )
-  )
+  ))
 
 
