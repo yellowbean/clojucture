@@ -1,9 +1,10 @@
 (ns clojucture.spv_test
   (:require
     [clojure.test :refer :all]
-    [clojucture.spv :as spv ]
-    [clojucture.local.china :as cn ]
-    [clojucture.local.china-test :as cn-t ]
+    [clojucture.spv :as spv]
+    [clojucture.assumption :as assump]
+    [clojucture.local.china :as cn]
+    [clojucture.local.china-test :as cn-t]
     [java-time :as jt]))
 
 
@@ -14,7 +15,16 @@
 
 
 (deftest query-deal
-  (let [jy-bank (cn/load-deal cn-t/jy-info "2018-05-26") ]
+  (let [jy-bank (cn/load-deal cn-t/jy-info "2018-05-26")
+        assmp (assump/build {:p {:name   :prepayment :type :cpr
+                                 :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
+                                 :values [0.5]}
+                             :d {:name   :default :type :cdr
+                                 :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
+                                 :values [0.5]}})
+        ;deal-run (cn/run-deal jy-bank assmp)
+
+        ]
     ; test current total bond balance
     (is (=
           (spv/query-deal jy-bank [:update :bond :sum-current-balance]))
@@ -24,8 +34,15 @@
           (spv/query-deal jy-bank [:update :pool :sum-current-balance]))
         (+ 101e7 101e7))
 
-    ;(println (spv/query-deal jy-bank [:update :pool :sum-current-balance]))
+    ;(is (<                                                  ;TBD
+    ;      (spv/query-deal jy-bank [:projection :bond :sum-current-balance]))
+    ;    100)
 
+    ;(comment
+      ;(prn  " TOTOAL POOL BALANCE: "                                             ; TBD
+       ;     (spv/query-deal deal-run [:projection :pool :sum-current-balance])
+       ;   )
+    ;  )
     )
 
   )
@@ -92,4 +109,13 @@
       )
     )
 
+  )
+
+(deftest formula-eval
+  (let [for-1 "[:a :b :c] + [:c :d]"
+        vs-1 ["1" "2"]
+        ]
+    ;(prn (spv/eval-formula for-1 vs-1))
+    ;(is (= "1 + 2" (spv/eval-formula for-1 vs-1)))
+    )
   )

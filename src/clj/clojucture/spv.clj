@@ -2,15 +2,17 @@
   (:require [clojure.edn :as edn]
             [clojucture.tranche :as b]
             [clojucture.asset :as a]
+            [clojucture.account :as acc]
             [clojucture.pool :as p]
             [java-time :as jt]
             [clojucture.util :as u]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.core.match :as m]
-            [clojucture.expense :as exp]
-            [clojucture.local.china :as cn]
             [com.rpl.specter :as s]
-            [com.rpl.specter.macros :as sm])
+            [com.rpl.specter.macros :as sm]
+            [infix.macros :as mc ]
+            )
   (:import [tech.tablesaw.api ColumnType Table Row]
            [tech.tablesaw.columns AbstractColumn Column]
            [java.time LocalDate]
@@ -21,6 +23,7 @@
 
 
 (defn list-snapshots [d]
+  "list snapshot : d -> deal map"
   (d :snapshot))
 
 
@@ -75,14 +78,6 @@
         ]
     (.addColumns dates-column tb)))
 
-;; simple deal structure without any localization
-;; (defrecord deal [ info status pool waterfall bond ])
-(defn b-find-cutoff [d ^LocalDate payment-date]
-  (let [dd (get-in d [:info :delay-days])]
-
-    )
-
-  )
 
 (defn init-deal [d]
   "Popluate deal variables base on deal info ( static data )"
@@ -124,44 +119,6 @@
 
 
 
-
-(defn load-deal-from-file [f-path]
-  "read deal edn file into memory, return a map"
-  (let [deal-inst (-> (slurp f-path) (edn/read-string))]
-    (m/match deal-inst
-             {:info {:flavor "china"}} (cn/load-deal deal-inst)
-
-
-             :else :not-found-local-deal
-             )
-    ))
-
-
-;; run a deal, it will dispatch input deal to different local namespaces
-(defn run-deal [deal assump]
-  (m/match deal
-           {:info {:flavor "china"}} (cn/run-deal deal assump)
-
-
-
-           :else :not-found-local-deal
-           )
-  )
-
-
-
-
-(defn build-deal [m]
-  (->
-    (m/match m
-             {:info {:country :China} :status s}
-             (assoc m :tax-bond-vat 0.03)
-             :else nil
-             )
-    (init-deal))
-  )
-
-
 (defn run-assets [d assump]
   (let [pool-collect-int (gen-pool-collect-interval (:info d))]
     (-> {:deal d}
@@ -171,13 +128,6 @@
   )
 
 
-(defn choose-distribution-fun [d]
-  "Pick a distribution function by deal country"
-  (m/match d
-           {:country :China} :china-distribute-function
-           :else nil
-           )
-  )
 
 (defn pick-deposit-row [pool-cf ^LocalDate d]
   (loop [r-flag (Row. pool-cf)]
@@ -186,6 +136,11 @@
       (recur (.next r-flag))
       )
     )
+  )
+
+
+(defn- choose-distribution-fun [ d ]
+  nil
   )
 
 
@@ -217,18 +172,97 @@
   )
 
 
+
+(defn get-pool-collection
+  ([d ^Integer per]
+   (let [ pool-cf (get-in d [:projection :pool-collection]) ]
+     (if (> per  (.rowCount pool-cf))
+       (throw (Exception.  (str "Invalid Per for Pool Size" per ", pool cf row count " (.rowCount pool-cf)  )))
+       (doto (Row. pool-cf) (.at per)))))
+
+  ([d ^Integer per field field-type]
+   (let [pc (get-pool-collection d per)]
+     (case field-type
+       :double (.getDouble pc (name field))
+       :date (.getDate pc (name field))
+       ))))
+
 (defn query-deal [d e]
   "query deal statistic by expression "
+  ;(prn "Matching " e)                                       ;
   (m/match e
            [:projection :bond :sum-current-balance]
-           (reduce + 0 (s/select [:projection :bond s/ALL s/LAST :balance] d))
+           (reduce + 0 (s/select [:projection :bond s/ALL :balance] d))
+
            [:projection :pool :sum-current-balance]
-           (reduce + 0 (s/select [:projection :pool s/ALL s/LAST :balance] d))
+           (reduce + 0 (s/select [:projection :pool :assets s/ALL :current-balance] d))
+
+           [:projection :trigger trg :status]
+           (:status (s/select-one [:projection :trigger trg] d))
+
            [:update :bond :sum-current-balance]
            (reduce + 0 (s/select [:update :bond s/ALL s/LAST :balance] d))
+
            [:update :pool :sum-current-balance]
            (reduce + 0 (s/select [:update :pool :assets s/ALL :current-balance] d))
-           :else :not-match-query-expression
-           )
 
-  )
+           [:trustee-report :sum-new-default-current-balance]
+           (reduce + 0 (s/select [:trustee-report s/ALL :new-default-balance] d))
+
+           [:current-collection (c-field-list :guard list?)]
+           (map #(query-deal d [:current-collection %]) c-field-list)
+
+           [:current-collection :sum-new-default-current-balance]
+           (get-pool-collection d (get-in d [:projection :period]) :default :double)
+
+           [:current-collection c-field]
+           (get-pool-collection d (get-in d [:projection :period]) c-field :double)
+
+
+           [:post-collection :sum-new-default-current-balance] ; history + projection
+           (let [history-new-default-bal (query-deal d [:trustee-report :sum-new-default-current-balance] )
+                 current-deal-per (get-in d [:projection :period])
+                 proj-new-default-bal (reduce +
+                                              (for [x (range 1 current-deal-per)]
+                                                (get-pool-collection d x :default :double)))]
+             (+ proj-new-default-bal history-new-default-bal))
+
+           [:post-dist source-key :transfer-to target-key :sum-amount] ;在以往 所有的“信托分配日”按照信托合同第 9.2(b)(i)项已从“本金分账户”转至“收 入分账户”的金额
+           (let [acc (s/select-one [:projection :account source-key] d)
+                 selected-stmts (acc/select-stmts acc {:to target-key})]
+             (reduce +
+                     (s/select [s/ALL :amount] selected-stmts))
+             )
+
+
+           [:post-dist source-key :transfer-to target-key :net-amount] ;在以往 所有的“信托分配日”按照信托合同第 9.2(b)(i)项已从“本金分账户”转至“收 入分账户”的金额
+           (let [acc (s/select-one [:projection :account source-key] d)
+                 to-stmts (acc/select-stmts acc {:to target-key})
+                 from-stmts (acc/select-stmts acc {:from target-key})]
+             (- (acc/sum-stmts to-stmts) (acc/sum-stmts from-stmts)))
+
+           :else nil
+           ;:else (do (prn "Not match expression: " e ) (throw (Exception. "Not match query ")) )
+
+           ))
+
+
+(defn- repl-formula [s x]
+  (str/replace-first s #"\[.*?\]" (str "(" (format "%.8f" (double x)) ")")) )
+
+(defn eval-formula [fml-s vs]
+  (mc/from-string
+    (reduce repl-formula fml-s vs)))
+
+(defn evaluate-formula [d fml]
+  "evaluate formula: d -> deal map , fml -> string formula"
+  (let [fml-t (-> (str/replace fml #"\n" "") )
+        deal-vars-strs (map read-string (re-seq #"\[.*?\]" fml-t))
+        deal-vars (map #(query-deal d %) deal-vars-strs)
+      fml-v (eval-formula fml-t deal-vars)]
+    (fml-v)))
+
+
+(defn copy-update-to-proj [d]
+  (let [cpy-fn (fn [v f] (assoc-in v [:projection f] (get-in v [:update f])))]
+    (reduce cpy-fn d [:account :expense :trigger :bond :pool])))
