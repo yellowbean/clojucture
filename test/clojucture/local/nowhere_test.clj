@@ -13,7 +13,7 @@
         load-d (br/load-deal d-map)
         run-d (nw/run-deal load-d nil)
         ]
-    (prn (get-in run-d [:projection :bond] ))
+    ;(get-in run-d [:projection :bond])
     ;(prn (get-in run-d [:projection ]))
 
     )

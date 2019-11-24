@@ -31,7 +31,7 @@
 
 (defn distribute [updating-deal action ^LocalDate pay-date]
   "Execute a `step` or `action` or `change` on the deal map and return with deal updated "
-  (m/match (do (println "CURRENT ACTION: " action) action)
+  (m/match action
            {:from pool-c :to to-acc :fields f-list}         ;transfer cash from pool collection to deal accounts
            (let [
                  current-period (get-in updating-deal [:projection :period] )
@@ -211,7 +211,8 @@
   ([tree deal ^LocalDate pay-date ^Integer max-walks]
    (loop [tr tree updating-deal deal path [] i 0]
      ;(prn "paths " path)
-     (prn "running node: " (zip/node tr) "i:" i)
+     ;(prn "running node: " (zip/node tr) "i:" i)
+     (prn "period: " i)
 
      (if (or (zip/end? tr) (> i max-walks))
        ; final result
