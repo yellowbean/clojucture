@@ -89,17 +89,19 @@
   ))
 
 
-(defn pay-bond-interest-pr [ d acc bond-list ]
-  "pay bond interest by pro-rata"
-  (let [ all-due-int  (map #(.cal-due-interest % d) bond-list)
+(defn pay-bond-interest-pr [ d acc bond-map ]
+  "pay bond interest by pro-rata, return [ acc, new bond-map]"
+  (let [
+        bond-list (vals bond-map)
+        all-due-int  (map #(.cal-due-interest %2 d) bond-list)
         total-bal (:balance acc)
         int-to-each-bond (u/calc-pro-rata total-bal all-due-int)
         int-bond-pair (map vector bond-list int-to-each-bond)
         total-draw (reduce + int-to-each-bond)
-        acc-after-paid (.try-withdraw acc d "prorata-bond" total-draw)
         bnds-after-paid (map #(-pay-interest %1 d %2 0) int-bond-pair)
+        acc-after-paid (.try-withdraw acc d "prorata-bond" total-draw)
         ]
-    [acc-after-paid bnds-after-paid]
+    [acc-after-paid (into {} (map vector (keys bond-map) bnds-after-paid))]
     )
   )
 
@@ -126,17 +128,28 @@
   )
 
 
-
+(defn- read-last-payment-date [x]
+  {:principal (jt/local-date (:principal x))
+   :interest (jt/local-date (:interest x))} )
 
 (defn setup-bond [ m ]
-  "factory function : create bond instance base on input `m` "
+  "factory function : create bond instance base on input map `m` "
   (m/match m
      {:type :sequential :info i
-       :balance bal :rate r :stmts stmts :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss}
-           (->sequence-bond i bal r stmts last-payment-date int-arrears prin-loss)
+       :balance bal :rate r :stmts stmts
+       :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss}
+           (->sequence-bond i bal r stmts (read-last-payment-date last-payment-date) int-arrears prin-loss)
      {:type :schedule :info i
-      :balance bal :rate r :stmts stmts :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss }
-           (->schedule-bond i bal r stmts last-payment-date int-arrears prin-loss)
-      :else nil
+      :balance bal :rate r :stmts stmts
+      :last-payment-date last-payment-date :interest-arrears int-arrears :principal-loss prin-loss }
+           (->schedule-bond i bal r stmts (read-last-payment-date last-payment-date) int-arrears prin-loss)
+      :else :not-match-bond
      )
+  )
+
+(defn view-bond-flow [ b ]
+  (let [ statements (:stmts b)]
+
+
+    )
   )
