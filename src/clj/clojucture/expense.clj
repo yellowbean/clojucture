@@ -1,11 +1,11 @@
 (ns clojucture.expense
   (:require
     [clojucture.account :as acc]
+    [clojucture.spv :as spv]
     [java-time :as jt]
     [clojucture.util :as u]
     [clojure.core.match :as m]
-    [medley.core :as mc]
-    )
+    [com.rpl.specter :as s])
   (:import [java.time LocalDate Period]
            )
   )
@@ -13,6 +13,28 @@
 
 (defprotocol pExpense
   (receive [x d amount])
+  )
+
+(defn cal-due-expense [deal exp calc-date]
+  "calculate due expense during the projection"
+  (prn "exp to match:")
+  (prn (into {} exp))
+  (m/match (into {} exp)
+
+           {:info {:base epr :pct pct} :arrears ars}
+           (let [deal-val (spv/query-deal deal epr) ]
+             (-> (* deal-val pct) (+ ars)))
+
+           {:info {:base epr :annual-pct pct} :last-paid-date lpd :day-count dc :arrears ars}
+           (let [deal-val (spv/query-deal deal epr)]
+             (-> (u/get-period-rate (Period/between lpd calc-date) pct dc))
+             (* deal-val) (+ ars))
+
+           {:info {:name x} :balance bal }
+             bal
+
+           :else :not-match-exp-due
+           )
   )
 
 (defn pay-expense-at-base
@@ -33,7 +55,7 @@
 
 (defn -pay-expense-amount [^LocalDate d acc expense amt]
   (let [draw-amount (min (.balance acc) amt)
-        new-acc (.try-withdraw acc d (:info acc) draw-amount)]
+        new-acc (.try-withdraw acc d (:name acc) draw-amount)]
     [new-acc (.receive expense d draw-amount)]
     )
   )
@@ -45,7 +67,8 @@
            (min r due-amount)
            {:upper-limit-pct p}
            (* due-amount p)
-           :else nil))
+           :else Integer/MAX_VALUE
+           ))
 
 
 (defn pay-expense [deal ^LocalDate d source-acc expense opt]
@@ -82,12 +105,10 @@
          total-due-factors (map #(/ % total-due-amount) due-amt-list)
          avail-amount (.balance source-acc)
          total-payment (min avail-amount (apply-rule total-due-amount opt))]
-     (distribute-amount-to-expenses total-payment d total-due-factors source-acc exp-map)
-     ))
+     (distribute-amount-to-expenses total-payment d total-due-factors source-acc exp-map)))
+
   ([deal ^LocalDate d source-acc exp-map]
-   (pay-expenses-pr deal d source-acc exp-map nil)
-   )
-  )
+   (pay-expenses-pr deal d source-acc exp-map nil)))
 
 
 
@@ -162,16 +183,19 @@
   )
 
 
-
 (defn setup-expense [x]
+  ;(prn "matching exp: " x)
   (m/match x
-           {:name n :last-paid-date pd :year-rate r :arrears ars}
-           (->pct-expense-by-amount {:name n :pct r :day-count :ACT_365} nil pd ars)
+           {:name n :info {:base bse :annual-pct pct } :last-paid-date pd :arrears ars}
+           (->pct-expense-by-amount {:name n :base bse :pct pct :day-count :ACT_365} [] pd ars)
+
            {:name n :balance v :last-paid-date pd}
-           (->amount-expense {:name n} nil pd v)
-           {:name n :last-paid-date pd :base-rate r :arrears ars}
-           (->pct-expense-by-rate {:name n :pct r} nil pd ars)
-           :else :not-match-expense
+           (->amount-expense {:name n} [] pd v)
+
+           {:name n :info {:base bse :pct pct } :last-paid-date pd :arrears ars}
+           (->pct-expense-by-rate {:name n :base bse :pct pct} [] pd ars)
+
+           :else  (prn "failed to match " x)
            )
   )
 
