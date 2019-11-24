@@ -264,7 +264,7 @@
                              :d {:name   :default :type :cdr
                                  :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
                                  :values [0.5]}})
-        deal-after-run (cn/run-deal jy-bank assmp)
+        ;deal-after-run (cn/run-deal jy-bank assmp)
         ]
 
     ;(println (s/select [:projection :bond :A-1] deal-after-run))
