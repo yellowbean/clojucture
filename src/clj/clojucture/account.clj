@@ -1,7 +1,8 @@
 (ns clojucture.account
   (:require
     [clojure.core.match :as m]
-    [com.rpl.specter :as s])
+    [com.rpl.specter :as s]
+    [clojucture.util :as u])
   (:import
     [java.time LocalDate]))
 
@@ -34,10 +35,10 @@
   (let [stmts (:stmts x)]
     (m/match e
              {:to target}
-             (s/select [  s/ALL  #(= (:to %) target) ] stmts)
+             (s/select [s/ALL #(= (:to %) target)] stmts)
 
              {:from source}
-             (s/select [  s/ALL  #(= % (:from %) source) ] stmts)
+             (s/select [s/ALL #(= % (:from %) source)] stmts)
 
              :else :not-match-stmts-pattern
              )
@@ -45,11 +46,11 @@
     )
   )
 
-(defn sum-stmts [ x ]
+(defn sum-stmts [x]
   (if (nil? x)
     0
-    (reduce + (s/select [s/ALL :amount] x ) ) )
-   )
+    (reduce + (s/select [s/ALL :amount] x)))
+  )
 
 
 (defrecord account [name type ^Double balance stmts]
@@ -123,14 +124,32 @@
     ))
 
 
-(defn setup-account [ x ]
+(defn setup-account [x]
   (m/match x
            {:name n :balance b :stmts txn}
            (map->account {:name n :type nil :stmts txn :balance b})
            {:name n :balance b}
            (map->account {:name n :type nil :stmts [] :balance b})
 
-
-
            )
+  )
+
+(defn view-stmts [stmts]
+  (let [
+        ds (s/select [s/ALL :date] stmts)
+        fs (s/select [s/ALL :from s/NAME] stmts)
+        ts (s/select [s/ALL :to s/NAME] stmts)
+        amts (s/select [s/ALL :amount] stmts)
+        ; infos (->> (s/select [ s/ALL  :info ]  stmts )
+        ; TBD not determine the infos structure yet
+        ]
+    (u/gen-table "statements" [
+                               {:name :date :type :date :values ds}
+                               {:name :from :type :string :values fs}
+                               {:name :to :type :string :values ts}
+                               {:name :amount :type :double :values amts}
+                               ] )
+
+    )
+
   )

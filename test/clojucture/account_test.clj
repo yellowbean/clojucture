@@ -139,6 +139,9 @@
     (is (= (:balance acc-2) 100.0))
 
     (is (= (count  (:stmts acc-2) ) 1))
+
+    (is (= (.rowCount  (acc/view-stmts t-txn))))
+
     )
 
 
