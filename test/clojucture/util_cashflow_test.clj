@@ -100,24 +100,42 @@
 (deftest tAddBal
 
   (let [t-cf (io-csv/read-cf "pool_cfs_add_bal.csv" [:date :double :double])
-        t-cf-with-bal (cfu/add-end-bal-column t-cf 2575) ; add with end balance
+        t-cf-with-bal (cfu/add-end-bal-column t-cf 2575)    ; add with end balance
         end-bal-col (.column t-cf-with-bal "end-balance")
 
         t-cf-with-beg-bal (cfu/add-beg-bal-column t-cf 2575) ; add with end balance
         beg-bal-col (.column t-cf-with-beg-bal "begin-balance")
 
         ]
-    (is (=  (.get end-bal-col 0 ) 2275.0))
-    (is (=  (.get end-bal-col 1 ) 1990.0))
-    (is (=  (.get end-bal-col 10 ) 100.0))
-    (is (=  (.get end-bal-col 11 ) 0.0))
+    (is (= (.get end-bal-col 0) 2275.0))
+    (is (= (.get end-bal-col 1) 1990.0))
+    (is (= (.get end-bal-col 10) 100.0))
+    (is (= (.get end-bal-col 11) 0.0))
 
 
-    (is (=  (.get beg-bal-col 0 ) 2575.0))
-    (is (=  (.get beg-bal-col 1 ) 2275.0))
-    (is (=  (.get beg-bal-col 11 ) 100.0))
-    (is (=  (.get beg-bal-col 12 ) 0.0))
-    ) )
+    (is (= (.get beg-bal-col 0) 2575.0))
+    (is (= (.get beg-bal-col 1) 2275.0))
+    (is (= (.get beg-bal-col 11) 100.0))
+    (is (= (.get beg-bal-col 12) 0.0))
+    ))
+
+
+(deftest tAggCfByInterval
+  (let [t-cf (io-csv/read-cf "pool_cfs_agg.csv" [:date :double :double])
+        agg-cf (cfu/agg-cashflow-by-interval t-cf [ (jt/local-date 2019 4 1) (jt/local-date 2019 8 1)]   )
+        prin-col (.column agg-cf "principal")
+        int-col (.column agg-cf "interest") ]
+
+    (is (= 855.0 (.get prin-col 0)))
+    (is (= 930.0 (.get prin-col 1)))
+    (is (= 690.0 (.get prin-col 2)))
+
+    (is (= 66.0 (.get int-col 0)))
+    (is (= 20.0 (.get int-col 1)))
+    (is (= 20.0 (.get int-col 2)))
+
+    )
+  )
 
 
 (comment

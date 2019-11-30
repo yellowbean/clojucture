@@ -129,8 +129,8 @@
   (let [
         date-col (.dateColumn x "dates")
         first-date (.min date-col)
-        last-date (.max date-col)
-        trancated-date-list (filter #(and (.isBefore % last-date) (.isAfter % first-date)) date-list)
+        last-date (-> (.max date-col) (jt/plus (jt/days 1)))
+        trancated-date-list (filterv #(and (.isBefore % last-date) (.isAfter % first-date)) date-list)
         date-intervals (u/gen-dates-interval (cons first-date (conj trancated-date-list last-date)))
 
         sel-list (map #(.isBetweenIncluding date-col (first %) (second %)) date-intervals)
