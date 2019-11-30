@@ -97,6 +97,27 @@
   )
 
 
+(deftest tAddBal
+
+  (let [t-cf (io-csv/read-cf "pool_cfs_add_bal.csv" [:date :double :double])
+        t-cf-with-bal (cfu/add-end-bal-column t-cf 2575) ; add with end balance
+        end-bal-col (.column t-cf-with-bal "end-balance")
+
+        t-cf-with-beg-bal (cfu/add-beg-bal-column t-cf 2575) ; add with end balance
+        beg-bal-col (.column t-cf-with-beg-bal "begin-balance")
+
+        ]
+    (is (=  (.get end-bal-col 0 ) 2275.0))
+    (is (=  (.get end-bal-col 1 ) 1990.0))
+    (is (=  (.get end-bal-col 10 ) 100.0))
+    (is (=  (.get end-bal-col 11 ) 0.0))
+
+
+    (is (=  (.get beg-bal-col 0 ) 2575.0))
+    (is (=  (.get beg-bal-col 1 ) 2275.0))
+    (is (=  (.get beg-bal-col 11 ) 100.0))
+    (is (=  (.get beg-bal-col 12 ) 0.0))
+    ) )
 
 
 (comment

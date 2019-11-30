@@ -165,7 +165,48 @@
            :<= (.isOnOrBefore date-col d)
            :< (.isBefore date-col d)
            := (.isEqualTo date-col d)
-           :else nil )
+           :else nil)
          (.where x)
          ))
   )
+
+(defn- gen-end-balance
+  "Generate ending balance vector given input of principal flow and initial balance"
+  [^"[D" ary-prin ^Double init_balance]
+  (let [ary-prin-size (alength ary-prin)
+        first-remain-bal (->> (aget ary-prin 0) (- init_balance))
+        ary-bal (double-array ary-prin-size first-remain-bal)]
+    (doseq [i (range 1 ary-prin-size)]
+      (aset-double ary-bal
+                   i
+                   (- (aget ary-bal (dec i)) (aget ary-prin i))))
+    ary-bal))
+
+(defn- gen-beg-balance
+  "Generate begining balance vector given input of principal flow and initial balance"
+  [^"[D" ary-prin ^Double init_balance]
+   (let [ary-prin-size (alength ary-prin)
+         ary-bal (double-array ary-prin-size init_balance)]
+     (doseq [i (range 1 ary-prin-size)]
+       (aset-double ary-bal
+                    i
+                    (- (aget ary-bal (dec i)) (aget ary-prin (dec i) ))))
+     ary-bal))
+
+
+
+(defn add-end-bal-column [^Table x ^Double init-bal ]
+  (let [prin-ary (-> (.column x "principal") (.asDoubleArray))
+        bal-array (gen-end-balance prin-ary init-bal) ]
+    (.addColumns x
+      (into-array AbstractColumn [(DoubleColumn/create "end-balance" bal-array)] ) )
+    ))
+
+(defn add-beg-bal-column [^Table x ^Double init-bal ]
+  (let [prin-ary (-> (.column x "principal") (.asDoubleArray))
+          bal-array (gen-beg-balance prin-ary init-bal) ]
+      (.addColumns x
+        (into-array AbstractColumn [(DoubleColumn/create "begin-balance" bal-array)] ) )
+      )
+  )
+
