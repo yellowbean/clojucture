@@ -9,6 +9,7 @@
     [clojucture.util :as u]
     [clojucture.cashflow-test :as cf-t]
     [clojucture.account-test :as ac-t]
+    [clojucture.testing-utils :as tu]
     [clojucture.asset-test :as at-t])
 
   (:import [tech.tablesaw.api Row]
@@ -35,7 +36,6 @@
 (use-fixtures :each init-t-pool)
 
 
-
 (deftest pool-cf-test
   (let [pool-cf (.project-cashflow (p/->pool [at-t/test-mortgage] (jt/local-date 2016 6 1)))
         sum-int (-> (.column pool-cf "interest") (.sum))
@@ -47,6 +47,41 @@
     (is (= (.rowCount pool-cf) 24))
     )
   )
+
+(deftest pool-agg-test
+  (let [pool-cf (->
+                  (p/->pool [at-t/test-mortgage] (jt/local-date 2016 6 1))
+                  (.collect-cashflow nil [(jt/local-date 2017 1 1) (jt/local-date 2018 1 1)]))
+
+        prin-col (.column pool-cf "principal")
+        [p1 p2 p3] (map #(.get prin-col %) (range 3))
+        int-col (.column pool-cf "interest")
+        [i1 i2 i3] (map #(.get int-col %) (range 3))
+        beg-date-col (.column pool-cf "starting-date")
+        [b1 b2 b3] (map #(.get beg-date-col %) (range 3))
+        end-date-col (.column pool-cf "ending-date")
+        [e1 e2 e3] (map #(.get end-date-col %) (range 3))
+        rc (.rowCount pool-cf)
+        ]
+    (is (= 3 rc))
+
+    (is (tu/close-to p1 2992.122))
+    (is (tu/close-to p2 5640.0861))
+    (is (tu/close-to p3 2556.1892))
+    (is (tu/close-to i1 694.6150))
+    (is (tu/close-to i2 680.0344))
+    (is (tu/close-to i3 77.1944))
+    (is (= b1 (jt/local-date 2016 6 5)))
+    (is (= b2 (jt/local-date 2017 1 1)))
+    (is (= b3 (jt/local-date 2018 1 1)))
+    (is (= e1 (jt/local-date 2016 12 31)))
+    (is (= e2 (jt/local-date 2017 12 31)))
+    (is (= e3 (jt/local-date 2018 5 5)))
+
+
+    )
+  )
+
 
 (comment
   (deftest deposit-from-pool
