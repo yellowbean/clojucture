@@ -26,8 +26,6 @@
 (def config (atom {:port 3001 :directory "C:\\changer\\engine\\resources"}))
 ;(def config (atom {}))
 
-(comment
-
   (defn list-deals [ws-id]
     "list all deals(files end with `edn`) in workspace"
     (let [all-file-list (seq (.list (io/file (:directory @config) ws-id)))]
@@ -71,8 +69,8 @@
     (let [deal-loaded (read-deal ws-id deal-file-name)
           assump-to-run (read-assumption assump)]
       ;(println "ASTR" assump-to-run)
-      (:projection (spv/run-deal deal-loaded assump-to-run))
-
+      ;(:projection (spv/run-deal deal-loaded assump-to-run))
+      nil
       ))
 
   (defroutes local-server
@@ -124,4 +122,3 @@
       (start-server @config)
       ))
 
-  )

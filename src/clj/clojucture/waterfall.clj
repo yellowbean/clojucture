@@ -31,12 +31,15 @@
 
 (defn distribute [updating-deal action ^LocalDate pay-date]
   "Execute a `step` or `action` or `change` on the deal map and return with deal updated "
-  (m/match action
+  (m/match (do
+             (prn "matching action" action)
+             ;(prn "expense keys" (s/select [:update :expense s/MAP-KEYS] updating-deal))
+             ;(prn "Distributing")
+             action)
            {:from pool-c :to to-acc :fields f-list}         ;transfer cash from pool collection to deal accounts
            (let [
                  current-period (get-in updating-deal [:projection :period] )
                  collection-at-period (spv/get-pool-collection updating-deal current-period)
-                 _ (prn "current period  " current-period)
                  amounts-to-deposit (map #(.getDouble collection-at-period %) f-list)
                  ]
              (s/transform [:projection :account to-acc]
@@ -207,14 +210,11 @@
 
 (defn walk-waterfall
   ([tree deal ^LocalDate pay-date]
-   (walk-waterfall tree deal pay-date 100)) ;maximum steps = 100
+   (walk-waterfall tree deal pay-date 7)) ;maximum steps = 100
   ([tree deal ^LocalDate pay-date ^Integer max-walks]
-   (loop [tr tree updating-deal deal path [] i 0]
+   (loop [tr  tree updating-deal deal path [] i 0]
      ;(prn "paths " path)
-     ;(prn "running node: " (zip/node tr) "i:" i)
-     (prn "period: " i)
-
-     (if (or (zip/end? tr) (> i max-walks))
+     (if (or (and (= tr tree) (not= i 0)) (> i max-walks))
        ; final result
        [(s/transform [:projection :period] inc updating-deal) path]
        ; looping
@@ -227,7 +227,7 @@
                 (-> tr zip/down zip/right zip/down (zip/replace nil) zip/right))
              (recur updating-deal path (inc i)))
 
-           (zip/branch? tr); if it is a branch -> which contains a list of action to be executed
+           (zip/branch? tr); if it is a branch -> which contains a list of actions to be executed
            (recur (zip/next tr) updating-deal path (inc i))
 
            (nil? current-node)

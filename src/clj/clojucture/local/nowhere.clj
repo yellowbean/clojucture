@@ -46,42 +46,42 @@
 
 (defn setup-bonds [d u]
   (let [bnd-list (map trn/setup-bond (s/select [:snapshot u :bond s/MAP-VALS] d))
-       bnd-name  (map keyword (s/select [:snapshot u :bond s/MAP-VALS :info :name] d)) ]
+        bnd-name (map keyword (s/select [:snapshot u :bond s/MAP-VALS :info :name] d))]
     (zipmap bnd-name bnd-list)))
 
-  (defn setup-triggers [d u]
+(defn setup-triggers [d u]
+  (map
+    trg/setup-trigger
+    (s/select [:snapshot u :trigger s/MAP-VALS] d)))
+
+(defn setup-expenses [d u]
+  (->
     (map
-      trg/setup-trigger
-      (s/select [:snapshot u :trigger s/MAP-VALS] d)))
-
-  (defn setup-expenses [d u]
-    (->
-      (map
-        exp/setup-expense
-        (s/select [:snapshot u :expense s/MAP-VALS] d))
-      (u/list-to-map-by :name)
-      ))
+      exp/setup-expense
+      (s/select [:snapshot u :expense s/MAP-VALS] d))
+    (u/list-to-map-by-info :name)
+    ))
 
 
-  (defn run-deal [deal assump]
-    (let [
-          pool (get-in deal [:update :pool])
-          coll-dates (get-in deal [:projection :dates :collect-dates])
-          pool-cf (.collect-cashflow pool assump coll-dates)
-          pay-date-list (get-in deal [:projection :dates :pay-dates])
-          current-period (get-in deal [:info :current-period])
-          wf (-> (get-in deal [:waterfall]) zip/vector-zip zip/next)
-          deal-setup (-> (spv/copy-update-to-proj deal)
-                         (assoc-in [:projection :period] 1)
-                         (assoc-in [:projection :pool-collection] pool-cf)
-                         )
-          ]
-      (loop [dp deal-setup proj-index 0]
-        (if (< (get-in dp [:projection :period]) (.rowCount pool-cf))
-          (let [pay-date (nth pay-date-list (+ current-period proj-index))
-                [update-deal wf-path] (wf/walk-waterfall wf dp pay-date)]
-            (recur update-deal (inc proj-index)))
-          dp)
-        )
+(defn run-deal [deal assump]
+  (let [
+        pool (get-in deal [:update :pool])
+        coll-dates (get-in deal [:projection :dates :collect-dates])
+        pool-cf (.collect-cashflow pool assump coll-dates)
+        pay-date-list (get-in deal [:projection :dates :pay-dates])
+        current-period (get-in deal [:info :current-period])
+        wf (-> (get-in deal [:waterfall]) zip/vector-zip)
+        deal-setup (-> (spv/copy-update-to-proj deal)
+                       (assoc-in [:projection :period] 1)
+                       (assoc-in [:projection :pool-collection] pool-cf)
+                       )
+        ]
+    (loop [dp deal-setup proj-index 0]
+      (if (< (get-in dp [:projection :period]) (.rowCount pool-cf))
+        (let [pay-date (nth pay-date-list (+ current-period proj-index))
+              [update-deal wf-path] (wf/walk-waterfall wf dp pay-date)]
+          (recur update-deal (inc proj-index)))
+        dp)
       )
     )
+  )

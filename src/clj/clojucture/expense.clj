@@ -17,23 +17,21 @@
 
 (defn cal-due-expense [deal exp calc-date]
   "calculate due expense during the projection"
-  (prn "exp to match:")
-  (prn (into {} exp))
   (m/match (into {} exp)
 
            {:info {:base epr :pct pct} :arrears ars}
            (let [deal-val (spv/query-deal deal epr) ]
              (-> (* deal-val pct) (+ ars)))
 
-           {:info {:base epr :annual-pct pct} :last-paid-date lpd :day-count dc :arrears ars}
-           (let [deal-val (spv/query-deal deal epr)]
-             (-> (u/get-period-rate (Period/between lpd calc-date) pct dc))
-             (* deal-val) (+ ars))
+           {:info {:base epr :annual-pct pct :day-count dc} :last-paid-date lpd  :arrears ars}
+           (let [deal-val (spv/query-deal deal epr) ]
+             (-> (u/get-period-rate (Period/between lpd calc-date) pct dc)
+                 (* deal-val) (+ ars) ))
 
            {:info {:name x} :balance bal }
              bal
 
-           :else :not-match-exp-due
+           :else (throw (Exception. "Not match due expense formula"))
            )
   )
 
@@ -67,15 +65,15 @@
            (min r due-amount)
            {:upper-limit-pct p}
            (* due-amount p)
-           :else Integer/MAX_VALUE
+           :else due-amount
            ))
 
 
 (defn pay-expense [deal ^LocalDate d source-acc expense opt]
   "pay a single expense ; return [ account , expense ]"
   (let [due-amount (cal-due-expense deal expense d)
-        avail-amount (.balance source-acc)
         adj-due (apply-rule due-amount opt)
+        avail-amount (.balance source-acc)
         amt (min avail-amount adj-due)
         new-acc (.withdraw source-acc d (get-in expense [:info :name]) amt)]
     [new-acc (.receive expense d amt)]
@@ -187,15 +185,15 @@
   ;(prn "matching exp: " x)
   (m/match x
            {:name n :info {:base bse :annual-pct pct } :last-paid-date pd :arrears ars}
-           (->pct-expense-by-amount {:name n :base bse :pct pct :day-count :ACT_365} [] pd ars)
+           (->pct-expense-by-amount {:name n :base bse :annual-pct pct :day-count :ACT_365} [] (jt/local-date pd) ars)
 
            {:name n :balance v :last-paid-date pd}
-           (->amount-expense {:name n} [] pd v)
+           (->amount-expense {:name n} [] (jt/local-date pd) v)
 
            {:name n :info {:base bse :pct pct } :last-paid-date pd :arrears ars}
-           (->pct-expense-by-rate {:name n :base bse :pct pct} [] pd ars)
+           (->pct-expense-by-rate {:name n :base bse :pct pct} [] (jt/local-date pd) ars)
 
-           :else  (prn "failed to match " x)
+           :else  (throw (Exception. "Not matching Expense"))
            )
   )
 

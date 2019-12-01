@@ -170,7 +170,7 @@
          ))
   )
 
-(defn- gen-end-balance
+(defn gen-end-balance
   "Generate ending balance vector given input of principal flow and initial balance"
   [^"[D" ary-prin ^Double init_balance]
   (let [ary-prin-size (alength ary-prin)
@@ -182,7 +182,7 @@
                    (- (aget ary-bal (dec i)) (aget ary-prin i))))
     ary-bal))
 
-(defn- gen-beg-balance
+(defn gen-beg-balance
   "Generate begining balance vector given input of principal flow and initial balance"
   [^"[D" ary-prin ^Double init_balance]
    (let [ary-prin-size (alength ary-prin)

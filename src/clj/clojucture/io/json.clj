@@ -12,6 +12,14 @@
   )
 
 
-(defmethod print-method sequence-bond
-  [ v ^java.io.Writer w]
-  (.write w "<<-XYZ->>"))
+
+(defn view-bond-flow
+  ([ d ])
+  ([ d b-id-list ])
+  )
+
+
+(defn view-pool-flow
+  ([ d ])
+  ([ d a-id-list ])
+  )

@@ -140,15 +140,14 @@
         fs (s/select [s/ALL :from s/NAME] stmts)
         ts (s/select [s/ALL :to s/NAME] stmts)
         amts (s/select [s/ALL :amount] stmts)
-        ; infos (->> (s/select [ s/ALL  :info ]  stmts )
-        ; TBD not determine the infos structure yet
+        ; :info field in stmt structure is not populated yet
         ]
-    (u/gen-table "statements" [
-                               {:name :date :type :date :values ds}
+    ;ds
+    (u/gen-table "statements" [{:name :date :type :date :values ds}
                                {:name :from :type :string :values fs}
                                {:name :to :type :string :values ts}
                                {:name :amount :type :double :values amts}
-                               ] )
+                               ])
 
     )
 

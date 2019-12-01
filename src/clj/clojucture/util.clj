@@ -159,16 +159,6 @@
         a (/ (* period-rate c) (- c 1))]
     (* a balance)))
 
-(defn gen-balance
-  "Generate balance vector given input of principal flow and initial balance"
-  [^"[D" ary-prin ^Double init_balance]
-  (let [ary-prin-size (alength ary-prin)
-        ary-bal (double-array ary-prin-size init_balance)]
-    (doseq [i (range 1 ary-prin-size)]
-      (aset-double ary-bal
-                   i
-                   (- (aget ary-bal (dec i)) (aget ary-prin i))))
-    ary-bal))
 
 (defn cal-mid-between-dates
   [^LocalDate d1 ^LocalDate d2 ^LocalDate b]
@@ -431,6 +421,8 @@
              (RateColumn. column-name (ldoubles v))
              {:type :date :values v}
              (DateColumn/create column-name (dates v))
+             {:type :string :values v}
+             (StringColumn/create column-name (into-array String v))
              {:type :bool :values v}
              (BooleanColumn/create column-name (boolean-array v))
              :else :gen-column-failure
@@ -602,4 +594,10 @@
   "convert a list of maps into a single map with a key from maps"
   (-> (fn [m e]
         (assoc m (f e) e))
-      (reduce {} l) ) )
+      (reduce {} l)))
+
+(defn list-to-map-by-info [l f]
+  "convert a list of maps into a single map with a key nested in `info` "
+  (-> (fn [m e]
+        (assoc m (get-in e [:info f] ) e))
+      (reduce {} l)))

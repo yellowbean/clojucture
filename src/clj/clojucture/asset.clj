@@ -2,6 +2,7 @@
   (:require [java-time :as jt]
             [clojucture.util :as u]
             [clojucture.assumption :as a]
+            [clojucture.util-cashflow :as cfu]
             [clojure.core.match :as m])
   (:import
     [java.time LocalDate Period]
@@ -10,7 +11,7 @@
 
 
 (defprotocol Asset
-  (project-cashflow [ x ] [ x assump ]  "project cashflow with/out assumption")
+  (project-cashflow [x] [x assump] "project cashflow with/out assumption")
   )
 
 (defn -loan-gen-prin [term balance opt]
@@ -38,11 +39,11 @@
            nil))
 
 
-(defrecord mortgage [info history current-balance period-rate remain-term opt]
+(defrecord mortgage [info history balance period-rate remain-term opt]
   Asset
   (project-cashflow [x]
     (let [
-          {start_date :start-date periodicity :periodicity term :term } info
+          {start_date :start-date periodicity :periodicity term :term} info
           date-rng (u/gen-dates start_date periodicity (inc term))
           date-rng-ary (u/dates [(first date-rng) (last date-rng)])
           dz (u/ldoubles [0.0])
@@ -57,7 +58,7 @@
        {last-paid-date :last-paid-date} history
        ;{stl-date :settle-date} assump
 
-       period_pmt (get-current-pmt history info) ; monthly payment
+       period_pmt (get-current-pmt history info)            ; period payment
 
        dates (u/gen-dates start_date periodicity (inc term))
        remain-dates (subvec (vec dates) (- term remain-term) (inc term))
@@ -65,24 +66,24 @@
 
        {projected-prepayment-rate :prepayment-curve
         projected-default-rate    :default-curve} (a/gen-assump-curve remain-dates assump)
-        ;projected-interest-rates (-gen-interest-rate info nil assump)
+       ;projected-interest-rates (-gen-interest-rate info nil assump)
        ]
       (loop [payment-dates remain-dates paid-dates []
              bal-list [] prin-list [] int-list []
              ppy-bal-list [] def-bal-list []
-             last-bal current-balance
+             last-bal balance
              ppy-rate projected-prepayment-rate def-rate projected-default-rate
              ]
         (if (or (empty? payment-dates) (< last-bal 0.01))
-            (u/gen-cashflow "cashflow"
-                            [{:name :dates :type :date :values paid-dates}
-                             {:name :balance :type :balance :values bal-list}
-                             {:name :principal :type :cash :values prin-list}
-                             {:name :interest :type :cash :values int-list}
-                             {:name :prepayment :type :cash :values ppy-bal-list}
-                             {:name :default :type :balance :values def-bal-list}])
+          (u/gen-cashflow "cashflow"
+                          [{:name :dates :type :date :values paid-dates}
+                           {:name :balance :type :balance :values bal-list}
+                           {:name :principal :type :cash :values prin-list}
+                           {:name :interest :type :cash :values int-list}
+                           {:name :prepayment :type :cash :values ppy-bal-list}
+                           {:name :default :type :balance :values def-bal-list}])
           (let [
-                f-bal last-bal                       ; beginning balance
+                f-bal last-bal                              ; beginning balance
                 int-amount (* f-bal period-rate)            ; current interest amount
                 prin-amount (- period_pmt int-amount)       ; principal amount
                 ppy-bal (* f-bal (first ppy-rate))          ;prepayment balance
@@ -103,10 +104,10 @@
               (next ppy-rate)
               (next def-rate)
               )
-                   )))
+            )))
 
-        )
-      ))
+      )
+    ))
 
 
 
@@ -222,8 +223,8 @@
   Asset
   (project-cashflow [x]
     (let [
-          dates  [start-date end-date]
-          bal  [balance 0]
+          dates [start-date end-date]
+          bal [balance 0]
           prin [0 balance]
           ]
       (u/gen-table
@@ -244,13 +245,13 @@
           even-principal (/ balance term)
           even-principal-list (->> (take term (repeat even-principal)) (cons 0))
           prin (double-array even-principal-list)
-          bal (u/gen-balance prin balance)
+          bal (cfu/gen-end-balance prin balance)
           period-fee (* balance period-fee-rate)
           period-fee-list (->> (take term (repeat period-fee)) (cons 0))
           fee (double-array period-fee-list)]
 
-      (u/gen-table {:name "cashflow"
-                   :dates dates :balance bal :principal prin :installment-fee fee})))
+      (u/gen-table {:name  "cashflow"
+                    :dates dates :balance bal :principal prin :installment-fee fee})))
 
 
   (project-cashflow [x assump]
@@ -273,7 +274,7 @@
   Asset
   (project-cashflow [x]
     (let [dates (u/gen-dates start-date periodicity (inc term))
-          rental-flow-list (->> (take term (repeat rental)) (cons 0)) ]
+          rental-flow-list (->> (take term (repeat rental)) (cons 0))]
       (if (get opt :deposit-balance false)
         (u/gen-table {:name "cashflow" :dates dates :rental rental-flow-list :deposit (-leasing-gen-deposit-flow (inc term) opt)})
         (u/gen-table {:name "cashflow" :dates dates :rental rental-flow-list}))))
@@ -286,9 +287,9 @@
   "map as input, return a record instance representing the asset"
   (m/match (assoc x :type t)
 
-           {:type :mortgage :current-balance bal :annual-rate ar :originate-date od :remain-term rt
-            :original-term ot :original-balance ob }
-           (->mortgage {:start-date (jt/local-date od) :periodicity (jt/months 1) :term ot :balance ob :period-rate (/ ar 12)} nil bal ar rt nil)
+           {:type          :mortgage :current-balance bal :annual-rate ar :originate-date od :remain-term rt
+            :original-term ot :original-balance ob}
+           (->mortgage {:start-date (jt/local-date od) :periodicity (jt/months 1) :term ot :balance ob :period-rate (/ ar 12)} nil bal (/ ar 12) rt nil)
 
            ;(map->mortgage (dissoc x :type))
 

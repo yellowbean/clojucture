@@ -35,7 +35,6 @@
          bond ((:bonds init-fns) deal-info u)
          triggers ((:triggers init-fns) deal-info u)
          expense ((:expense init-fns) deal-info u)
-
          base-snapshot-date (jt/local-date u)
 
          ;proj-start-index (get-in deal-info [:snapshot u :信息 :当前期数])

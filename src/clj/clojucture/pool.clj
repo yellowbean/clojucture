@@ -13,27 +13,31 @@
 
 
 (defprotocol pPool
-  (project-cashflow [ x ][ x assump])
+  (project-cashflow [x] [x assump])
   (collect-cashflow [x assump interval]))
 
 
 
 (defrecord pool
-  [assets  ^LocalDate cutoff-date]
+  [assets ^LocalDate cutoff-date]
   pPool
-  (project-cashflow [ x ]
-    (project-cashflow x nil))
+  (project-cashflow [x]
+     (project-cashflow x nil) )
 
-  (project-cashflow [ x assump ]
-    (let [ asset-cashflows (map #(.project-cashflow % assump) assets)
-           cfs (reduce #(.append %1 %2 ) asset-cashflows) ]
-      (cfu/sub-cashflow cfs :>= cutoff-date )))
+  (project-cashflow [x assump]
+    (let [asset-cashflows (map #(.project-cashflow % assump) assets)
+          cfs (reduce #(.append %1 %2) asset-cashflows)]
+      (cfu/sub-cashflow cfs :>= cutoff-date)))
 
-  (collect-cashflow [ x assump collect-intervals ]
-    (-> (project-cashflow x assump)
-        (cfu/agg-cashflow-by-interval collect-intervals)
-        (cfu/drop-rows-if-empty) ;trancate empty cashflow at end
-        ))
+  (collect-cashflow [x assump collect-intervals]
+    (let [total-bal (reduce + 0 (map :balance assets))]
+      (-> (project-cashflow x assump)
+          (cfu/agg-cashflow-by-interval collect-intervals)
+          (cfu/add-end-bal-column total-bal)
+          (cfu/add-beg-bal-column total-bal)
+          (cfu/drop-rows-if-empty)                          ;trancate empty cashflow at end
+          ))
+    )
   )
 
 

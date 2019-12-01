@@ -11,7 +11,7 @@
             [clojure.core.match :as m]
             [com.rpl.specter :as s]
             [com.rpl.specter.macros :as sm]
-            [infix.macros :as mc ]
+            [infix.macros :as mc]
             )
   (:import [tech.tablesaw.api ColumnType Table Row]
            [tech.tablesaw.columns AbstractColumn Column]
@@ -139,7 +139,7 @@
   )
 
 
-(defn- choose-distribution-fun [ d ]
+(defn- choose-distribution-fun [d]
   nil
   )
 
@@ -175,9 +175,9 @@
 
 (defn get-pool-collection
   ([d ^Integer per]
-   (let [ pool-cf (get-in d [:projection :pool-collection]) ]
-     (if (> per  (.rowCount pool-cf))
-       (throw (Exception.  (str "Invalid Per for Pool Size" per ", pool cf row count " (.rowCount pool-cf)  )))
+   (let [pool-cf (get-in d [:projection :pool-collection])]
+     (if (> per (.rowCount pool-cf))
+       (throw (Exception. (str "Invalid Per for Pool Size" per ", pool cf row count " (.rowCount pool-cf))))
        (doto (Row. pool-cf) (.at per)))))
 
   ([d ^Integer per field field-type]
@@ -197,6 +197,7 @@
            [:projection :pool :sum-current-balance]
            (reduce + 0 (s/select [:projection :pool :assets s/ALL :current-balance] d))
 
+
            [:projection :trigger trg :status]
            (:status (s/select-one [:projection :trigger trg] d))
 
@@ -204,13 +205,16 @@
            (reduce + 0 (s/select [:update :bond s/ALL s/LAST :balance] d))
 
            [:update :pool :sum-current-balance]
-           (reduce + 0 (s/select [:update :pool :assets s/ALL :current-balance] d))
+           (reduce + 0 (s/select [:update :pool :assets s/ALL :balance] d))
 
            [:trustee-report :sum-new-default-current-balance]
            (reduce + 0 (s/select [:trustee-report s/ALL :new-default-balance] d))
 
            [:current-collection (c-field-list :guard list?)]
            (map #(query-deal d [:current-collection %]) c-field-list)
+
+           [:current-collection :current-balance]
+           (query-deal d [:current-collection :balance])
 
            [:current-collection :sum-new-default-current-balance]
            (get-pool-collection d (get-in d [:projection :period]) :default :double)
@@ -219,8 +223,9 @@
            (get-pool-collection d (get-in d [:projection :period]) c-field :double)
 
 
+
            [:post-collection :sum-new-default-current-balance] ; history + projection
-           (let [history-new-default-bal (query-deal d [:trustee-report :sum-new-default-current-balance] )
+           (let [history-new-default-bal (query-deal d [:trustee-report :sum-new-default-current-balance])
                  current-deal-per (get-in d [:projection :period])
                  proj-new-default-bal (reduce +
                                               (for [x (range 1 current-deal-per)]
@@ -248,7 +253,7 @@
 
 
 (defn- repl-formula [s x]
-  (str/replace-first s #"\[.*?\]" (str "(" (format "%.8f" (double x)) ")")) )
+  (str/replace-first s #"\[.*?\]" (str "(" (format "%.8f" (double x)) ")")))
 
 (defn eval-formula [fml-s vs]
   (mc/from-string
@@ -256,10 +261,10 @@
 
 (defn evaluate-formula [d fml]
   "evaluate formula: d -> deal map , fml -> string formula"
-  (let [fml-t (-> (str/replace fml #"\n" "") )
+  (let [fml-t (-> (str/replace fml #"\n" ""))
         deal-vars-strs (map read-string (re-seq #"\[.*?\]" fml-t))
         deal-vars (map #(query-deal d %) deal-vars-strs)
-      fml-v (eval-formula fml-t deal-vars)]
+        fml-v (eval-formula fml-t deal-vars)]
     (fml-v)))
 
 

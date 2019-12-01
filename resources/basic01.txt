@@ -32,7 +32,7 @@
                                                :last-payment-date {:principal "2018-04-15" :interest "2018-04-15"} :principal-loss 0 :interest-arrears 0 :stmts []}
                                       }
                             :expense {
-                                      :trustee-fee {:name :trustee-fee :info {:base [:projection :pool :sum-current-balance] :annual-pct 0.005} :arrears 0 :last-paid-date "2018-04-26"}
+                                      :trustee-fee {:name :trustee-fee :info {:base [:current-collection :begin-balance] :annual-pct 0.005} :arrears 0 :last-paid-date "2018-04-26"}
                                       }
 
                             :trigger {
@@ -45,9 +45,9 @@
               {:from :current-collection :to :cash-acc :fields ["interest" "principal" "prepayment"]}
               {:from :cash-acc :to :exp-acc :expense :trustee-fee}
               {:from :cash-acc :to :int-acc :interest :A}
-              {:from :cash-acc :to :int-acc :interest :Junior}
-              {:from :cash-acc :to :prin-acc :principal :A}
-              {:from :cash-acc :to :prin-acc :principal :Junior}
+              ;{:from :cash-acc :to :int-acc :interest :Junior}
+              ;{:from :cash-acc :to :prin-acc :principal :A}
+              ;{:from :cash-acc :to :prin-acc :principal :Junior}
               ]
 
    })
