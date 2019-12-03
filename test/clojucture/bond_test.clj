@@ -23,7 +23,7 @@
     (is (close? 0.001 (.cal-due-interest seq-bond (jt/local-date 2018 6 1) ) 33.09589041  ))
     ;;
     (is (= (:balance seq-bond-2 ) 700))
-    (is (= (:principal-loss seq-bond-2 ) 700))
+    (is (= (:principal-loss seq-bond-2 ) 0))
     (let [ new-prin-stmt (.last-txn prin-acc-2) ]
       (is (= (:amount new-prin-stmt) -300))
       )

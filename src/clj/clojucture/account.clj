@@ -19,7 +19,7 @@
 
 ;; building block functions in account
 (defn -withdraw [x ^LocalDate d dest ^Double amount]
-  (let [new-stmt (->stmt d :this dest (- amount) nil)]
+  (let [new-stmt (->stmt d (:name x) dest (- amount) nil)]
     (if (zero? amount)
       x ; it doesn't have to create a new transaction if amount = 0
       (-> x
@@ -28,7 +28,7 @@
 
 
 (defn -deposit [x ^LocalDate d source ^Double amount]
-  (let [new-stmt (->stmt d source :this amount nil)]
+  (let [new-stmt (->stmt d source (:name x) amount nil)]
     (if (zero? amount)
       x ; it doesn't have to create a new transaction if amount = 0
       (-> x

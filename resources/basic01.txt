@@ -19,7 +19,7 @@
                                       :closing-date "2017-11-20"
                                       :asset-type   :mortgage
                                       :list         [
-                                                     {:original-balance 1250000000 :current-balance 1010000000 :annual-rate 0.049 :originate-date "2013-12-25"
+                                                     {:original-balance 2250000000 :current-balance 1010000000 :annual-rate 0.049 :originate-date "2013-12-25"
                                                       :pay-dates        "2014-01-25M" :original-term 240 :remain-term 200}]}
 
                             :bond    {
@@ -45,9 +45,9 @@
               {:from :current-collection :to :cash-acc :fields ["interest" "principal" "prepayment"]}
               {:from :cash-acc :to :exp-acc :expense :trustee-fee}
               {:from :cash-acc :to :int-acc :interest :A}
-              ;{:from :cash-acc :to :int-acc :interest :Junior}
-              ;{:from :cash-acc :to :prin-acc :principal :A}
-              ;{:from :cash-acc :to :prin-acc :principal :Junior}
+              {:from :cash-acc :to :int-acc :interest :Junior}
+              {:from :cash-acc :to :prin-acc :principal :A}
+              {:from :cash-acc :to :prin-acc :principal :Junior}
               ]
 
    })

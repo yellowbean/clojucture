@@ -102,7 +102,8 @@
         r-360 (/ year-rate 360)
         bt-days (.between ChronoUnit/DAYS s e)
         bt-months (.between ChronoUnit/MONTHS s e)
-        bt-years (.between ChronoUnit/YEARS s e)]
+        bt-years (.between ChronoUnit/YEARS s e)
+        ]
     (case day-count
       :30_360
       (* (/ bt-days 30) (/ year-rate 12))
@@ -540,13 +541,14 @@
 
 
 (defn -cal-due-interest
-  ([balance start-d end-d day-count rate]
-   (let [int-due-rate (cal-period-rate start-d end-d rate day-count)]
+  ([ ^Double balance ^LocalDate start-d ^LocalDate end-d day-count ^Double rate]
+   (let [int-due-rate (cal-period-rate start-d end-d rate day-count) ]
      (* balance int-due-rate)))
   ([balance start-d end-d day-count rate arrears]
    (+
      (-cal-due-interest balance start-d end-d day-count rate)
-     arrears)))
+     arrears))
+  )
 
 (defn build-map-from-field [field list-of-maps]
   (loop [lm list-of-maps r {}]
@@ -565,6 +567,9 @@
 
 (defn strings [x]
   (into-array String x))
+
+(defn columns [ x ]
+  (into-array AbstractColumn x))
 
 
 

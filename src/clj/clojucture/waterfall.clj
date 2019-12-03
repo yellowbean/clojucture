@@ -32,7 +32,6 @@
 (defn distribute [updating-deal action ^LocalDate pay-date]
   "Execute a `step` or `action` or `change` on the deal map and return with deal updated "
   (m/match (do
-             (prn "matching action" action)
              ;(prn "expense keys" (s/select [:update :expense s/MAP-KEYS] updating-deal))
              ;(prn "Distributing")
              action)
@@ -40,11 +39,15 @@
            (let [
                  current-period (get-in updating-deal [:projection :period] )
                  collection-at-period (spv/get-pool-collection updating-deal current-period)
-                 amounts-to-deposit (map #(.getDouble collection-at-period %) f-list)
+                 amounts-to-deposit (reduce + (map #(.getDouble collection-at-period %) f-list))
+                  ;_ (prn (get-in updating-deal [:projection :account to-acc]))
                  ]
-             (s/transform [:projection :account to-acc]
-                          #(.deposit % pay-date :pool-collection (reduce + amounts-to-deposit))
-                          updating-deal))
+             (s/transform [:projection :account to-acc ]
+                          #(.deposit % pay-date :pool-collection amounts-to-deposit)
+                          updating-deal)
+
+             ;(prn "ACC AFTER DEPOSIT"  (get-in updating-deal [:projection :account to-acc])  )
+             )
 
 
            {:from from-acc :to to-acc :formula fml}
@@ -119,7 +122,7 @@
                  bond-to-pay (get-in updating-deal [:projection :bond bond-key])
                  [new-acc bond-u] (b/pay-bond-interest pay-date acc-to-pay bond-to-pay)
                  ]
-
+             ;(s/select-any [:update :bond bond-key] d)
              (s/multi-transform
                [:projection
                 (s/multi-path
@@ -134,7 +137,6 @@
            {:from source-acc :to target-acc :principal bond-key}
            (let [acc-to-pay (s/select-one [:projection :account source-acc] updating-deal)
                  bond-to-pay (s/select-one [:projection :bond bond-key] updating-deal)
-                 ;_ (prn (get-in updating-deal [:projection ]))
                  [new-acc new-bond] (b/pay-bond-principal pay-date acc-to-pay bond-to-pay)
                  ]
              (s/multi-transform
@@ -166,6 +168,7 @@
                  acc-to-receive (s/select-one [:projection :account target-acc] updating-deal)
                  [new-from new-to] (acc/transfer-fund acc-to-pay acc-to-receive pay-date amt)
                  ]
+
              (s/multi-transform
                [:projection :account
                 (s/multi-path
