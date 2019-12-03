@@ -20,16 +20,20 @@
 ;; building block functions in account
 (defn -withdraw [x ^LocalDate d dest ^Double amount]
   (let [new-stmt (->stmt d :this dest (- amount) nil)]
-    (-> x
-        (update :balance - amount)
-        (update :stmts conj new-stmt))))
+    (if (zero? amount)
+      x ; it doesn't have to create a new transaction if amount = 0
+      (-> x
+          (update :balance - amount)
+          (update :stmts conj new-stmt)) ) ))
 
 
 (defn -deposit [x ^LocalDate d source ^Double amount]
   (let [new-stmt (->stmt d source :this amount nil)]
-    (-> x
-        (update :balance + amount)
-        (update :stmts conj new-stmt))))
+    (if (zero? amount)
+      x ; it doesn't have to create a new transaction if amount = 0
+      (-> x
+          (update :balance + amount)
+          (update :stmts conj new-stmt)))))
 
 (defn select-stmts [x e]
   (let [stmts (:stmts x)]
@@ -64,7 +68,8 @@
       (-withdraw x d to max-to-draw)))
 
   (deposit [x d from amount]
-    (-deposit x d from amount))
+    (-deposit x d from amount)
+    )
 
   (last-txn [x]
     (last stmts)

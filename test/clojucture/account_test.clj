@@ -10,7 +10,9 @@
 
 (deftest deposit-test
   (let [test-account (acc/->account :acc-1 :cash 0 []) ]
-    (is (:balance (.deposit test-account (jt/local-date 2018 11 1) :originator 200)) 200)
+    (is (:balance (.deposit test-account (jt/local-date 2018 11 1) :originator 200)) 200 )
+
+    (is (:balance (.deposit test-account (jt/local-date 2019 1 1) :dummy-from 100 )) 100 )
     )
   )
 
@@ -144,5 +146,18 @@
 
     )
 
-
   )
+
+
+(deftest tDepositZero
+  (let [ d-0 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero 0.0 )
+        d-1 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero -0.0 )
+        d-2 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero 0 )
+        d-3 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero 0.001 ) ]
+
+    (is (= (count (:stmts d-0 )  )0))
+    (is (= (count (:stmts d-1 )  )0))
+    (is (= (count (:stmts d-2 )  )0))
+    (is (= (count (:stmts d-3 )  )1))
+
+    ) )
