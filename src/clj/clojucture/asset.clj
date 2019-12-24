@@ -24,13 +24,6 @@
     principal-flow))
 
 
-(defn get-current-pmt [history info]
-  (if-let [reset-info (:last-pmt-reset history)]
-    (u/period-pmt (:balance reset-info) (:term reset-info) (:period-rate reset-info))
-    (u/period-pmt (:balance info) (:term info) (:period-rate info))))
-
-
-
 (defn -gen-interest-rate [info d assump]
   (m/match info
            {:float-info fi}
@@ -38,6 +31,18 @@
            :else
            nil))
 
+
+(defn cal-period-pmt
+  "Calculate the period payment for a mortgage"
+  [ ^Double balance ^Integer n-per ^Double period-rate]
+  (let [c (Math/pow (+ 1 period-rate) n-per)
+        a (/ (* period-rate c) (- c 1))]
+    (* a balance)))
+
+;(defn get-current-pmt [history info]
+;  (if-let [reset-info (:last-pmt-reset history)]
+;    (period-pmt (:balance reset-info) (:term reset-info) (:period-rate reset-info))
+;    (period-pmt (:balance info) (:term info) (:period-rate info))))
 
 (defrecord mortgage [info history balance period-rate remain-term opt]
   Asset
@@ -54,15 +59,17 @@
   (project-cashflow [x assump]
     (let
       [{start_date :start-date periodicity :periodicity
-        term       :term balance :balance} info
-       {last-paid-date :last-paid-date} history
+        term       :term orig-balance :balance} info
+       ;{last-paid-date :last-paid-date} history
        ;{stl-date :settle-date} assump
 
-       period_pmt (get-current-pmt history info)            ; period payment
+       ;amortized-factor (/ balance orig-balance)
+       ;orig-period-pmt (cal-period-pmt orig-balance term period-rate)  ; (get-current-pmt history info)            ; period payment
+       current-period-pmt (cal-period-pmt balance remain-term period-rate)
 
        dates (u/gen-dates start_date periodicity (inc term))
        remain-dates (subvec (vec dates) (- term remain-term) (inc term))
-       even_principal_pmt (/ balance term)
+       even-principal-pmt (/ balance term)
 
        {projected-prepayment-rate :prepayment-curve
         projected-default-rate    :default-curve} (a/gen-assump-curve remain-dates assump)
@@ -85,7 +92,7 @@
           (let [
                 f-bal last-bal                              ; beginning balance
                 int-amount (* f-bal period-rate)            ; current interest amount
-                prin-amount (- period_pmt int-amount)       ; principal amount
+                prin-amount (- current-period-pmt int-amount)       ; principal amount
                 ppy-bal (* f-bal (first ppy-rate))          ;prepayment balance
                 bal-after-ppy (- f-bal ppy-bal)             ; balance after prepayment
                 def-bal (* bal-after-ppy (first def-rate))  ;default balance
@@ -134,7 +141,7 @@
       (doseq [i (range 1 term)]
         (let [last_period_balance (aget bal (dec i))
               period_interest (* last_period_balance (nth period-rate-vector i))
-              period_pmt (u/period-pmt current-balance (inc term) (nth period-rate-vector i))
+              period_pmt (cal-period-pmt current-balance (inc term) (nth period-rate-vector i))
               period_principal (if (false? (get opt :even-principal false))
                                  (- period_pmt period_interest)
                                  even_principal_pmt)]
@@ -289,7 +296,8 @@
 
            {:type          :mortgage :current-balance bal :annual-rate ar :originate-date od :remain-term rt
             :original-term ot :original-balance ob}
-           (->mortgage {:start-date (jt/local-date od) :periodicity (jt/months 1) :term ot :balance ob :period-rate (/ ar 12)} nil bal (/ ar 12) rt nil)
+           (->mortgage {:start-date (jt/local-date od) :periodicity (jt/months 1)
+                        :term ot :balance ob :period-rate (/ ar 12)} nil bal (/ ar 12) rt nil)
 
            ;(map->mortgage (dissoc x :type))
 
