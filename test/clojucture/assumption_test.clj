@@ -64,14 +64,19 @@
 (deftest pAssumpiton
   (let [  dlist [ (jt/local-date 2018 1 1) (jt/local-date 2018 2 1 )]
         dassump (assump/gen-pool-assump-df :cpr [ 0.1 ] dlist)
-        dr (assump/cpr2d 0.1)
-        ]
-    ;(println dassump)
+        sassump (assump/gen-pool-assump-df :cdr 0.3 dlist)
 
+        dr (assump/cpr2d 0.1)
+        dr2 (assump/cpr2d 0.3)
+        ]
     (is (= (.rateAt dassump (jt/local-date 2018 1 1)) dr))
     (is (= (.rateAt dassump (jt/local-date 2018 1 5)) dr))
-;    (is (= (.rateAt dassump (jt/local-date 2018 2 1)) dr))
+
+    (is (= (.rateAt sassump (jt/local-date 2018 1 1)) dr2))
+    (is (= (.rateAt sassump (jt/local-date 2018 1 5)) dr2))
+
     )
+
   )
 
 
@@ -82,8 +87,7 @@
          r (u/ldoubles [0.12])
 
          assp {:prepayment (RateAssumption. "P" assump-date-range r )
-                :default (RateAssumption. "P" assump-date-range  r )
-               }
+                :default (RateAssumption. "P" assump-date-range  r ) }
         {ppy-curve :prepayment-curve def-curve :default-curve} (a/gen-assump-curve ods assp)
         ]
     (is (= (count ods) (inc (count ppy-curve))))

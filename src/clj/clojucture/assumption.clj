@@ -47,6 +47,7 @@
   (- 1 (Math/pow (- 1 smm) 12)))
 
 (defn cpr2d [^Double cpr]
+  "convert CPR to daily rate"
   (- 1 (Math/pow (- 1 cpr) 1/365)))
 
 (defn d2cpr [^Double day-rate]
@@ -69,7 +70,9 @@
                ;[:smm (v :guard #(vector? %))]
                ;(map #(- 1 (Math/pow (- 1 (second %)) (first %))) factors-m)
                [(:or :cpr :cdr) (v :guard #(seqable? %))]
-               (map cpr2d v)                                ; daily rate
+               (map cpr2d v)
+               [(:or :cpr :cdr) _ ]
+               [(cpr2d v)]
                :else nil) rs
       (RateAssumption. (name curve-type) ds (u/ldoubles rs)))))
 
@@ -93,10 +96,13 @@
           (not (contains? x :recovery-rate)) (assoc :recovery-rate 0)))
 
 
-(defn gen-assump-curve [ ds assump ]                          ; remain dates  assumption
+(defn gen-assump-curve [ ds assump ]
+  ; remain dates -> a list of dates;
+  ; assumption a map with key ":prepayment  :default"
+  ;                       value : RateAssumption record with range of dates and doubles
   "convert a pool level assumption to asset level"
-  (let [ppy-curve (:prepayment assump)
-        def-curve (:default assump)
+  (let [ppy-curve (:prepayment assump) ; table type
+        def-curve (:default assump)  ; table type
         dsa (u/dates ds)
         apply-rate-fn (fn [ x ]
                         (if (nil? x)
