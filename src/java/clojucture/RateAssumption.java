@@ -29,9 +29,6 @@ public class RateAssumption extends Table{
        LocalDate[] sda = new LocalDate[d.length - 1];
        LocalDate[] eda = new LocalDate[d.length - 1];
 
-       //System.out.println(d.length);
-       //System.out.println(o.length);
-
        if((d.length - o.length) != 1)
            throw new IllegalArgumentException(
                    "dates array size should be one more than rate array: current date array size:"

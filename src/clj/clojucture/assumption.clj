@@ -77,7 +77,6 @@
       (RateAssumption. (name curve-type) ds (u/ldoubles rs)))))
 
 
-
 (defn gen-asset-assump
   "convert a pool assumption to asset level assumption"
   [^RateAssumption pool-assumption observe-dates]
@@ -118,21 +117,22 @@
 (defn -build-assump [ x ]
   "dispatch to different assumption type "
   (m/match x
-           {:name (:or :prepayment :default) :type tpe :dates ds :values vs }
+           {:name :prepayment :type tpe :dates ds :values vs}
            (gen-pool-assump-df tpe vs ds)
-
-          :else :not-match-assmp
+           {:name :default :type tpe :dates ds :values vs}
+           (gen-pool-assump-df tpe vs ds)
+           :else :not-match-assmp
            )
 
   )
 
 (defn build [ d ]
   "take a assumption list and return a map of assumption in form of records"
-    (loop [ r {} input-assump-list d ]
-      (if-let [ assump-item (first input-assump-list)]
-        (recur (assoc r (:name assump-item) (-build-assump assump-item)) (next input-assump-list))
-        r
-        )
+  (loop [r {} input-assump-list (vals d)]
+    (if-let [assump-item (first input-assump-list)]
+      (recur (assoc r (:name assump-item) (-build-assump assump-item)) (next input-assump-list))
+      r
       )
+    )
 
   )

@@ -31,10 +31,10 @@
     ; Apply
     (is (= (first rapply) 0.0))
     (is (= (count rapply) 1))
-    (println rapply)
+    ;(println rapply)
 
 
-  ))
+    ))
 
 (deftest rAssumption
   (let [ da (jt/local-date 2018 1 1 )
@@ -76,7 +76,6 @@
     (is (= (.rateAt sassump (jt/local-date 2018 1 5)) dr2))
 
     )
-
   )
 
 
@@ -104,15 +103,15 @@
                   
 
  (deftest tSetupCurve
-   (let [  Y1M  (assump/setup-curve :Libor1M
-                                    (u/gen-dates (jt/local-date 2019 2 1) (jt/months 1) 5)
-                                    [0.1 0.2 0.3 0.4 0.5])
-                                   
-          L1M_rates (:Libor1M Y1M)
-          L1M_df (assump/curve-to-df "Libor1M" L1M_rates)]
-        
-     (is (= 1 (count Y1M)))
+   (let [Y1M (assump/setup-curve :Libor1M
+                                 (u/gen-dates (jt/local-date 2019 2 1) (jt/months 1) 5)
+                                 [0.1 0.2 0.3 0.4 0.5])
+
+         L1M_rates (:Libor1M Y1M)
+         L1M_df (assump/curve-to-df "Libor1M" L1M_rates)]
      (is (= (second (first L1M_rates)) 0.1))
+     (is (= 1 (count Y1M)))
+
      (is (= (second (last L1M_rates)) 0.5))
 
      (is (= 5 (.rowCount L1M_df)))

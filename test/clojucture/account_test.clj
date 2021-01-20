@@ -2,7 +2,9 @@
   (:require
     [java-time :as jt]
     [clojucture.account :as acc]
-    [clojure.test :refer :all])
+    [clojure.test :refer :all]
+    [clojucture.account :as a]
+    [clojucture.util :as u])
   )
 
 (def t-account-1 (acc/->account :acc1 :prin 1000 []))
@@ -75,20 +77,21 @@
 
 
 (deftest transfer-funds-test
-  (let [test-account-1 (acc/->account :from :cash 1000 [])
-        test-account-2 (acc/->account :to :cash 1000 [])
+  (let [test-account-1 (acc/->account :from :cash 1000.0 [])
+        test-account-2 (acc/->account :to :cash 1000.0 [])
         test-account-3 (acc/->account :to :cash 0 [])
         [acc-1 acc-2] (acc/transfer-fund test-account-1 test-account-2 (jt/local-date 2018 1 1))
 
         [acc-result-map acc-target] (acc/transfer-funds {:a test-account-1 :b test-account-2}
-                                                    test-account-3 (jt/local-date 2018 1 1))
+                                                        test-account-3 (jt/local-date 2018 1 1))
         ]
-    (is (= (:balance acc-1) 0))
-    (is (= (:balance acc-2) 2000))
+    (is (= (:balance acc-1) 0.0))
+    (is (= (:balance acc-2) 2000.0))
 
 
-    (is (= (:balance acc-target) 2000))
-    (is (= [ 0 0 ]   (mapv :balance (vals acc-result-map) )))
+    (is (= (:balance acc-target) 2000.0))
+    (is (= [0.0 0.0] (mapv :balance (vals acc-result-map))))
+
     ))
 
 
@@ -117,7 +120,7 @@
   (let [test-acc (acc/->account :t nil 1000 [])
         test-acc2 (acc/->account :t nil 1000 [])
         test-acc3 (acc/->account :t nil 1000 [])
-        [new-from new-to] (acc/transfer-fund test-acc test-acc2 (jt/local-date 2019 1 1) 500)
+        [new-from new-to] (acc/transfer-fund test-acc test-acc2 (jt/local-date 2019 1 1) 500.0)
         bench-acc (acc/update-target-account new-from test-acc3)
         ]
     (is (= (:balance new-to) (:balance bench-acc)))
@@ -136,13 +139,12 @@
     (is (= (:name acc-1) "cash1"))
     (is (= (:name acc-2) "cash2"))
 
-
     (is (= (:balance acc-1) 100.0))
     (is (= (:balance acc-2) 100.0))
 
     (is (= (count  (:stmts acc-2) ) 1))
 
-    (is (= (.rowCount  (acc/view-stmts t-txn))))
+    (is (= (.rowCount (u/stmts-to-df "" t-txn))))
 
     )
 
@@ -150,14 +152,19 @@
 
 
 (deftest tDepositZero
-  (let [ d-0 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero 0.0 )
-        d-1 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero -0.0 )
-        d-2 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero 0 )
-        d-3 (.deposit t-account-1 (jt/local-date 2019 11 2)  :pZero 0.001 ) ]
+  (let [d-0 (.deposit t-account-1 (jt/local-date 2019 11 2) :pZero 0.0)
+        d-1 (.deposit t-account-1 (jt/local-date 2019 11 2) :pZero -0.0)
+        d-2 (.deposit t-account-1 (jt/local-date 2019 11 2) :pZero 0)
+        d-3 (.deposit t-account-1 (jt/local-date 2019 11 2) :pZero 0.001)]
 
-    (is (= (count (:stmts d-0 )  )0))
-    (is (= (count (:stmts d-1 )  )0))
-    (is (= (count (:stmts d-2 )  )0))
-    (is (= (count (:stmts d-3 )  )1))
+    (is (= (count (:stmts d-0)) 0))
+    (is (= (count (:stmts d-1)) 0))
+    (is (= (count (:stmts d-2)) 0))
+    (is (= (count (:stmts d-3)) 1))
 
-    ) )
+    ))
+
+
+(deftest tUnionTsByDate
+
+  )

@@ -62,18 +62,25 @@
     (u/list-to-map-by-info :name)
     ))
 
+(defn gen-required-vars [wf]
+  "calculate formular "
+
+  )
 
 (defn run-deal [deal assump]
   (let [
         pool (get-in deal [:update :pool])
+        current-period (get-in deal [:info :current-period])
+        ;coll-dates (->>  (get-in deal [:projection :dates :collect-dates]) (drop current-period ))
         coll-dates (get-in deal [:projection :dates :collect-dates])
         pool-cf (.collect-cashflow pool assump coll-dates)
+
         pay-date-list (get-in deal [:projection :dates :pay-dates])
-        current-period (get-in deal [:info :current-period])
         wf (-> (get-in deal [:waterfall]) zip/vector-zip)
         deal-setup (-> (spv/copy-update-to-proj deal)
                        (assoc-in [:projection :period] 1)
                        (assoc-in [:projection :pool-collection] pool-cf)
+                       ;(assoc-in [:projection :start-date] )
                        )
         ]
     (loop [dp deal-setup proj-index 0]

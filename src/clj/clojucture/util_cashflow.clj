@@ -119,9 +119,21 @@
     (-> x
         (.summarize (.columnNames ^Table y) ary-agg-functions)
         (.apply))
-
     ))
 
+
+(defn sum-cashflow-by-date [^Table x ^String col ^String by-col]
+  "sum column `col` in cashflow and group by `by-col` "
+  (if (.isEmpty x)
+    x
+    (-> x
+        (.summarize col
+                    (into-array AggregateFunction [AggregateFunctions/sum]))
+        (.by (u/strings [by-col]))
+        (u/remove-sum-column)
+        )
+    )
+  )
 
 
 (defn agg-cashflow-by-interval [^Table x date-list]
@@ -158,6 +170,7 @@
     (.where x result-selection)))
 
 (defn sub-cashflow [^Table x op ^LocalDate d]
+  "select a subset of cashflow dataframe by `dates` column"
   (let [date-col (.column x "dates")]
     (->> (case op
            :>= (.isOnOrAfter date-col d)
@@ -167,8 +180,9 @@
            := (.isEqualTo date-col d)
            :else nil)
          (.where x)
-         ))
-  )
+         )))
+
+
 
 (defn gen-end-balance
   "Generate ending balance vector given input of principal flow and initial balance"
@@ -185,28 +199,31 @@
 (defn gen-beg-balance
   "Generate begining balance vector given input of principal flow and initial balance"
   [^"[D" ary-prin ^Double init_balance]
-   (let [ary-prin-size (alength ary-prin)
-         ary-bal (double-array ary-prin-size init_balance)]
-     (doseq [i (range 1 ary-prin-size)]
-       (aset-double ary-bal
-                    i
-                    (- (aget ary-bal (dec i)) (aget ary-prin (dec i) ))))
-     ary-bal))
+  (let [ary-prin-size (alength ary-prin)
+        ary-bal (double-array ary-prin-size init_balance)]
+    (doseq [i (range 1 ary-prin-size)]
+      (aset-double ary-bal
+                   i
+                   (- (aget ary-bal (dec i)) (aget ary-prin (dec i)))))
+    ary-bal))
 
 
 
-(defn add-end-bal-column [^Table x ^Double init-bal ]
+(defn add-end-bal-column [^Table x ^Double init-bal]
+  "Add a ending balance to a cashflow dataframe by taking in a array of principal"
   (let [prin-ary (-> (.column x "principal") (.asDoubleArray))
-        bal-array (gen-end-balance prin-ary init-bal) ]
+        bal-array (gen-end-balance prin-ary init-bal)]
     (.addColumns x
-      (into-array AbstractColumn [(DoubleColumn/create "end-balance" bal-array)] ) )
+                 (into-array AbstractColumn [(DoubleColumn/create "end-balance" bal-array)]))
     ))
 
-(defn add-beg-bal-column [^Table x ^Double init-bal ]
+(defn add-beg-bal-column [^Table x ^Double init-bal]
+  "Add a beginning balance to a cashflow dataframe by taking in a array of principal"
   (let [prin-ary (-> (.column x "principal") (.asDoubleArray))
-          bal-array (gen-beg-balance prin-ary init-bal) ]
-      (.addColumns x
-        (into-array AbstractColumn [(DoubleColumn/create "begin-balance" bal-array)] ) )
-      )
+        bal-array (gen-beg-balance prin-ary init-bal)]
+    (.addColumns x
+                 (into-array AbstractColumn [(DoubleColumn/create "begin-balance" bal-array)]))
+    )
   )
+
 

@@ -3,6 +3,7 @@
             [clojucture.util :as u]
             [clojucture.util-cashflow :as cfu]
             [clojucture.asset :as a]
+            [clojucture.assumption :as assump]
             [clojucture.account :as acc]
             [clojure.core.match :as m])
 
@@ -17,21 +18,27 @@
   (collect-cashflow [x assump interval]))
 
 
-
-(defrecord pool
+(defrecord pool                                             ; "A object represent a pool holding assets with a cutoff-date"
   [assets ^LocalDate cutoff-date]
   pPool
   (project-cashflow [x]
-     (project-cashflow x nil) )
+    (project-cashflow x [:cdr [0.0] [(jt/local-date 1900 1 1) (jt/local-date 2100 1 1)]]))
 
   (project-cashflow [x assump]
-    (let [asset-cashflows (map #(.project-cashflow % assump) assets)
-          cfs (reduce #(.append %1 %2) asset-cashflows)]
+    (let [
+          ;_ (prn "assump passed via apply" assump)
+          ;pool-assump (apply assump/gen-pool-assump-df assump)
+          pool-assump-list (map #(apply assump/gen-pool-assump-df %) assump)
+          asset-cashflows (map #(.project-cashflow % assump) assets) ;project cashflow on each asset
+          cfs (reduce #(.append %1 %2) asset-cashflows)     ;aggregate all cashflow for each asset
+          ]
       (cfu/sub-cashflow cfs :>= cutoff-date)))
 
   (collect-cashflow [x assump collect-intervals]
     (let [total-bal (reduce + 0 (map :balance assets))]
-      (-> (project-cashflow x assump)
+      (-> (if (nil? assump)
+            (project-cashflow x)
+            (project-cashflow x assump))
           (cfu/agg-cashflow-by-interval collect-intervals)
           (cfu/add-end-bal-column total-bal)
           (cfu/add-beg-bal-column total-bal)

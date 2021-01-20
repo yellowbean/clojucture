@@ -22,7 +22,7 @@
 (def t-account-1 (acc/->account :acc1 :prin 1000 []))
 (def t-account-2 (acc/->account :acc2 :int 0 []))
 (def test-mortgage
-  (asset/->mortgage
+  (asset/->mortgage-pool
     {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
     {:last-paid-date nil}
     20000 0.01 48 nil))
@@ -45,7 +45,19 @@
     (is (< (Math/abs (- sum-prin 11188.39728)) 0.001))
 
     (is (= (.rowCount pool-cf) 24))
+    ))
+
+(deftest pool-cf-with-assump
+  ; single default
+  (let [pool-assump [:cdr 0.3 [(jt/local-date 2015 1 1) (jt/local-date 2018 1 1)]]
+        p (p/->pool [at-t/test-mortgage] (jt/local-date 2016 6 1))
+        pool-cf (.project-cashflow p pool-assump)]
+    pool-cf
     )
+  ; single prepayment
+
+  ; default + prepayment
+
   )
 
 (deftest pool-agg-test
@@ -78,9 +90,12 @@
     (is (= e2 (jt/local-date 2017 12 31)))
     (is (= e3 (jt/local-date 2018 5 5)))
 
-
     )
   )
+
+
+
+
 
 
 (comment

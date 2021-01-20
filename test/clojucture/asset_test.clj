@@ -17,13 +17,13 @@
 
 
 (def test-mortgage
-  (asset/->mortgage
+  (asset/->mortgage-pool
     {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
     {:last-paid-date nil}
     20000 0.01 48 nil))
 
 (def test-seasoned-mortgage
-  (asset/->mortgage
+  (asset/->mortgage-pool
     {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
     {:last-paid-date nil}
     12000 0.01 28 nil))
@@ -94,20 +94,20 @@
 
   (deftest test-mortgage-1
     (let [mort-info {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
-          mort (asset/->mortgage mort-info nil 20000 0.01 48 nil)
+          mort (asset/->mortgage-pool mort-info nil 20000 0.01 48 nil)
           mort-cf (.project-cashflow mort)
 
           ; mortgage with prepayment history
           ; ppy-histroy {:prepayment [ {:date (jt/local-date 2015 5 5) :amount 3000}  ]}
           mort2-hist {:last-pmt-reset {:date (jt/local-date 2015 5 5) :balance 5856.92 :term 36 :period-rate 0.01}}
-          mort2 (asset/->mortgage mort-info mort2-hist 4132.55 0.01 24 nil)
+          mort2 (asset/->mortgage-pool mort-info mort2-hist 4132.55 0.01 24 nil)
           mort2-cf (.project-cashflow mort2)
 
           ;float mortgage
           index-curves (assump/setup-curve :LDR5Y+ [(jt/local-date 2015 10 1)] [0.049])
           mort3-float-info {:index :LDR5Y+ :spread 0.001 :reset ""}
           mort3-info {:float-info mort3-float-info :start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 60 :balance 20000 :period-rate 0.01}
-          mort3 (asset/->mortgage mort3-info nil 30000 0.02 20 nil)]
+          mort3 (asset/->mortgage-pool mort3-info nil 30000 0.02 20 nil)]
 
 
       (is (= (.rowCount mort-cf) 49))
@@ -124,7 +124,7 @@
 
 (deftest test-mortgage-assump
   (let [mort-info {:start-date (jt/local-date 2014 5 5) :periodicity (jt/months 1) :term 48 :balance 20000 :period-rate 0.01}
-        mort (asset/->mortgage mort-info nil 20000 0.01 48 nil)
+        mort (asset/->mortgage-pool mort-info nil 20000 0.01 48 nil)
         assump-info {:prepay-rate [] :default-rate [] :recovery-lag 10 :recovery-rate 0.4}]))
 
 

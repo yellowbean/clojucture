@@ -1,13 +1,15 @@
 [![Build Status](https://travis-ci.com/yellowbean/clojucture.svg?branch=master)](https://travis-ci.com/yellowbean/clojucture)
 
-:warning: Pre-alpha - not yet usable! :warning: 
+:warning: Pre-alpha - not yet usable! :warning:
+> _Clojucture_ = _cloju_ re + stru _cture_ finance
 
 ### Clojucture
+
 a library that provides buidling blocks for:
+
 * modelling structure products (CLO/MBS/ABS).
 * structuring deals, cashflow projection and investment analysis
 * monitoring and ongoing operation support (accounting, issuance reports etc)
-
 
 ### Overview
 ### Clojucture features
@@ -17,27 +19,25 @@ a library that provides buidling blocks for:
 * Heavily using `core.match` and `com.rpl.specter` to manage complexity of structured finance world
 * Shipped with a REST server for centerilized operation
 * Visualized waterfall presentation with [graphviz](https://www.graphviz.org/)
+
 ### Building blocks for structure finance world
+
 * Structuring
 * Investment analysis
 * Issuance solution
 
-[Development Guide](https://github.com/yellowbean/clojucture/wiki/Internal-Development-Guide)
+### Reference
 
+* [Website](https://)
+* [Development Guide](https://github.com/yellowbean/clojucture/wiki/Internal-Development-Guide)
 
 Credits
 ----
-* [clojure 1.10](https://clojure.github.io/clojure/) 
+
+* [clojure 1.10](https://clojure.github.io/clojure/)
 * [jTablesaw](https://jtablesaw.github.io/tablesaw/)
 * [core.match](https://https://github.com/clojure/core.match)
 * [com.rpl.specter](https://https://github.com/redplanetlabs/specter)
 * [java.time](http://dm3.github.io/clojure.java-time/index.html)
 
-Resource
-----
-* [learning Clojure](https://practicalli.github.io/clojure/)
-
-
-
-Copyright (c) 2018 - 2019 . All rights reserved.
-always.zhang@gmail.com 
+Copyright (c) 2018 - 2020 . All rights reserved. always.zhang@gmail.com 

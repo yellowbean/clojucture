@@ -7,6 +7,7 @@
     [clojucture.account :as acc]
     [clojucture.tranche :as b]
     [clojucture.spv :as spv]
+    [clojucture.trigger :as t]
     [com.rpl.specter :as s]
     )
   (:import (java.time LocalDate)
@@ -119,7 +120,7 @@
            (let [
                  acc-to-pay (s/select-one [:projection :account source-acc] updating-deal)
                  ;bond-to-pay (s/select-one [:projection :bond bond-key s/VAL ] updating-deal)
-                 bond-to-pay (get-in updating-deal [:projection :bond bond-key])
+                 bond-to-pay (s/select-one [:projection :bond bond-key] updating-deal)
                  [new-acc bond-u] (b/pay-bond-interest pay-date acc-to-pay bond-to-pay)
                  ]
              ;(s/select-any [:update :bond bond-key] d)
@@ -143,8 +144,8 @@
                [:projection
                 (s/multi-path
                   [:account source-acc (s/terminal-val new-acc)]
-                  [:account source-acc (s/terminal #(acc/update-target-account new-acc %))]
-                  [:bond bond-key (s/terminal-val new-bond)] )
+                  [:account target-acc (s/terminal #(acc/update-target-account new-acc %))]
+                  [:bond bond-key (s/terminal-val new-bond)])
                 ] updating-deal
                )
              )
@@ -205,39 +206,44 @@
 
 
 (defn- branching [n deal]
-  (let [trg-name (-> n first name)]
-    (spv/query-deal deal [:projection :trigger (keyword (str/replace trg-name "?" "")) :status])
-    )
-  )
+  "check a given trigger node breached or not under context of deal"
+  (let [trg-name (-> n first name (str/replace "?" ""))]
+    (spv/query-deal deal [:projection :trigger (keyword trg-name) :status])))
 
+(defn- update-triggers-status [deal]
+  "update trigger status"
+  (s/transform [:projection :trigger s/MAP-VALS] #(t/test-trigger % deal) deal))
 
 (defn walk-waterfall
   ([tree deal ^LocalDate pay-date]
    (walk-waterfall tree deal pay-date 7)) ;maximum steps = 100
   ([tree deal ^LocalDate pay-date ^Integer max-walks]
    (loop [tr  tree updating-deal deal path [] i 0]
-     ;(prn "paths " path)
      (if (or (and (= tr tree) (not= i 0)) (> i max-walks))
-       ; final result
-       [(s/transform [:projection :period] inc updating-deal) path]
-       ; looping
-       (let [current-node (zip/node tr)]
-         (cond ; if it is a trigger branch
+       [(s/transform [:projection :period] inc updating-deal) path] ; final result
+       (let [current-node (zip/node tr)
+             updating-deal (update-triggers-status updating-deal)] ; looping
+         (cond                                              ; if it is a trigger branch
            (and (zip/branch? tr) (is-trigger current-node))
            (->
-             (if (branching current-node updating-deal)       ;if true, go left node,delete right node ;   false -> go right node, delete left node
-                (-> tr zip/down zip/right zip/down zip/right (zip/replace nil) zip/left)
-                (-> tr zip/down zip/right zip/down (zip/replace nil) zip/right))
+             (if (branching current-node updating-deal)
+               ;if true, go left node,delete right node ;
+               ; false -> go right node, delete left node
+               (-> tr zip/down zip/right zip/down zip/right (zip/replace nil) zip/left)
+               (-> tr zip/down zip/right zip/down (zip/replace nil) zip/right))
              (recur updating-deal path (inc i)))
 
-           (zip/branch? tr); if it is a branch -> which contains a list of actions to be executed
+           (zip/branch? tr)                                 ; if it is a branch -> which contains a list of actions to be executed
            (recur (zip/next tr) updating-deal path (inc i))
 
            (nil? current-node)
            (recur (zip/up tr) updating-deal path (inc i))
 
-           :else ; if it is a node
-           (recur (zip/next tr) (distribute updating-deal current-node pay-date) (conj path current-node) (inc i))
+           :else                                            ; if it is a node
+           (recur (zip/next tr)
+                  (distribute updating-deal current-node pay-date)
+                  (conj path current-node)
+                  (inc i))
            ))
        )
      )

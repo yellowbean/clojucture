@@ -6,6 +6,7 @@
     [clojure.core.match :as m]
     [clojure.string :as str]
     [medley.core :as ml]
+    [com.rpl.specter :as s]
     ;[clojucture.util-cashflow :as cfu]
     )
 
@@ -13,7 +14,7 @@
            [java.time LocalDate]
            [java.time.temporal ChronoUnit]
            [org.apache.commons.lang3 ArrayUtils]
-           [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn]
+           [tech.tablesaw.api Table DoubleColumn DateColumn StringColumn BooleanColumn Row]
            [tech.tablesaw.columns AbstractColumn AbstractColumnType]
            [tech.tablesaw.columns.strings StringColumnType]
            [tech.tablesaw.columns.dates DateColumnType]
@@ -154,11 +155,7 @@
 
 
 
-(defn period-pmt
-  [balance n-per period-rate]
-  (let [c (Math/pow (+ 1 period-rate) n-per)
-        a (/ (* period-rate c) (- c 1))]
-    (* a balance)))
+
 
 
 (defn cal-mid-between-dates
@@ -401,7 +398,7 @@
             :else (throw (Exception. "not-match-table"))
             )
    )
-  ([name columns]                                           ;table with columns were described in map
+  ([^String name columns]                                   ;table with columns were described in map
    (let [t (Table/create name)
          column-list (map #(gen-column %) columns)
          flow_array (into-array AbstractColumn column-list)]
@@ -426,7 +423,7 @@
              (StringColumn/create column-name (into-array String v))
              {:type :bool :values v}
              (BooleanColumn/create column-name (boolean-array v))
-             :else :gen-column-failure
+             :else (throw (Exception. "Error in generating Column"))
              )))
 
 (defn union-column
@@ -541,8 +538,8 @@
 
 
 (defn -cal-due-interest
-  ([ ^Double balance ^LocalDate start-d ^LocalDate end-d day-count ^Double rate]
-   (let [int-due-rate (cal-period-rate start-d end-d rate day-count) ]
+  ([^Double balance ^LocalDate start-d ^LocalDate end-d day-count ^Double rate]
+   (let [int-due-rate (cal-period-rate start-d end-d rate day-count)]
      (* balance int-due-rate)))
   ([balance start-d end-d day-count rate arrears]
    (+
@@ -568,7 +565,7 @@
 (defn strings [x]
   (into-array String x))
 
-(defn columns [ x ]
+(defn columns [x]
   (into-array AbstractColumn x))
 
 
@@ -604,5 +601,97 @@
 (defn list-to-map-by-info [l f]
   "convert a list of maps into a single map with a key nested in `info` "
   (-> (fn [m e]
-        (assoc m (get-in e [:info f] ) e))
+        (assoc m (get-in e [:info f]) e))
       (reduce {} l)))
+
+
+
+(defn stmts-to-ts [^String n stmts]
+  "generate a time-series dataframe from statements "
+  (let [cash (s/select [s/ALL :amount] stmts)
+        ds (s/select [s/ALL :date] stmts)
+        ]
+    (gen-table n [
+                  {:name :cash :type :cash :values cash}
+                  {:name :date :type :date :values ds}])
+    )
+  )
+
+(defn stmts-to-df [^String n stmts]
+  (let [ds (s/select [s/ALL :date] stmts)
+        fs (s/select [s/ALL :from s/NAME] stmts)
+        ts (s/select [s/ALL :to s/NAME] stmts)
+        amts (s/select [s/ALL :amount] stmts)
+        ; :info field in stmt structure is not populated yet
+        ]                                                   ;ds
+    (gen-table n [{:name :date :type :date :values ds}
+                  {:name :from :type :string :values fs}
+                  {:name :to :type :string :values ts}
+                  {:name :amount :type :double :values amts}
+                  ])))
+
+(defprotocol ICol-to-str
+  (cstr [x])                                                ;
+  )
+
+(extend-type DateColumn
+  ICol-to-str
+  (cstr [x] (map #(.toString %) (.asList x))))
+
+(extend-type DoubleColumn
+  ICol-to-str
+  (cstr [x] (map #(format "%.2f" %) (.asList x))))
+
+(extend-type StringColumn
+  ICol-to-str
+  (cstr [x] (.asList x)))
+
+
+
+(defn- prefix-col-name
+  "prefix a column's name with table name"
+  ([^Table x ^String c]
+   (let [tn (.name x)
+         nc (.setName (.column x c) (str tn "." c))]
+     x))
+
+  ([^Table x]
+   (let [t-cols-names (remove #{"date"} (.columnNames x))
+         nc (doseq [t-c-n t-cols-names] (prefix-col-name x t-c-n))]
+     x)))
+
+(defn- keep-col-in-ts [^Table x ^String c]
+  "drop all columns in a time-series but remain only one column"
+  (->
+    (.retainColumns x (strings [c "date"]))
+    (prefix-col-name c)))
+
+(defn reduce-ts [^Table x ^Table y ^String col]
+  "a reduce function to join two table with 'col' column "
+  (let [yr (prefix-col-name y col)]
+    (.fullOuter
+      (.join x (strings ["date"]))
+      (into-array Table [yr]))))
+
+
+(defn merge-df-list-by-column [t-list ^String col]
+  "a consolidate function to join a list of table by certain column `col` "
+  (let [named-t-list (map #(prefix-col-name %) t-list)
+        join-by-date (fn [x y]
+                       (.fullOuter
+                         (.join x (strings ["date"]))
+                         (into-array Table [y]))
+                       )]
+    (reduce join-by-date named-t-list)
+    ))
+
+(defn dump-deal-html [x output-path]
+  "For debug Purpose: Dump deal into a viewable html "
+  (let [bond-list (s/select [:projection :bond s/MAP-VALS] x)
+        output ""
+        ]
+    (str output
+         ;     (for [b bond-list]
+         ;       (.print (stmts-to-df (get b :stmts))))
+         )
+    ))

@@ -136,7 +136,9 @@
               :受托报告     {
                          "2019-01-01" {
 
-                                       :新增违约 10000.0
+                                       :新增违约 10000.0,
+                                       :累计违约 10000.0,
+
                                        }
                          }
 
@@ -218,8 +220,9 @@
     ;(prn (get-in finish-run-deal [:projection :bond :A-2]))
 
     ;(is (= (get-in jy-bank [:projection :agg-map])))
-
-    ;(println pool-cf)
+    ;(prn (spv/query-deal jy-bank [:trustee-report :last-default-balance]))
+    (is (= 10000.0
+           (spv/query-deal jy-bank [:trustee-report :last-default-balance])))
     )
   )
 
@@ -264,7 +267,7 @@
                              :d {:name   :default :type :cdr
                                  :dates  [(jt/local-date 2017 1 1) (jt/local-date 2049 1 1)]
                                  :values [0.5]}})
-        ;deal-after-run (cn/run-deal jy-bank assmp)
+        deal-after-run (cn/run-deal jy-bank assmp)
         ]
 
     ;(println (s/select [:projection :bond :A-1] deal-after-run))

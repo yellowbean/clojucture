@@ -2,10 +2,11 @@
   (:require [clojure.test :refer :all]
             [clojucture.util :as u]
             [clojucture.io.csv :as io-csv]
+            [clojucture.io.html :as io-html]
             [clojucture.util-cashflow :as cfu]
             [java-time :as jt]
             )
-  (:import [java.time LocalDate]))
+  (:import [tech.tablesaw.aggregate AggregateFunctions]))
 
 
 
@@ -134,10 +135,27 @@
     (is (= 20.0 (.get int-col 1)))
     (is (= 20.0 (.get int-col 2)))
 
+
     )
   )
 
 
+(deftest tSumByDate
+
+  (let [t-cf (io-csv/read-cf "pool_cfs_agg_by_date.csv" [:date :double :double])
+        agg-cf (cfu/sum-cashflow-by-date t-cf "principal" "dates")
+        d-col (.column agg-cf "dates")
+        p-col (.column agg-cf 1)
+        ]
+    (is (= (.get d-col 0) (jt/local-date 2019 1 1)))
+    (is (= (.get d-col 1) (jt/local-date 2019 3 1)))
+
+
+    (is (= (.get p-col 0) 585.0))
+    (is (= (.get p-col 1) 525.0))
+
+    )
+  )
 (comment
 
   (deftest tCashflowJoinDates

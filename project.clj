@@ -1,4 +1,4 @@
-(defproject clojucture "0.0.4-SNAPSHOT"
+(defproject clojucture "0.0.6-SNAPSHOT"
   :description "a clojure library for modelling & analysis structure products (CLO/MBS/ABS)"
   :url "https://yellowbean.github.io/clojucture/"
   :license {:name "Eclipse Public License"
@@ -23,12 +23,10 @@
                  [org.clojure/tools.cli "0.4.2"]
                  [medley "1.2.0"]
                  [com.rpl/specter "1.1.3"]
-
                  [ring "1.7.1"]
                  [compojure "1.6.1"]
-
+                 [hiccup "1.0.5"]
                  [rm-hull/infix "0.3.3"]
-
                  ]
   :plugins [
             ;[lein-virgil "0.1.9"]

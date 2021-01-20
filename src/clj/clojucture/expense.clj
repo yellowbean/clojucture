@@ -18,21 +18,31 @@
 (defn cal-due-expense [deal exp calc-date]
   "calculate due expense during the projection"
   (m/match (into {} exp)
-
            {:info {:base epr :pct pct} :arrears ars}
-           (let [deal-val (spv/query-deal deal epr) ]
+           (let [deal-val (spv/query-deal deal epr)]
              (-> (* deal-val pct) (+ ars)))
 
-           {:info {:base epr :annual-pct pct :day-count dc} :last-paid-date lpd  :arrears ars}
-           (let [deal-val (spv/query-deal deal epr) ]
+           {:info {:base epr :annual-pct pct :day-count dc} :last-paid-date lpd :arrears ars}
+           (let [deal-val (spv/query-deal deal epr)
+                 ;_ (prn "exr " epr )
+                 ;_ (prn "deal-val" deal-val)
+                 ]
              (-> (u/get-period-rate (Period/between lpd calc-date) pct dc)
-                 (* deal-val) (+ ars) ))
+                 (* deal-val) (+ ars)))
 
-           {:info {:name x} :balance bal }
-             bal
+           {:info {:name x} :balance bal}
+           bal
 
-           :else (throw (Exception. "Not match due expense formula"))
-           )
+           {:info {:start-date sd :interval intv :balance bal} :arrears ars :last-paid-date lpd}
+           (let [fee-pay-dates (u/gen-dates-range sd intv)
+                 missed-periods (->>
+                                  (drop-while #(jt/before? % lpd) fee-pay-dates)
+                                  (take-while #(jt/before? % calc-date)))
+                 unpaid-balance (* bal (count missed-periods))
+                 ]
+             (+ ars bal unpaid-balance))
+
+           :else (throw (Exception. "Not match due expense formula")))
   )
 
 (defn pay-expense-at-base
@@ -52,6 +62,7 @@
 
 
 (defn -pay-expense-amount [^LocalDate d acc expense amt]
+  "actual pay an expense by certain amount from an account"
   (let [draw-amount (min (.balance acc) amt)
         new-acc (.try-withdraw acc d (:name acc) draw-amount)]
     [new-acc (.receive expense d draw-amount)]
@@ -184,17 +195,18 @@
 (defn setup-expense [x]
   ;(prn "matching exp: " x)
   (m/match x
-           {:name n :info {:base bse :annual-pct pct } :last-paid-date pd :arrears ars}
+           {:name n :info {:base bse :annual-pct pct} :last-paid-date pd :arrears ars}
            (->pct-expense-by-amount {:name n :base bse :annual-pct pct :day-count :ACT_365} [] (jt/local-date pd) ars)
 
            {:name n :balance v :last-paid-date pd}
            (->amount-expense {:name n} [] (jt/local-date pd) v)
 
-           {:name n :info {:base bse :pct pct } :last-paid-date pd :arrears ars}
+           {:name n :info {:base bse :pct pct} :last-paid-date pd :arrears ars}
            (->pct-expense-by-rate {:name n :base bse :pct pct} [] (jt/local-date pd) ars)
 
-           :else  (throw (Exception. "Not matching Expense"))
-           )
+           {:name n :info {:start-date sd :interval intv} :last-paid-date pd :arrears ars}
+
+           :else (throw (Exception. "Not matching Expense")))
   )
 
 

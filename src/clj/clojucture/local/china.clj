@@ -52,7 +52,7 @@
   (m/match a
            {:初始面额 original-bal :当前面额 current-bal :年利率 annual-rate :摊销 amort-type :初始日 start-date
             :支付日期 pay-dates :初始期限 original-term :当前期限 remain-term}
-           (asset/->mortgage
+           (asset/->mortgage-pool
              {:start-date  (rb/parsing-dates start-date) :balance original-bal :periodicity (jt/months 1) :term original-term
               :period-rate (/ annual-rate 12)}
              nil current-bal (/ annual-rate 12) remain-term nil)
@@ -60,14 +60,15 @@
 
            :else nil
            )
-
   )
+
 
 (defn setup-assets [d u]
   (let [assets (get-in d [:snapshot u :资产池 :资产清单])
         coll-type (get-in d [:snapshot u :资产池 :类型])]
     (m/match coll-type
              :住房按揭 (map setup-asset-mortgage assets)
+             ;:w:租赁债权 (map setup-asset-leasing assets)
              :else nil)
     ))
 
@@ -138,17 +139,26 @@
         (recur (assoc r k (setup-bond v)) (next bonds))
         r))))
 
-(defn setup-trustee-report [ tr-report ]
-  (set/rename-keys tr-report
-                   {:新增违约 :new-default-balance}
-                   )
+(defn setup-trustee-report [tr-reports]
+  (do
+    (prn tr-reports)
+    (->
+      tr-reports
+      (set/rename-keys
+        {:新增违约 :new-default-balance,
+         :累计违约 :cumulative-default-balance}
+        )
+
+      ))
+
+  ;tr-reports
   )
 
 (defn setup-trustee-reports [d]
   (->>
-      (set/rename-keys d {:受托报告 :trustee-report})
-      (s/transform [:trustee-report s/ALL ] setup-trustee-report )
-      ))
+    (set/rename-keys d {:受托报告 :trustee-report})
+    (s/transform [:trustee-report s/MAP-VALS] setup-trustee-report)
+    ))
 
 
 
@@ -165,6 +175,7 @@
          triggers (setup-triggers deal-info u)
          expense (setup-expenses deal-info u)
          base-snapshot-date (jt/local-date u)
+         ;trustee-reports (setup-trustee-reports deal-info)
 
          proj-start-index (get-in deal-info [:snapshot u :信息 :当前期数])
          ]
@@ -176,10 +187,13 @@
          (assoc-in [:update :expense] expense)
          (assoc-in [:update :account] accounts)
          (assoc-in [:update :trigger] triggers)
+         ;(assoc-in [:trustee-report] trustee-reports)
          (assoc-in [:projection :period] (inc proj-start-index))
-         (assoc-in [:waterfall] (zip/vector-zip (:分配方式 deal-info))
-                   )
-         )))
+         (assoc-in [:waterfall] (zip/vector-zip (:分配方式 deal-info)))
+         setup-trustee-reports
+         )
+
+     ))
   ([deal-info]
    (let [avail-updates (:snapshot deal-info)
          latest (-> (sort-by jt/local-date (keys avail-updates)) (last))]

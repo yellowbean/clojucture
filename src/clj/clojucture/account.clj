@@ -19,18 +19,18 @@
 
 ;; building block functions in account
 (defn -withdraw [x ^LocalDate d dest ^Double amount]
-  (let [new-stmt (->stmt d (:name x) dest (- amount) nil)]
+  (let [new-stmt (->stmt d (:name x) (or dest :nil) (- amount) nil)]
     (if (zero? amount)
-      x ; it doesn't have to create a new transaction if amount = 0
+      (update x :stmts conj (->stmt d (:name x) (or dest :nil) 0.0 nil)) ; it doesn't have to create a new transaction if amount = 0
       (-> x
           (update :balance - amount)
-          (update :stmts conj new-stmt)) ) ))
+          (update :stmts conj new-stmt)))))
 
 
 (defn -deposit [x ^LocalDate d source ^Double amount]
-  (let [new-stmt (->stmt d source (:name x) amount nil)]
+  (let [new-stmt (->stmt d source (or (:name x) :nil) amount nil)]
     (if (zero? amount)
-      x ; it doesn't have to create a new transaction if amount = 0
+      x                                                     ; it doesn't have to create a new transaction if amount = 0
       (-> x
           (update :balance + amount)
           (update :stmts conj new-stmt)))))
@@ -44,7 +44,7 @@
              {:from source}
              (s/select [s/ALL #(= % (:from %) source)] stmts)
 
-             :else :not-match-stmts-pattern
+             :else (throw (Exception. "Not match select stmts pattern"))
              )
 
     )
@@ -139,21 +139,5 @@
            )
   )
 
-(defn view-stmts [stmts]
-  (let [
-        ds (s/select [s/ALL :date] stmts)
-        fs (s/select [s/ALL :from s/NAME] stmts)
-        ts (s/select [s/ALL :to s/NAME] stmts)
-        amts (s/select [s/ALL :amount] stmts)
-        ; :info field in stmt structure is not populated yet
-        ]
-    ;ds
-    (u/gen-table "statements" [{:name :date :type :date :values ds}
-                               {:name :from :type :string :values fs}
-                               {:name :to :type :string :values ts}
-                               {:name :amount :type :double :values amts}
-                               ])
 
-    )
 
-  )

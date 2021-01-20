@@ -39,12 +39,8 @@
         a (/ (* period-rate c) (- c 1))]
     (* a balance)))
 
-;(defn get-current-pmt [history info]
-;  (if-let [reset-info (:last-pmt-reset history)]
-;    (period-pmt (:balance reset-info) (:term reset-info) (:period-rate reset-info))
-;    (period-pmt (:balance info) (:term info) (:period-rate info))))
 
-(defrecord mortgage [info history balance period-rate remain-term opt]
+(defrecord mortgage-pool [info history balance period-rate remain-term opt] ; representing a pool of mortgage
   Asset
   (project-cashflow [x]
     (let [
@@ -296,8 +292,8 @@
 
            {:type          :mortgage :current-balance bal :annual-rate ar :originate-date od :remain-term rt
             :original-term ot :original-balance ob}
-           (->mortgage {:start-date (jt/local-date od) :periodicity (jt/months 1)
-                        :term ot :balance ob :period-rate (/ ar 12)} nil bal (/ ar 12) rt nil)
+           (->mortgage-pool {:start-date (jt/local-date od) :periodicity (jt/months 1)
+                             :term       ot :balance ob :period-rate (/ ar 12)} nil bal (/ ar 12) rt nil)
 
            ;(map->mortgage (dissoc x :type))
 

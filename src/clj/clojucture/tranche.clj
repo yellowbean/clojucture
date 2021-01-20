@@ -3,6 +3,7 @@
             [java-time :as jt]
             [clojucture.account :as acc]
             [clojucture.util :as u]
+            [clojucture.util-cashflow :as ucf]
             [clojure.core.match :as m])
   (:import
     [tech.tablesaw.api Table DoubleColumn DateColumn]
@@ -94,7 +95,9 @@
 
 
 (defn pay-bond-interest-pr [d acc bond-map]
-  "pay bond interest by pro-rata, return [ acc, new bond-map]"
+  "pay bond interest by pro-rata, return a vector of [ acc, new-bond-map]
+   acc -> new account after pay
+   new-bond-map -> a new map of bonds after pay "
   (let [
         bond-list (vals bond-map)
         all-due-int (map #(.cal-due-interest %2 d) bond-list)
@@ -112,7 +115,7 @@
 (defn pay-bond-interest [^LocalDate d acc bond]
   "pay bond interest from an account"
   (let [due-int (.cal-due-interest bond d)
-        acc-after-paid (.try-withdraw acc d (:name bond) due-int)
+        acc-after-paid (.try-withdraw acc d (get-in bond [:info :name]) due-int)
         interest-paid (Math/abs (:amount (.last-txn acc-after-paid)))
         interest-arrears (max 0 (- due-int interest-paid))]
     [acc-after-paid
@@ -152,8 +155,8 @@
            )
   )
 
-(defn view-bond-flow [b]
-  (let [statements (:stmts b)]
-
-    )
-  )
+(defn bond-flow [b]
+  (let [bn (get-in b [:info :name])]
+    (-> (u/stmts-to-df bn (:stmts b))
+        (ucf/add-beg-bal-column (:balance bn)))
+    ))

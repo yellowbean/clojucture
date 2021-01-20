@@ -1,10 +1,44 @@
 (ns clojucture.expense_test
   (:require [clojure.test :refer :all]
+            [clojure.java.io :as io]
+            [clojure.edn :as edn]
+            [clojucture.builder :as br]
             [java-time :as jt]
             [clojucture.account :as acc]
-            [clojucture.expense :as exp])
+            [clojucture.expense :as exp]
+            [clojucture.local.nowhere :as nw]
+            )
   )
 
+(def test-deal
+  (-> (edn/read-string (slurp (io/resource "basic02.txt")))
+      (br/load-deal)))
+
+
+(deftest test-exp-simple-balance
+  (let [simple-exp (exp/setup-expense
+                     {:name "simple-balance-exp" :balance 500 :last-paid-date (jt/local-date 2020 10 10)})
+        due-exp-1 (exp/cal-due-expense nil simple-exp (jt/local-date 2020 10 10))
+        due-exp-2 (exp/cal-due-expense nil simple-exp (jt/local-date 2020 10 11))
+        ]
+    (is (zero? (- due-exp-1 500)))
+    (is (zero? (- due-exp-2 500)))
+    ))
+
+
+(deftest test-exp-annual-pct
+  (let [annual-pct-exp (exp/setup-expense {:name           "trustee fee"
+                                           :info           {:base [:projection :pool :sum-current-balance] :annual-pct 0.001 :day-count :30_365}
+                                           :last-paid-date (jt/local-date 2020 11 13) :arrears 0}
+                                          )
+
+        ;run-d (nw/run-deal test-deal nil)
+        ;due-exp (exp/cal-due-expense  run-d annual-pct-exp (jt/local-date 2021 01 10))
+        ]
+    ;(prn due-exp)
+
+    )
+  )
 
 
 (comment

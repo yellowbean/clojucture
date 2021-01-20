@@ -6,6 +6,7 @@
             [clojucture.pool :as p]
             [java-time :as jt]
             [clojucture.util :as u]
+            [clojucture.util-cashflow :as cfu]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.core.match :as m]
@@ -174,8 +175,11 @@
 
 
 (defn get-pool-collection
+  ([d]
+   (get-in d [:projection :pool-collection]))
+
   ([d ^Integer per]
-   (let [pool-cf (get-in d [:projection :pool-collection])]
+   (let [pool-cf (get-pool-collection d)]
      (if (> per (.rowCount pool-cf))
        (throw (Exception. (str "Invalid Per for Pool Size" per ", pool cf row count " (.rowCount pool-cf))))
        (doto (Row. pool-cf) (.at per)))))
@@ -185,19 +189,36 @@
      (case field-type
        :double (.getDouble pc (name field))
        :date (.getDate pc (name field))
-       ))))
+       )))
+
+  )
 
 (defn query-deal [d e]
-  "query deal statistic by expression "
-  ;(prn "Matching " e)                                       ;
+  "query deal status by expression "
   (m/match e
            [:projection :bond :sum-current-balance]
            (reduce + 0 (s/select [:projection :bond s/ALL :balance] d))
 
+           [:projection :bond :current-balance bnd]         ; query current balance of a certain bond
+           (reduce + 0 (s/select [:projection :bond bnd :balance] d))
+
            [:projection :pool :sum-current-balance]
-           (reduce + 0 (s/select [:projection :pool :assets s/ALL :current-balance] d))
+           (reduce + 0 (s/select [:projection :pool :assets s/ALL :balance] d))
 
 
+           [:projection :pool :total-default-balance]
+           (let [current-deal-period (get-in d [:projection :period])]
+             (+
+               (reduce +
+                       (for [x (range 1 current-deal-period)]
+                         (get-pool-collection d x :default :double)))
+               (query-deal d [:trustee-report :last-default-balance])))
+
+           [:projection :pool :total-default-percentage]
+           (/
+             (query-deal d [:projection :pool :total-default-balance])
+             (query-deal d [:update :pool :original-balance])
+             )
            [:projection :trigger trg :status]
            (:status (s/select-one [:projection :trigger trg] d))
 
@@ -207,8 +228,25 @@
            [:update :pool :sum-current-balance]
            (reduce + 0 (s/select [:update :pool :assets s/ALL :balance] d))
 
+           [:update :pool :original-balance]
+           (reduce + 0 (s/select [:update :pool :assets s/ALL :info :balance] d))
+
+
+
+
            [:trustee-report :sum-new-default-current-balance]
            (reduce + 0 (s/select [:trustee-report s/ALL :new-default-balance] d))
+
+           [:trustee-report :last-default-balance]
+           (do
+             (if-let [r (s/select-one [:trustee-report s/MAP-VALS :cumulative-default-balance] d)]
+               r
+               (throw (Exception. "No latest cumulative default balance found")))
+
+             )
+
+           ;[:trustee-report :last-default-balance ]
+           ;(s/select [:trustee-report ] d )
 
            [:current-collection (c-field-list :guard list?)]
            (map #(query-deal d [:current-collection %]) c-field-list)
@@ -224,12 +262,24 @@
 
 
 
+           [:post-collection :cumulative-default-balance]
+           (let [history-default-balance (query-deal d [:trustee-report :last-default-balance])
+                 projection-cum-default-balance (query-deal d [:current-collection :cumulative-default-balance])]
+             (+ history-default-balance projection-cum-default-balance))
+
+           [:post-collection :cumulative-default-rate]
+           (let [pool-init-balance (+ (s/select [:update :pool :list s/ALL :original-balance] d))
+                 cum-default-bal (query-deal d [:post-collection :cumulative-default-balance])]
+             (/ cum-default-bal pool-init-balance))
+
            [:post-collection :sum-new-default-current-balance] ; history + projection
            (let [history-new-default-bal (query-deal d [:trustee-report :sum-new-default-current-balance])
                  current-deal-per (get-in d [:projection :period])
                  proj-new-default-bal (reduce +
                                               (for [x (range 1 current-deal-per)]
-                                                (get-pool-collection d x :default :double)))]
+                                                (get-pool-collection d x :default :double)))
+
+                 ]
              (+ proj-new-default-bal history-new-default-bal))
 
            [:post-dist source-key :transfer-to target-key :sum-amount] ;在以往 所有的“信托分配日”按照信托合同第 9.2(b)(i)项已从“本金分账户”转至“收 入分账户”的金额
@@ -271,3 +321,23 @@
 (defn copy-update-to-proj [d]
   (let [cpy-fn (fn [v f] (assoc-in v [:projection f] (get-in v [:update f])))]
     (reduce cpy-fn d [:account :expense :trigger :bond :pool])))
+
+(defn query-projection [d]
+  "build a projection dataframe with all statements from account,bond,expenses"
+  (let [acc-list (s/select [:projection :account s/MAP-VALS] d)
+        acc-df-list (map #(u/stmts-to-df (name (:name %)) (:stmts %)) acc-list)
+        acc-cf-df-list (map #(cfu/sum-cashflow-by-date % "amount" "date") acc-df-list)
+
+        bnd-list (s/select [:projection :bond s/MAP-VALS] d)
+        bnd-df-list (map #(u/stmts-to-df (name (get-in % [:info :name])) (:stmts %)) bnd-list)
+        bnd-cf-df-list (map #(cfu/sum-cashflow-by-date % "amount" "date") bnd-df-list)
+
+        spv-cf-df (s/select-one [:projection :pool-collection] d)
+        ]
+    {:cashflow   {:account acc-cf-df-list :bond bnd-cf-df-list
+                  :pool-cf (get-pool-collection d)}
+     :statements {:account acc-df-list :bond bnd-df-list}
+
+     }
+    )
+  )
