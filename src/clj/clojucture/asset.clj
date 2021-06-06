@@ -40,7 +40,8 @@
     (* a balance)))
 
 
-(defrecord mortgage-pool [info history balance period-rate remain-term opt] ; representing a pool of mortgage
+(defrecord mortgage-pool [info history balance period-rate remain-term opt]
+  ; representing a pool of mortgage
   Asset
   (project-cashflow [x]
     (let [
@@ -88,12 +89,16 @@
           (let [
                 f-bal last-bal                              ; beginning balance
                 int-amount (* f-bal period-rate)            ; current interest amount
-                prin-amount (- current-period-pmt int-amount)       ; principal amount
+                prin-amount (- current-period-pmt int-amount) ; principal amount
                 ppy-bal (* f-bal (first ppy-rate))          ;prepayment balance
                 bal-after-ppy (- f-bal ppy-bal)             ; balance after prepayment
                 def-bal (* bal-after-ppy (first def-rate))  ;default balance
                 bal-after-def (- bal-after-ppy def-bal)     ; balance after default
+                current-pmt (cal-period-pmt bal-after-def remain-term period-rate)
+
+
                 n-bal (- bal-after-def prin-amount ppy-bal def-bal) ; ending balance
+
                 ]
             (recur
               (rest payment-dates)
@@ -149,14 +154,6 @@
       (u/gen-table "cashflow"
                    {:dates    dates :balance bal :principal prin
                     :interest int :rate (double-array period-rate-vector)}))))
-
-
-
-
-
-
-
-
 
 
 (defrecord loan [info current-balance remain-term current-rate opt]
@@ -254,11 +251,7 @@
           fee (double-array period-fee-list)]
 
       (u/gen-table {:name  "cashflow"
-                    :dates dates :balance bal :principal prin :installment-fee fee})))
-
-
-  (project-cashflow [x assump]
-    nil))
+                    :dates dates :balance bal :principal prin :installment-fee fee}))))
 
 
 
@@ -283,7 +276,16 @@
         (u/gen-table {:name "cashflow" :dates dates :rental rental-flow-list}))))
 
 
-  (project-cashflow [x assump]))
+  (project-cashflow [x assump]
+    (let [{default-term :default-term} assump
+          dates (u/gen-dates start-date periodicity (inc default-term))
+          rental-flow-list (->> (take default-term (repeat rental)) (cons 0))]
+      (if (get opt :deposit-balance false)
+        (u/gen-table {:name "cashflow" :dates dates :rental rental-flow-list :deposit (-leasing-gen-deposit-flow (inc term) opt)})
+        (u/gen-table {:name "cashflow" :dates dates :rental rental-flow-list}))
+      ))
+  )
+
 
 
 (defn build-asset [x t]

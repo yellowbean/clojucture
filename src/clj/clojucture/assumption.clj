@@ -101,18 +101,20 @@
   ;                       value : RateAssumption record with range of dates and doubles
   "convert a pool level assumption to asset level"
   (let [ppy-curve (:prepayment assump) ; table type
-        def-curve (:default assump)  ; table type
+        def-curve (:default assump)                         ; table type
         dsa (u/dates ds)
-        apply-rate-fn (fn [ x ]
+        apply-rate-fn (fn [x]
                         (if (nil? x)
                           (double-array (count ds) 0.0)
-                          (.apply x dsa) ) )
+                          (.apply x dsa)))
         ]
     {
      :prepayment-curve (apply-rate-fn ppy-curve)
      :default-curve    (apply-rate-fn def-curve)
      :recovery-curve   :nil
-     :recover-lag      :nil}))
+     :recover-lag      :nil
+     }
+    ))
 
 (defn -build-assump [ x ]
   "dispatch to different assumption type "

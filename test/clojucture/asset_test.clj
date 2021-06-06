@@ -39,20 +39,32 @@
         prin-col (.column tm-1-cf "principal")
         int-col (.column tm-1-cf "interest")
 
-        ;assump-py (RateA)
-
+        ; with 0/0 explicitly
         assump {:settle-date (jt/local-date 2015 1 1)
                 :prepayment  (RateAssumption. "pc" test-mortgage-date-rng (u/ldoubles [0.0]))
                 :default     (RateAssumption. "dc" test-mortgage-date-rng (u/ldoubles [0.0]))}
-        ;tm-1-cf-assump (.project-cashflow test-mortgage assump)
-
+        tm-2-cf (.project-cashflow test-mortgage assump)
+        bal-col-2 (.column tm-2-cf "balance")
+        prin-col-2 (.column tm-2-cf "principal")
+        int-col-2 (.column tm-2-cf "interest")
+        ; with default scenario
+        assump-1 {:settle-date (jt/local-date 2015 1 1)
+                  :prepayment  (RateAssumption. "pc" test-mortgage-date-rng (u/ldoubles [0.0]))
+                  :default     (RateAssumption. "dc" test-mortgage-date-rng (u/ldoubles [0.0]))
+                  }
+        tm-3-cf (.project-cashflow test-mortgage assump)
+        bal-col-3 (.column tm-3-cf "balance")
+        prin-col-3 (.column tm-3-cf "principal")
+        int-col-3 (.column tm-3-cf "interest")
         ]
-    (comment
-      (is (= (.get bal-col 0) 20000.0))
-      (is (> (.get prin-col 4) 336.0))
-      (is (< (.get int-col 4) 191.0))
-      )
+    (is (> (.get bal-col 0) 19673.323))
+    (is (> (.get prin-col 4) 336.0))
+    (is (< (.get int-col 4) 191.0))
 
+    ; explicitly 0/0 should be same with default scenario
+    (is (> (.get bal-col-2 0) 19673.323))
+    (is (> (.get prin-col-2 4) 336.0))
+    (is (< (.get int-col-2 4) 191.0))
     ))
 
 (def test-seasoned-mortgage
@@ -193,7 +205,10 @@
   (let [tleasing (asset/->leasing (jt/local-date 2018 10 1) 24 (jt/months 3) 500 nil)
         tleasing-cf (.project-cashflow tleasing)
         tleasing-with-deposit (asset/->leasing (jt/local-date 2018 10 1) 24 (jt/months 1) 400 {:deposit-balance 100})
-        tleasing-with-deposit-cf (.project-cashflow tleasing-with-deposit)]
+        tleasing-with-deposit-cf (.project-cashflow tleasing-with-deposit)
+
+        tleasing-def-cf (.project-cashflow tleasing {:default-term 5})
+        ]
 
     (is (= (.rowCount tleasing-cf)) 25)
     (is (= (.get (.column tleasing-cf "dates") 0) (jt/local-date 2018 10 1)))
@@ -210,7 +225,10 @@
     (is (= (.get (.column tleasing-with-deposit-cf "rental") 1) 400.0))
     (is (= (.get (.column tleasing-with-deposit-cf "rental") 24) 400.0))
     (is (= (.get (.column tleasing-with-deposit-cf "deposit") 0) 100.0))
-    (is (= (.get (.column tleasing-with-deposit-cf "deposit") 24) -100.0))))
+    (is (= (.get (.column tleasing-with-deposit-cf "deposit") 24) -100.0))
+
+    (is (= (.rowCount tleasing-def-cf)) 6)
+    ))
 
 
 
